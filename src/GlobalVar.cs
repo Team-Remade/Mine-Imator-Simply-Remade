@@ -1,4 +1,5 @@
-﻿using Godot;
+﻿using System.Collections.Generic;
+using Godot;
 
 namespace MineImatorSimplyRemade;
 
@@ -43,4 +44,7 @@ public static class GlobalVar
 
     public static Color VertexRgb = Colors.White;
     public static float VertexAlpha = 1.0f;
+    
+    public static List<string> ValueNames = new();
+    public static List<string> CameraValues = new();
 }

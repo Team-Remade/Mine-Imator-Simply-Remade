@@ -13,6 +13,7 @@ public class ErrorWindow
         errorWindow.Exclusive = true;
         errorWindow.ProcessMode = Node.ProcessModeEnum.Always;
         App.Instance.AddChild(errorWindow);
+        App.Instance.GetTree().Paused = true;
         errorWindow.PopupCentered();
         errorWindow.Confirmed += () =>
         {
