@@ -1,0 +1,41 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Mine Imator Simply Remade"
+run/main_scene="uid://dnvc6r4hmp7j6"
+run/print_header=false
+config/use_custom_user_dir=true
+config/custom_user_dir_name="mineImatorSimplyRemade"
+config/features=PackedStringArray("4.4", "C#", "Forward Plus")
+boot_splash/show_image=false
+config/icon="uid://dl0lv6pvj2vxw"
+
+[debug]
+
+file_logging/log_path="user://logs/app.log"
+
+[display]
+
+window/subwindows/embed_subwindows=false
+window/stretch/mode="canvas_items"
+
+[dotnet]
+
+project/assembly_name="Mine Imator Simply Remade"
+
+[editor]
+
+naming/scene_name_casing=1
+
+[filesystem]
+
+import/blender/enabled=false
