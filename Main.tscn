@@ -1,0 +1,73 @@
+[gd_scene load_steps=7 format=3 uid="uid://b584i04sqrgs1"]
+
+[ext_resource type="Script" uid="uid://bdhq5exua76sa" path="res://src/scripts/UserInterface.cs" id="1_glv2v"]
+[ext_resource type="PackedScene" uid="uid://c5h38h71nyov3" path="res://objects/TheView.tscn" id="2_uu6xs"]
+[ext_resource type="Texture2D" uid="uid://dwblg2e8rtu5m" path="res://sprites/defaultTerrain/terrain/tile040.png" id="3_cm0pq"]
+[ext_resource type="ArrayMesh" uid="uid://c1b0av6mnbf2s" path="res://meshes/Floor.obj" id="4_fos0i"]
+
+[sub_resource type="Environment" id="Environment_3dxm6"]
+background_mode = 1
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lgr22"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+albedo_texture = ExtResource("3_cm0pq")
+texture_filter = 0
+
+[node name="Main" type="Control" node_paths=PackedStringArray("Viewport", "Timeline", "Properties")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_glv2v")
+Viewport = NodePath("HBoxContainer/VBoxContainer/View1")
+Timeline = NodePath("HBoxContainer/VBoxContainer/Control")
+Properties = NodePath("HBoxContainer/Control")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="View1" parent="HBoxContainer/VBoxContainer" node_paths=PackedStringArray("World", "Environment", "WorkCamera") instance=ExtResource("2_uu6xs")]
+layout_mode = 2
+size_flags_vertical = 3
+World = NodePath("SubViewport/World")
+Environment = NodePath("SubViewport/World/WorldEnvironment")
+WorkCamera = NodePath("SubViewport/World/Camera3D")
+
+[node name="SubViewport" type="SubViewport" parent="HBoxContainer/VBoxContainer/View1"]
+handle_input_locally = false
+size = Vector2i(640, 480)
+render_target_update_mode = 4
+
+[node name="World" type="Node3D" parent="HBoxContainer/VBoxContainer/View1/SubViewport"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="HBoxContainer/VBoxContainer/View1/SubViewport/World"]
+environment = SubResource("Environment_3dxm6")
+
+[node name="Camera3D" type="Camera3D" parent="HBoxContainer/VBoxContainer/View1/SubViewport/World"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="HBoxContainer/VBoxContainer/View1/SubViewport/World"]
+material_override = SubResource("StandardMaterial3D_lgr22")
+mesh = ExtResource("4_fos0i")
+
+[node name="Control" type="Control" parent="HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Control" type="Control" parent="HBoxContainer"]
+layout_mode = 2
