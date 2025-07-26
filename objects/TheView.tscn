@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://c5h38h71nyov3"]
+
+[ext_resource type="Script" uid="uid://06b4twmfi72i" path="res://src/TheView.cs" id="1_thtgk"]
+
+[node name="TheView" type="SubViewportContainer" node_paths=PackedStringArray("World", "Environment", "WorkCamera")]
+offset_right = 880.0
+offset_bottom = 560.0
+stretch = true
+script = ExtResource("1_thtgk")
+World = NodePath("")
+Environment = NodePath("")
+WorkCamera = NodePath("")

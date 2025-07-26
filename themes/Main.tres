@@ -1,0 +1,8 @@
+[gd_resource type="Theme" load_steps=2 format=3 uid="uid://cqdoeh7di3rlt"]
+
+[sub_resource type="SystemFont" id="SystemFont_8bjnn"]
+font_names = PackedStringArray("Tahoma")
+
+[resource]
+default_font = SubResource("SystemFont_8bjnn")
+default_font_size = 8

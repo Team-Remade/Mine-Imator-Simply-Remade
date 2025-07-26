@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://7olbsc5os3v8"
+path="res://.godot/imported/PyroBabyRightArm.obj-78e0b1c5a140fd46d6e1a7f4278b902e.mesh"
+
+[deps]
+
+files=["res://.godot/imported/PyroBabyRightArm.obj-78e0b1c5a140fd46d6e1a7f4278b902e.mesh"]
+
+source_file="res://meshes/PyroBabyRightArm.obj"
+dest_files=["res://.godot/imported/PyroBabyRightArm.obj-78e0b1c5a140fd46d6e1a7f4278b902e.mesh", "res://.godot/imported/PyroBabyRightArm.obj-78e0b1c5a140fd46d6e1a7f4278b902e.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

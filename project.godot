@@ -11,13 +11,17 @@ config_version=5
 [application]
 
 config/name="Mine Imator Simply Remade"
-run/main_scene="uid://dnvc6r4hmp7j6"
+run/main_scene="uid://b584i04sqrgs1"
 run/print_header=false
 config/use_custom_user_dir=true
 config/custom_user_dir_name="mineImatorSimplyRemade"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 boot_splash/show_image=false
 config/icon="uid://dl0lv6pvj2vxw"
+
+[autoload]
+
+App="*res://App.tscn"
 
 [debug]
 
@@ -28,7 +32,7 @@ file_logging/log_path="user://logs/app.log"
 window/size/viewport_width=640
 window/size/viewport_height=480
 window/subwindows/embed_subwindows=false
-window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
 
 [dotnet]
 
@@ -37,6 +41,10 @@ project/assembly_name="Mine Imator Simply Remade"
 [editor]
 
 naming/scene_name_casing=1
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/codeandweb.texturepacker/plugin.cfg")
 
 [filesystem]
 

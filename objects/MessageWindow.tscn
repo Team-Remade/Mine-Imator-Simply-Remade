@@ -1,0 +1,78 @@
+[gd_scene load_steps=11 format=3 uid="uid://4gp3ooja5ey"]
+
+[ext_resource type="Script" uid="uid://vnmf25fw8tem" path="res://src/MessageWindow.cs" id="1_3h0lt"]
+[ext_resource type="Texture2D" uid="uid://cu8jo07u78ye2" path="res://backgrounds/BgMsg.png" id="1_of7na"]
+[ext_resource type="Texture2D" uid="uid://cg4xylcxdmu0p" path="res://sprites/SprMsgButtonHovered.png" id="2_rbul2"]
+[ext_resource type="Texture2D" uid="uid://dj6sk5opoqkvf" path="res://sprites/SprMsgButtonPressed.png" id="3_3h0lt"]
+[ext_resource type="Texture2D" uid="uid://bk1jxo6wunoya" path="res://sprites/SprMsgButtonNormal.png" id="4_lkg02"]
+
+[sub_resource type="SystemFont" id="SystemFont_rbul2"]
+font_names = PackedStringArray("Tahoma")
+subpixel_positioning = 0
+
+[sub_resource type="SystemFont" id="SystemFont_3h0lt"]
+font_names = PackedStringArray("Tahoma")
+subpixel_positioning = 0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_yq3e4"]
+texture = ExtResource("2_rbul2")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_3ikuc"]
+texture = ExtResource("3_3h0lt")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_pywya"]
+texture = ExtResource("4_lkg02")
+
+[node name="MessageWindow" type="Window" node_paths=PackedStringArray("TextLabel")]
+process_mode = 3
+title = "Message"
+initial_position = 1
+size = Vector2i(300, 150)
+exclusive = true
+unresizable = true
+popup_window = true
+script = ExtResource("1_3h0lt")
+TextLabel = NodePath("TextureRect/CenterContainer/VBoxContainer/Label")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("1_of7na")
+
+[node name="CenterContainer" type="CenterContainer" parent="TextureRect"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TextureRect/CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Label" type="Label" parent="TextureRect/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = SubResource("SystemFont_rbul2")
+theme_override_font_sizes/font_size = 8
+text = "Text"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Accept" type="Button" parent="TextureRect/CenterContainer/VBoxContainer"]
+custom_minimum_size = Vector2(72, 28)
+layout_mode = 2
+focus_mode = 0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = SubResource("SystemFont_3h0lt")
+theme_override_font_sizes/font_size = 8
+theme_override_styles/hover = SubResource("StyleBoxTexture_yq3e4")
+theme_override_styles/pressed = SubResource("StyleBoxTexture_3ikuc")
+theme_override_styles/normal = SubResource("StyleBoxTexture_pywya")
+text = "OK"
+
+[connection signal="pressed" from="TextureRect/CenterContainer/VBoxContainer/Accept" to="." method="OnAcceptPressed"]
