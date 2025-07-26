@@ -1,3 +1,11 @@
-[gd_scene format=3 uid="uid://dnvc6r4hmp7j6"]
+[gd_scene load_steps=3 format=3 uid="uid://dnvc6r4hmp7j6"]
 
-[node name="App" type="Node2D"]
+[ext_resource type="Script" uid="uid://dtp7ne6mt210x" path="res://src/scripts/App.cs" id="1_e1rpr"]
+[ext_resource type="PackedScene" uid="uid://4gp3ooja5ey" path="res://objects/MessageWindow.tscn" id="2_oxmao"]
+
+[node name="App" type="Node2D" node_paths=PackedStringArray("MessageWindow")]
+script = ExtResource("1_e1rpr")
+MessageWindow = NodePath("MessageWindow")
+
+[node name="MessageWindow" parent="." instance=ExtResource("2_oxmao")]
+visible = false
