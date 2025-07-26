@@ -17,7 +17,7 @@ config/use_custom_user_dir=true
 config/custom_user_dir_name="mineImatorSimplyRemade"
 config/features=PackedStringArray("4.4", "C#", "Forward Plus")
 boot_splash/show_image=false
-config/icon="uid://dl0lv6pvj2vxw"
+config/icon="uid://cdece827jkbur"
 
 [autoload]
 
@@ -49,3 +49,7 @@ enabled=PackedStringArray("res://addons/codeandweb.texturepacker/plugin.cfg")
 [filesystem]
 
 import/blender/enabled=false
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true

@@ -5,13 +5,16 @@ namespace MineImatorSimplyRemade.scripts;
 
 public static class ExternalLibrary
 {
-    public static string FFmpegExe = OS.GetExecutablePath().GetBaseDir() + "/ffmpeg.exe";
+    public static string FFmpegWin = OS.GetExecutablePath().GetBaseDir() + "/ffmpeg.exe";
+    public static string FFmpegLinux = OS.GetExecutablePath().GetBaseDir() + "/ffmpeg";
     
     public static void Start()
     {
-        if (!File.Exists(FFmpegExe))
+        bool error = OS.GetName() == "Windows" && !File.Exists(FFmpegWin) || OS.GetName() == "Linux" && !File.Exists(FFmpegLinux);
+
+        if (error)
         {
-            //App.Instance.MessageWindow.ShowMessage("FFmpeg not found.", true);
+            App.Instance.MessageWindow.ShowMessage("FFmpeg not found.", true);
         }
     }
 }

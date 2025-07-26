@@ -2,11 +2,8 @@
 
 [ext_resource type="Script" uid="uid://06b4twmfi72i" path="res://src/TheView.cs" id="1_thtgk"]
 
-[node name="TheView" type="SubViewportContainer" node_paths=PackedStringArray("World", "Environment", "WorkCamera")]
+[node name="TheView" type="SubViewportContainer"]
 offset_right = 880.0
 offset_bottom = 560.0
 stretch = true
 script = ExtResource("1_thtgk")
-World = NodePath("")
-Environment = NodePath("")
-WorkCamera = NodePath("")
