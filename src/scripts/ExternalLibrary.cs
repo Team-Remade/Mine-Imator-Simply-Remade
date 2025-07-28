@@ -12,9 +12,9 @@ public static class ExternalLibrary
     {
         bool error = OS.GetName() == "Windows" && !File.Exists(FFmpegWin) || OS.GetName() == "Linux" && !File.Exists(FFmpegLinux);
 
-        if (error)
+        if (error && !OS.HasFeature("editor"))
         {
-            //App.Instance.MessageWindow.ShowMessage("FFmpeg not found.", true);
+            App.Instance.MessageWindow.ShowMessage("FFmpeg not found.", true);
         }
     }
 }
