@@ -148,6 +148,8 @@ public partial class UserInterface : Node
         }
 
         Project = new ProjectVariables();
+        AtlasTextures.Terrain.loadTextures("minecraft", DirAccess.Open("res://sprites/defaultTerrain/terrain/"));
+        AtlasTextures.Terrain.loadTextures("minecraft", DirAccess.Open("res://sprites/defaultItems/item/"));
         Atlas atlas1 = (Atlas)Project.TexturesSprite[0];
         atlas1.Name = "DefaultTerrain";
         atlas1.ResourceLocation = "res://sprites/defaultTerrain/terrain/";
@@ -158,6 +160,13 @@ public partial class UserInterface : Node
         atlas2.Init();
         
         Viewport.Environment.Environment.BackgroundColor = Project.BgColor;
+
+        var atlasRect = AtlasTextures.Terrain.getTexture("tile040");
+        
+        //TODO: Correctly apply the UVs
+        //((StandardMaterial3D)Viewport.World.GroundMesh.MaterialOverride).
+        ((StandardMaterial3D)Viewport.World.GroundMesh.MaterialOverride).AlbedoTexture =
+            AtlasTextures.Terrain.getImageTexture();
         
         Timeline.CustomMinimumSize = new Vector2I(0, TimelineH);
         Properties.CustomMinimumSize = new Vector2I(PropertiesW, 0);

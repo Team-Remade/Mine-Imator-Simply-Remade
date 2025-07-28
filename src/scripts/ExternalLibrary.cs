@@ -14,7 +14,7 @@ public static class ExternalLibrary
 
         if (error)
         {
-            App.Instance.MessageWindow.ShowMessage("FFmpeg not found.", true);
+            //App.Instance.MessageWindow.ShowMessage("FFmpeg not found.", true);
         }
     }
 }
