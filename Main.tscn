@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://b584i04sqrgs1"]
+[gd_scene load_steps=8 format=3 uid="uid://b584i04sqrgs1"]
 
 [ext_resource type="Script" uid="uid://bdhq5exua76sa" path="res://src/scripts/UserInterface.cs" id="1_glv2v"]
 [ext_resource type="PackedScene" uid="uid://c5h38h71nyov3" path="res://objects/TheView.tscn" id="2_uu6xs"]
 [ext_resource type="Script" uid="uid://yktlul17r3fx" path="res://src/MineImatorWorld.cs" id="3_fos0i"]
+[ext_resource type="Texture2D" uid="uid://dwblg2e8rtu5m" path="res://sprites/defaultTerrain/terrain/tile040.png" id="4_3dxm6"]
 [ext_resource type="ArrayMesh" uid="uid://c1b0av6mnbf2s" path="res://meshes/Floor.obj" id="4_fos0i"]
 
 [sub_resource type="Environment" id="Environment_3dxm6"]
@@ -14,6 +15,7 @@ ambient_light_color = Color(1, 1, 1, 1)
 transparency = 2
 alpha_scissor_threshold = 0.5
 alpha_antialiasing_mode = 0
+albedo_texture = ExtResource("4_3dxm6")
 texture_filter = 0
 
 [node name="Main" type="Control" node_paths=PackedStringArray("Viewport", "Timeline", "Properties")]

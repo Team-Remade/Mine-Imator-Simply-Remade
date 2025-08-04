@@ -165,8 +165,8 @@ public partial class UserInterface : Node
         
         //TODO: Correctly apply the UVs
         //((StandardMaterial3D)Viewport.World.GroundMesh.MaterialOverride).
-        ((StandardMaterial3D)Viewport.World.GroundMesh.MaterialOverride).AlbedoTexture =
-            AtlasTextures.Terrain.getImageTexture();
+        //((StandardMaterial3D)Viewport.World.GroundMesh.MaterialOverride).AlbedoTexture =
+        //    AtlasTextures.Terrain.getImageTexture();
         
         Timeline.CustomMinimumSize = new Vector2I(0, TimelineH);
         Properties.CustomMinimumSize = new Vector2I(PropertiesW, 0);
