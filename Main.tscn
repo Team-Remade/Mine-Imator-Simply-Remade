@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://c5h38h71nyov3" path="res://objects/TheView.tscn" id="2_uu6xs"]
 [ext_resource type="Script" uid="uid://yktlul17r3fx" path="res://src/MineImatorWorld.cs" id="3_fos0i"]
 [ext_resource type="Texture2D" uid="uid://dwblg2e8rtu5m" path="res://sprites/defaultTerrain/terrain/tile040.png" id="4_3dxm6"]
-[ext_resource type="ArrayMesh" uid="uid://c1b0av6mnbf2s" path="res://meshes/Floor.obj" id="4_fos0i"]
+[ext_resource type="ArrayMesh" uid="uid://dg1fh2el1ohsl" path="res://meshes/floor.res" id="5_fos0i"]
 
 [sub_resource type="Environment" id="Environment_3dxm6"]
 background_mode = 1
@@ -16,7 +16,7 @@ transparency = 2
 alpha_scissor_threshold = 0.5
 alpha_antialiasing_mode = 0
 albedo_texture = ExtResource("4_3dxm6")
-texture_filter = 0
+texture_filter = 4
 
 [node name="Main" type="Control" node_paths=PackedStringArray("Viewport", "Timeline", "Properties")]
 layout_mode = 3
@@ -27,8 +27,8 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_glv2v")
 Viewport = NodePath("HBoxContainer/VBoxContainer/View1")
-Timeline = NodePath("HBoxContainer/VBoxContainer/Control")
-Properties = NodePath("HBoxContainer/Control")
+Timeline = NodePath("HBoxContainer/VBoxContainer/Timeline")
+Properties = NodePath("HBoxContainer/Properties")
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
@@ -67,10 +67,10 @@ environment = SubResource("Environment_3dxm6")
 
 [node name="Ground" type="MeshInstance3D" parent="HBoxContainer/VBoxContainer/View1/SubViewport/World"]
 material_override = SubResource("StandardMaterial3D_lgr22")
-mesh = ExtResource("4_fos0i")
+mesh = ExtResource("5_fos0i")
 
-[node name="Control" type="Control" parent="HBoxContainer/VBoxContainer"]
+[node name="Timeline" type="Control" parent="HBoxContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="Control" type="Control" parent="HBoxContainer"]
+[node name="Properties" type="VBoxContainer" parent="HBoxContainer"]
 layout_mode = 2

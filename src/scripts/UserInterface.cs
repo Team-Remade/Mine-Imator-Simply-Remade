@@ -8,7 +8,7 @@ public partial class UserInterface : Node
 {
     [Export] public TheView Viewport;
     [Export] public Control Timeline;
-    [Export] public Control Properties;
+    [Export] public VBoxContainer Properties;
     
     public ProjectVariables Project;
     
@@ -166,7 +166,7 @@ public partial class UserInterface : Node
         //TODO: Correctly apply the UVs
         //((StandardMaterial3D)Viewport.World.GroundMesh.MaterialOverride).
         //((StandardMaterial3D)Viewport.World.GroundMesh.MaterialOverride).AlbedoTexture =
-        //    AtlasTextures.Terrain.getImageTexture();
+            AtlasTextures.Terrain.getImageTexture();
         
         Timeline.CustomMinimumSize = new Vector2I(0, TimelineH);
         Properties.CustomMinimumSize = new Vector2I(PropertiesW, 0);
