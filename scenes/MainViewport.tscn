@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://cd634m1fbx5q0"]
+[gd_scene load_steps=8 format=3 uid="uid://cd634m1fbx5q0"]
 
 [ext_resource type="Texture2D" uid="uid://c54p504ua73gd" path="res://tamari.png" id="1_xny44"]
 [ext_resource type="Script" uid="uid://02hksm5l4ov5" path="res://addons/FreeCam/FreeLookCameraBase.cs" id="2_i3gsq"]
@@ -15,6 +15,11 @@ alpha_scissor_threshold = 0.5
 alpha_antialiasing_mode = 0
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_xny44"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i3gsq"]
+albedo_color = Color(0, 1, 1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_w13yp"]
 
 [node name="SubViewport" type="SubViewport"]
 msaa_3d = 2
@@ -35,6 +40,10 @@ environment = SubResource("Environment_xny44")
 [node name="Floor" type="MeshInstance3D" parent="World"]
 material_override = SubResource("StandardMaterial3D_xny44")
 mesh = SubResource("PlaneMesh_xny44")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="World/Floor"]
+material_override = SubResource("StandardMaterial3D_i3gsq")
+mesh = SubResource("BoxMesh_w13yp")
 
 [node name="Camera3D" type="Camera3D" parent="World"]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 3, 3, 3)
