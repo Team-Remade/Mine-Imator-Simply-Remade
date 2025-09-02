@@ -1,0 +1,49 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Simply Remade MI"
+run/main_scene="uid://cykt8uneb4j0m"
+run/print_header=false
+config/use_custom_user_dir=true
+config/custom_user_dir_name="mine-imator-simply-remade"
+config/auto_accept_quit=false
+config/features=PackedStringArray("4.4", "C#", "Forward Plus")
+run/max_fps=60
+boot_splash/show_image=false
+config/icon="uid://1kvh23ourut1"
+config/windows_native_icon="res://assets/appIcon01.ico"
+
+[autoload]
+
+ImGuiRoot="*res://addons/imgui-godot/data/ImGuiRoot.tscn"
+
+[display]
+
+window/subwindows/embed_subwindows=false
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[dotnet]
+
+project/assembly_name="Simply Remade MI"
+
+[editor]
+
+naming/scene_name_casing=1
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/Gizmo3DSharp/plugin.cfg", "res://addons/imgui-godot/plugin.cfg", "res://addons/window-placement-switcher/plugin.cfg")
+
+[rendering]
+
+environment/defaults/default_clear_color=Color(0, 0, 0, 1)

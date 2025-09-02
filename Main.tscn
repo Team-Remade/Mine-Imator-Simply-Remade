@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://cykt8uneb4j0m"]
+
+[ext_resource type="Script" uid="uid://cyrjeycv58rk1" path="res://Main.cs" id="1_glv2v"]
+[ext_resource type="PackedScene" uid="uid://cd634m1fbx5q0" path="res://scenes/MainViewport.tscn" id="2_uu6xs"]
+
+[node name="Main" type="Control" node_paths=PackedStringArray("MainViewport")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_glv2v")
+MainViewport = NodePath("MainViewport")
+
+[node name="MainViewport" parent="." instance=ExtResource("2_uu6xs")]
