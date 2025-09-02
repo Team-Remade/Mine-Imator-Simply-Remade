@@ -7,7 +7,7 @@ namespace SimplyRemadeMI.renderer;
 
 public class UIRenderer
 {
-    private SceneTreePanel sceneTreePanel =  new();
+    public SceneTreePanel sceneTreePanel { get; private set; } = new();
     private PropertiesPanel propertiesPanel = new();
     private Timeline timeline = new();
     private ViewportObject ViewportObject;
@@ -16,6 +16,7 @@ public class UIRenderer
     public UIRenderer(ViewportObject viewportObject)
     {
         ViewportObject = viewportObject;
+        sceneTreePanel.World = Main.GetInstance().MainViewport.World;
     }
     
     public void Render()

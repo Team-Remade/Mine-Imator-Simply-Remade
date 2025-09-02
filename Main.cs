@@ -10,11 +10,15 @@ public partial class Main : Control
 {
     private static Main Instance;
     
-    [Export] private SubViewport MainViewport;
+    [Export] public MainViewport MainViewport { get; private set; }
     
     private ViewportObject ViewportObject;
     
-    private UIRenderer UI;
+    public UIRenderer UI { get; private set; }
+    
+    private TextureAtlas _terrainAtlas;
+    
+    public TextureAtlas TerrainAtlas => _terrainAtlas;
     
     public Vector2I WindowSize { get; private set; }
     
@@ -26,7 +30,7 @@ public partial class Main : Control
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "ffmpeg.exe" : "ffmpeg";
     }
 
-    private void ShowErrorDialog(string message, string title)
+    public void ShowErrorDialog(string message, string title)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -65,6 +69,12 @@ public partial class Main : Control
         DisplayServer.WindowSetSize(WindowSize);
         DisplayServer.WindowSetPosition(windowPosition);
         GD.Print("Initialized Vulkan...");
+        
+        // Initialize terrain texture atlas
+        _terrainAtlas = new TextureAtlas(2048, 2048);
+        _terrainAtlas.LoadTexturesFromPattern("res://assets/sprite/terrain/tile###.png");
+        _terrainAtlas.GenerateAtlas();
+        GD.Print($"Terrain atlas generated with {_terrainAtlas.GetTextureCount()} textures");
         
         CheckRandomWindowIcon();
     }

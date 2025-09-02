@@ -1,7 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://cd634m1fbx5q0"]
+[gd_scene load_steps=11 format=3 uid="uid://cd634m1fbx5q0"]
 
+[ext_resource type="Script" uid="uid://7i2m6ihsq4hq" path="res://src/renderer/MainViewport.cs" id="1_bj8v6"]
 [ext_resource type="Texture2D" uid="uid://c54p504ua73gd" path="res://tamari.png" id="1_xny44"]
+[ext_resource type="Texture2D" uid="uid://dbtgphfrsou0n" path="res://assets/sprite/terrain/tile256.png" id="2_fe5f8"]
 [ext_resource type="Script" uid="uid://02hksm5l4ov5" path="res://addons/FreeCam/FreeLookCameraBase.cs" id="2_i3gsq"]
+[ext_resource type="Script" uid="uid://ba5x2qxufvqbe" path="res://src/renderer/Floor.cs" id="2_w13yp"]
+[ext_resource type="Script" uid="uid://kyog5j5ul3ab" path="res://src/core/SceneWorld.cs" id="3_etp3l"]
 
 [sub_resource type="Environment" id="Environment_xny44"]
 background_mode = 1
@@ -9,22 +13,22 @@ background_color = Color(0.576471, 0.576471, 1, 1)
 ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xny44"]
-transparency = 2
-alpha_scissor_threshold = 0.5
-alpha_antialiasing_mode = 0
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_xny44"]
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_w13yp"]
+albedo_texture = ExtResource("2_fe5f8")
+texture_filter = 4
+texture_repeat = false
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i3gsq"]
 albedo_color = Color(0, 1, 1, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_w13yp"]
 
-[node name="SubViewport" type="SubViewport"]
+[node name="MainViewport" type="SubViewport" node_paths=PackedStringArray("World")]
 msaa_3d = 2
 use_occlusion_culling = true
 render_target_update_mode = 4
+script = ExtResource("1_bj8v6")
+World = NodePath("World")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 visible = false
@@ -33,15 +37,17 @@ offset_bottom = 40.0
 texture = ExtResource("1_xny44")
 
 [node name="World" type="Node3D" parent="."]
+script = ExtResource("3_etp3l")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="World"]
 environment = SubResource("Environment_xny44")
 
 [node name="Floor" type="MeshInstance3D" parent="World"]
-material_override = SubResource("StandardMaterial3D_xny44")
-mesh = SubResource("PlaneMesh_xny44")
+material_override = SubResource("StandardMaterial3D_w13yp")
+script = ExtResource("2_w13yp")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="World/Floor"]
+visible = false
 material_override = SubResource("StandardMaterial3D_i3gsq")
 mesh = SubResource("BoxMesh_w13yp")
 
