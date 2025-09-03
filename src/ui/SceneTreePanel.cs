@@ -103,6 +103,8 @@ public class SceneTreePanel
         if (ImGui.IsItemClicked())
         {
             SelectedObjectIndex = index;
+            SelectionManager.Selection.Add(SceneObjects[index]);
+            SelectionManager.QuerySelection();
         }
 
         // Begin drag source for this node

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using Godot;
+using Godot.Collections;
 using SimplyRemadeMI.renderer;
 
 namespace SimplyRemadeMI;
@@ -11,6 +12,7 @@ public partial class Main : Control
     private static Main Instance;
     
     [Export] public MainViewport MainViewport { get; private set; }
+    [Export] public Dictionary<string, Texture2D> Icons { get; private set; }
     
     private ViewportObject ViewportObject;
     

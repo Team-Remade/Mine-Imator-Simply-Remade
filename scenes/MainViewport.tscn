@@ -23,12 +23,13 @@ albedo_color = Color(0, 1, 1, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_w13yp"]
 
-[node name="MainViewport" type="SubViewport" node_paths=PackedStringArray("World")]
+[node name="MainViewport" type="SubViewport" node_paths=PackedStringArray("World", "_camera")]
 msaa_3d = 2
 use_occlusion_culling = true
 render_target_update_mode = 4
 script = ExtResource("1_bj8v6")
 World = NodePath("World")
+_camera = NodePath("World/ViewportCamera")
 
 [node name="TextureRect" type="TextureRect" parent="."]
 visible = false
@@ -51,6 +52,6 @@ visible = false
 material_override = SubResource("StandardMaterial3D_i3gsq")
 mesh = SubResource("BoxMesh_w13yp")
 
-[node name="Camera3D" type="Camera3D" parent="World"]
+[node name="ViewportCamera" type="Camera3D" parent="World"]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 3, 3, 3)
 script = ExtResource("2_i3gsq")
