@@ -24,7 +24,24 @@ public partial class MainViewport : SubViewport
 
     private void TransformGizmoOnTransformEnd(int mode)
     {
-        
+        switch (mode)
+        {
+            case 2:
+                Main.GetInstance().UI.timeline.AddKeyframe("position.x", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Position.X);
+                Main.GetInstance().UI.timeline.AddKeyframe("position.y", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Position.Y);
+                Main.GetInstance().UI.timeline.AddKeyframe("position.z", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Position.Z);
+                break;
+            case (int)Gizmo3D.ToolMode.Rotate - 1:
+                Main.GetInstance().UI.timeline.AddKeyframe("rotation.x", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].RotationDegrees.X);
+                Main.GetInstance().UI.timeline.AddKeyframe("rotation.y", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].RotationDegrees.Y);
+                Main.GetInstance().UI.timeline.AddKeyframe("rotation.z", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].RotationDegrees.Z);
+                break;
+            case (int)Gizmo3D.ToolMode.Scale - 1:
+                Main.GetInstance().UI.timeline.AddKeyframe("scale.x", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Scale.X);
+                Main.GetInstance().UI.timeline.AddKeyframe("scale.y", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Scale.Y);
+                Main.GetInstance().UI.timeline.AddKeyframe("scale.z", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Scale.Z);
+                break;
+        }
     }
 
     public override void _Process(double delta)
