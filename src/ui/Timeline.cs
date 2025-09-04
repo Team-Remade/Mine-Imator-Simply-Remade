@@ -120,9 +120,9 @@ public class Timeline
             // Only apply position keyframes to components that actually have keyframes
             if (obj.PosXKeyframes.Count > 0)
                 obj.Position = new Vector3(
-                    EvaluateKeyframesWithDefault(obj.PosXKeyframes, CurrentFrame, obj.Position.X),
-                    obj.PosYKeyframes.Count > 0 ? EvaluateKeyframesWithDefault(obj.PosYKeyframes, CurrentFrame, obj.Position.Y) : obj.Position.Y,
-                    obj.PosZKeyframes.Count > 0 ? EvaluateKeyframesWithDefault(obj.PosZKeyframes, CurrentFrame, obj.Position.Z) : obj.Position.Z
+                    EvaluateKeyframesWithDefault(obj.PosXKeyframes, CurrentFrame, obj.TargetPosition.X),
+                    obj.PosYKeyframes.Count > 0 ? EvaluateKeyframesWithDefault(obj.PosYKeyframes, CurrentFrame, obj.TargetPosition.Y) : obj.TargetPosition.Y,
+                    obj.PosZKeyframes.Count > 0 ? EvaluateKeyframesWithDefault(obj.PosZKeyframes, CurrentFrame, obj.TargetPosition.Z) : obj.TargetPosition.Z
                 );
             
             // Only apply rotation keyframes to components that actually have keyframes

@@ -127,41 +127,41 @@ public class PropertiesPanel
         if (ImGui.CollapsingHeader("Position", ImGuiTreeNodeFlags.DefaultOpen))
         {
             // Position spinboxes - display values multiplied by 16
-            var scaledPos = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position * 16;
+            var scaledPos = Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition * 16;
             if (ImGui.DragFloat("X", ref scaledPos.X, 0.1f))
             {
-                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = scaledPos / 16;
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition = scaledPos / 16;
                 if (Main.GetInstance().UI.timeline != null &&
-                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.X - previousPos.X) > 0.001f)
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition.X - previousPos.X) > 0.001f)
                     Main.GetInstance().UI.timeline.AddKeyframe("position.x",
                         Main.GetInstance().UI.timeline.CurrentFrame,
-                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.X);
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition.X);
             }
 
             if (ImGui.DragFloat("Y", ref scaledPos.Y, 0.1f))
             {
-                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = scaledPos / 16;
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition = scaledPos / 16;
                 if (Main.GetInstance().UI.timeline != null &&
-                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Y - previousPos.Y) > 0.001f)
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition.Y - previousPos.Y) > 0.001f)
                     Main.GetInstance().UI.timeline.AddKeyframe("position.y",
                         Main.GetInstance().UI.timeline.CurrentFrame,
-                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Y);
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition.Y);
             }
 
             if (ImGui.DragFloat("Z", ref scaledPos.Z, 0.1f))
             {
-                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = scaledPos / 16;
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition = scaledPos / 16;
                 if (Main.GetInstance().UI.timeline != null &&
-                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Z - previousPos.Z) > 0.001f)
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition.Z - previousPos.Z) > 0.001f)
                     Main.GetInstance().UI.timeline.AddKeyframe("position.z",
                         Main.GetInstance().UI.timeline.CurrentFrame,
-                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Z);
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition.Z);
             }
 
             // Position reset button
             if (ImGui.Button("Reset Position"))
             {
-                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = Vector3.Zero;
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.TargetPosition = Vector3.Zero;
                 if (Main.GetInstance().UI.timeline != null)
                 {
                     Main.GetInstance().UI.timeline

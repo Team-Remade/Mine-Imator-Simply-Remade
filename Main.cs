@@ -12,6 +12,8 @@ public partial class Main : Control
     private static Main Instance;
     
     [Export] public MainViewport MainViewport { get; private set; }
+    [Export] public PackedScene ObjectScene { get; private set; }
+    
     [Export] public Dictionary<string, Texture2D> Icons { get; private set; }
     
     private ViewportObject ViewportObject;

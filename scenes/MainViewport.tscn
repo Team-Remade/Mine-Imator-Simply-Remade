@@ -19,6 +19,7 @@ texture_filter = 4
 texture_repeat = false
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i3gsq"]
+transparency = 1
 albedo_color = Color(0, 1, 1, 1)
 
 [sub_resource type="BoxMesh" id="BoxMesh_w13yp"]

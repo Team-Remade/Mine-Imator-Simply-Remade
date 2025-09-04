@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://c6lnmdhv4dha5"]
+
+[ext_resource type="Script" uid="uid://dyhlmwo7t4335" path="res://src/core/SceneObject.cs" id="1_q8vyg"]
+
+[node name="SceneObject" type="Node3D" node_paths=PackedStringArray("Visuals")]
+script = ExtResource("1_q8vyg")
+Visuals = NodePath("Visual")
+
+[node name="Visual" type="Marker3D" parent="."]
