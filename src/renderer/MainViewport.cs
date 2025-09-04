@@ -9,14 +9,22 @@ public partial class MainViewport : SubViewport
     [Export] public SceneWorld World { get; private set; }
     [Export] private Camera3D _camera;
 
+    public bool Controlled;
+
     public override void _Ready()
     {
         // Make this viewport handle input
         SelectionManager.TransformGizmo.Visible = false;
         SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Move;
+        SelectionManager.TransformGizmo.TransformEnd += TransformGizmoOnTransformEnd;
         World.AddChild(SelectionManager.TransformGizmo);
         
         HandleInputLocally = true;
+    }
+
+    private void TransformGizmoOnTransformEnd(int mode)
+    {
+        
     }
 
     public override void _Process(double delta)
@@ -39,11 +47,39 @@ public partial class MainViewport : SubViewport
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is InputEventMouseButton mouseEvent && mouseEvent.Pressed)
+        if (@event is InputEventMouseButton mouseEvent)
         {
-            if (mouseEvent.ButtonIndex == MouseButton.Left)
+            if (mouseEvent.ButtonIndex == MouseButton.Left && mouseEvent.Pressed)
             {
                 PerformDepthTest(mouseEvent.Position);
+            }
+
+            if (mouseEvent.ButtonIndex == MouseButton.Right && mouseEvent.Pressed)
+            {
+                Controlled = true;
+            }
+            else if (mouseEvent.ButtonIndex == MouseButton.Right && !mouseEvent.Pressed)
+            {
+                Controlled = false;
+            }
+        }
+
+        if (@event is InputEventKey eventKey && eventKey.Pressed)
+        {
+            if (Controlled) return;
+            if (eventKey.Keycode == Key.R)
+            {
+                SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Rotate;
+            } else if (eventKey.Keycode == Key.T)
+            {
+                SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Move;
+            } else if (eventKey.Keycode == Key.S)
+            {
+                SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Scale;
+            }
+            else if (eventKey.Keycode == Key.G)
+            {
+                SelectionManager.TransformGizmo.UseLocalSpace = !SelectionManager.TransformGizmo.UseLocalSpace;
             }
         }
     }

@@ -2,6 +2,8 @@
 
 public class MIProject
 {
+    public int FrameRate = 30;
+    
     // Background image loading
     public string? _pendingBackgroundImagePath = null;
     public string _backgroundImageName = "None";

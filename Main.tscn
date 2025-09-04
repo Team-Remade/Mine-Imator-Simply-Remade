@@ -1,8 +1,12 @@
-[gd_scene load_steps=4 format=3 uid="uid://cykt8uneb4j0m"]
+[gd_scene load_steps=8 format=3 uid="uid://cykt8uneb4j0m"]
 
 [ext_resource type="Script" uid="uid://cyrjeycv58rk1" path="res://Main.cs" id="1_glv2v"]
 [ext_resource type="Texture2D" uid="uid://gmuqnx7f4hic" path="res://assets/sprite/bench.png" id="2_r0du0"]
 [ext_resource type="PackedScene" uid="uid://cd634m1fbx5q0" path="res://scenes/MainViewport.tscn" id="2_uu6xs"]
+[ext_resource type="Texture2D" uid="uid://cdey3danuxgug" path="res://assets/sprite/icons/chevron-double-left.svg" id="3_cm0pq"]
+[ext_resource type="Texture2D" uid="uid://88v5b3ql5qmw" path="res://assets/sprite/icons/pause.svg" id="4_3dxm6"]
+[ext_resource type="Texture2D" uid="uid://b4bxa5k08k35o" path="res://assets/sprite/icons/play.svg" id="5_lgr22"]
+[ext_resource type="Texture2D" uid="uid://bcjkxc20nb42u" path="res://assets/sprite/icons/stop.svg" id="6_lgr22"]
 
 [node name="Main" type="Control" node_paths=PackedStringArray("MainViewport")]
 layout_mode = 3
@@ -14,7 +18,11 @@ grow_vertical = 2
 script = ExtResource("1_glv2v")
 MainViewport = NodePath("MainViewport")
 Icons = Dictionary[String, Texture2D]({
-"Bench": ExtResource("2_r0du0")
+"Bench": ExtResource("2_r0du0"),
+"pause": ExtResource("4_3dxm6"),
+"play": ExtResource("5_lgr22"),
+"reset": ExtResource("3_cm0pq"),
+"stop": ExtResource("6_lgr22")
 })
 
 [node name="MainViewport" parent="." instance=ExtResource("2_uu6xs")]

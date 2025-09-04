@@ -84,6 +84,7 @@ public partial class Main : Control
     public override void _Process(double delta)
     {
         DisplayServer.WindowSetTitle("Mine Imator Simply Remade");
+        UI.Update((float)delta);
         UI.Render();
     }
 

@@ -1,6 +1,7 @@
 
 using System;
 using Godot;
+using SimplyRemadeMI;
 
 partial class FreeLookCameraBase : Camera3D
 {   
@@ -73,6 +74,8 @@ partial class FreeLookCameraBase : Camera3D
         InputEventKey keyEvent = _event as InputEventKey;
         if (keyEvent != null)
         {            
+            if (!Main.GetInstance().MainViewport.Controlled) return;
+            
             switch (keyEvent.Keycode)
             {
                 case Key.W:

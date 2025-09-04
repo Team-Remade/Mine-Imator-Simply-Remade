@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Godot;
 using ImGuiNET;
 using SimplyRemadeMI.core;
@@ -9,14 +10,16 @@ namespace SimplyRemadeMI.ui;
 public class PropertiesPanel
 {
     public MIProject project = new();
-    
+
     public void Render(Vector2I position, Vector2I size)
     {
         ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
         ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
 
-        if (ImGui.Begin("Properties", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse))
+        if (ImGui.Begin("Properties",
+                ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse))
         {
+            // Create tabs
             if (ImGui.BeginTabBar("##PropertiesTabs"))
             {
                 // Project Properties Tab
@@ -25,12 +28,390 @@ public class PropertiesPanel
                     RenderProjectProperties();
                     ImGui.EndTabItem();
                 }
-                
+
+                // Object Properties Tab (only available when object is selected)
+                if (ImGui.BeginTabItem("Object"))
+                {
+                    if (Main.GetInstance().UI.sceneTreePanel.SelectedObject != null)
+                    {
+                        RenderObjectProperties();
+                        RenderTransformControls();
+                        RenderOptionsControls();
+                    }
+                    else if (Main.GetInstance().UI.sceneTreePanel.SceneObjects.Count == 0)
+                    {
+                        RenderNoObjectsInScene();
+                    }
+                    else
+                    {
+                        RenderNoObjectSelected();
+                    }
+
+                    ImGui.EndTabItem();
+                }
+
                 ImGui.EndTabBar();
             }
         }
-        
+
         ImGui.End();
+    }
+
+    private void RenderObjectProperties()
+    {
+        ImGui.Text("Object Properties");
+        ImGui.Separator();
+
+        ImGui.Text("Name");
+        string name = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Name;
+        if (ImGui.InputText("##Name", ref name, 256))
+        {
+            Main.GetInstance().UI.sceneTreePanel.SelectedObject.Name = name;
+        }
+        
+        ImGui.Spacing();
+
+        // Object type and mesh information
+        ImGui.Text("Object Information");
+        ImGui.Text($"Object ID: {Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex}");
+
+        // Object statistics
+        var totalKeyframes = Main.GetInstance().UI.sceneTreePanel.SelectedObject.PosXKeyframes.Count + Main.GetInstance().UI.sceneTreePanel.SelectedObject.PosYKeyframes.Count +
+                             Main.GetInstance().UI.sceneTreePanel.SelectedObject.PosZKeyframes.Count +
+                             Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotXKeyframes.Count + Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotYKeyframes.Count +
+                             Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotZKeyframes.Count +
+                             Main.GetInstance().UI.sceneTreePanel.SelectedObject.ScaleXKeyframes.Count + Main.GetInstance().UI.sceneTreePanel.SelectedObject.ScaleYKeyframes.Count +
+                             Main.GetInstance().UI.sceneTreePanel.SelectedObject.ScaleZKeyframes.Count +
+                             Main.GetInstance().UI.sceneTreePanel.SelectedObject.AlphaKeyframes.Count;
+        ImGui.Text($"Keyframes: {totalKeyframes}");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+
+        var availableParents = Main.GetInstance().UI.sceneTreePanel.SceneObjects.Where(obj =>
+                obj != Main.GetInstance().UI.sceneTreePanel.SelectedObject && !obj.IsDescendantOf(Main.GetInstance().UI.sceneTreePanel.SelectedObject))
+            .ToList();
+        availableParents.Insert(0, null); // Add "None" option
+
+        var parentNames = availableParents.Select(p => p?.Name.ToString() ?? "None").ToArray();
+
+        var ob = Main.GetInstance().UI.sceneTreePanel.SelectedObject.GetParent();
+        
+        if (ob is not SceneObject) return;
+        
+        var currentParentIndex =
+            availableParents.IndexOf((SceneObject)ob);
+        if (currentParentIndex == -1) currentParentIndex = 0;
+
+        if (ImGui.Combo("Parent", ref currentParentIndex, parentNames, parentNames.Length))
+        {
+            var newParent = availableParents[currentParentIndex];
+            Main.GetInstance().UI.sceneTreePanel.SelectedObject.SetParent(newParent);
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+    }
+
+    private void RenderTransformControls()
+    {
+        ImGui.Text("Transform");
+        ImGui.Separator();
+
+        // Store previous values for change detection
+        var previousPos = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position;
+        var previousRot = Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees;
+        var previousScale = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale;
+
+        // Position section
+        if (ImGui.CollapsingHeader("Position", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            // Position spinboxes - display values multiplied by 16
+            var scaledPos = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position * 16;
+            if (ImGui.DragFloat("X", ref scaledPos.X, 0.1f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = scaledPos / 16;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.X - previousPos.X) > 0.001f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("position.x",
+                        Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.X);
+            }
+
+            if (ImGui.DragFloat("Y", ref scaledPos.Y, 0.1f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = scaledPos / 16;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Y - previousPos.Y) > 0.001f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("position.y",
+                        Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Y);
+            }
+
+            if (ImGui.DragFloat("Z", ref scaledPos.Z, 0.1f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = scaledPos / 16;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Z - previousPos.Z) > 0.001f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("position.z",
+                        Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position.Z);
+            }
+
+            // Position reset button
+            if (ImGui.Button("Reset Position"))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Position = Vector3.Zero;
+                if (Main.GetInstance().UI.timeline != null)
+                {
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("position.x", Main.GetInstance().UI.timeline.CurrentFrame, 0);
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("position.y", Main.GetInstance().UI.timeline.CurrentFrame, 0);
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("position.z", Main.GetInstance().UI.timeline.CurrentFrame, 0);
+                }
+            }
+        }
+
+        if (ImGui.CollapsingHeader("Rotation", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            // Rotation spinboxes in degrees
+            var rotation = Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees;
+            if (ImGui.DragFloat("Pitch (X)", ref rotation.X, 1.0f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees = rotation;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees.X - previousRot.X) >
+                    0.1f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("rotation.x",
+                        Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees.X);
+            }
+
+            if (ImGui.DragFloat("Yaw (Y)", ref rotation.Y, 1.0f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees = rotation;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees.Y - previousRot.Y) >
+                    0.1f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("rotation.y",
+                        Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees.Y);
+            }
+
+            if (ImGui.DragFloat("Roll (Z)", ref rotation.Z, 1.0f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees = rotation;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees.Z - previousRot.Z) >
+                    0.1f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("rotation.z",
+                        Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees.Z);
+            }
+
+            // Rotation reset button
+            if (ImGui.Button("Reset Rotation"))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.RotationDegrees = Vector3.Zero;
+                if (Main.GetInstance().UI.timeline != null)
+                {
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("rotation.x", Main.GetInstance().UI.timeline.CurrentFrame, 0);
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("rotation.y", Main.GetInstance().UI.timeline.CurrentFrame, 0);
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("rotation.z", Main.GetInstance().UI.timeline.CurrentFrame, 0);
+                }
+            }
+        }
+
+        if (ImGui.CollapsingHeader("Scale", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            // Scale spinboxes
+            var scale = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale;
+            if (ImGui.DragFloat("Scale X", ref scale.X, 0.01f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale = scale;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.X - previousScale.X) > 0.01f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.x", Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.X);
+            }
+
+            if (ImGui.DragFloat("Scale Y", ref scale.Y, 0.01f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale = scale;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Y - previousScale.Y) > 0.01f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.y", Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Y);
+            }
+
+            if (ImGui.DragFloat("Scale Z", ref scale.Z, 0.01f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale = scale;
+                if (Main.GetInstance().UI.timeline != null &&
+                    Math.Abs(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Z - previousScale.Z) > 0.01f)
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.z", Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Z);
+            }
+
+            // Uniform scale spinbox
+            var uniformScale = (Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.X +
+                                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Y +
+                                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Z) / 3.0f;
+            var previousUniformScale = uniformScale;
+            if (ImGui.DragFloat("Uniform Scale", ref uniformScale, 0.01f))
+            {
+                var scaleDelta = uniformScale - previousUniformScale;
+                var newScale = new Vector3(Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.X + scaleDelta,
+                    Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Y + scaleDelta,
+                    Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Z + scaleDelta);
+                if (Main.GetInstance().UI.timeline != null && Math.Abs(scaleDelta) > 0.01f)
+                {
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.x", Main.GetInstance().UI.timeline.CurrentFrame,
+                        newScale.X);
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.y", Main.GetInstance().UI.timeline.CurrentFrame,
+                        newScale.Y);
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.z", Main.GetInstance().UI.timeline.CurrentFrame,
+                        newScale.Z);
+                }
+
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale = newScale;
+            }
+
+            // Scale reset button
+            if (ImGui.Button("Reset Scale"))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale = Vector3.One;
+                if (Main.GetInstance().UI.timeline != null)
+                {
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.x", Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.X);
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.y", Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Y);
+                    Main.GetInstance().UI.timeline.AddKeyframe("scale.z", Main.GetInstance().UI.timeline.CurrentFrame,
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.Scale.Z);
+                }
+            }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+        }
+
+        if (ImGui.CollapsingHeader("Origin Offset", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            // Origin offset spinboxes - display values multiplied by 16 for precision
+            var scaledOriginOffset = Main.GetInstance().UI.sceneTreePanel.SelectedObject.ObjectOriginOffset * 16;
+            var previousOriginOffset = Main.GetInstance().UI.sceneTreePanel.SelectedObject.ObjectOriginOffset;
+
+            if (ImGui.DragFloat("Origin X", ref scaledOriginOffset.X, 0.1f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.ObjectOriginOffset = scaledOriginOffset / 16;
+            }
+
+            if (ImGui.DragFloat("Origin Y", ref scaledOriginOffset.Y, 0.1f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.ObjectOriginOffset = scaledOriginOffset / 16;
+            }
+
+            if (ImGui.DragFloat("Origin Z", ref scaledOriginOffset.Z, 0.1f))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.ObjectOriginOffset = scaledOriginOffset / 16;
+            }
+
+            // Origin offset reset button
+            if (ImGui.Button("Reset Origin Offset"))
+            {
+                if (Main.GetInstance().UI.sceneTreePanel.SelectedObject != null)
+                {
+                    // Reset to the original origin offset that was set on creation
+                    Main.GetInstance().UI.sceneTreePanel.SelectedObject.ObjectOriginOffset =
+                        Main.GetInstance().UI.sceneTreePanel.SelectedObject.OriginalOriginOffset;
+                }
+            }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+        }
+
+        if (ImGui.CollapsingHeader("Alpha", ImGuiTreeNodeFlags.DefaultOpen))
+        {
+            // Alpha slider - display as percentage
+            var alphaPercent = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Alpha * 100.0f;
+            var oldAlpha = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Alpha;
+            if (ImGui.SliderFloat("Alpha (%)", ref alphaPercent, 0.0f, 100.0f, "%.0f%%"))
+            {
+                var newAlpha = alphaPercent / 100.0f;
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Alpha = newAlpha;
+
+                // Automatically add keyframe when alpha changes
+                if (Main.GetInstance().UI.timeline != null && Math.Abs(newAlpha - oldAlpha) > 0.01f)
+                {
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("alpha", Main.GetInstance().UI.timeline.CurrentFrame, newAlpha);
+                }
+            }
+
+            // Alpha reset button
+            if (ImGui.Button("Reset Alpha"))
+            {
+                Main.GetInstance().UI.sceneTreePanel.SelectedObject.Alpha = 1.0f;
+                if (Main.GetInstance().UI.timeline != null)
+                {
+                    Main.GetInstance().UI.timeline
+                        .AddKeyframe("alpha", Main.GetInstance().UI.timeline.CurrentFrame, 1.0f);
+                }
+            }
+
+            ImGui.Spacing();
+            ImGui.Separator();
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+    }
+
+    private void RenderOptionsControls()
+    {
+        ImGui.Text("Object Options");
+        ImGui.Separator();
+
+        // Visibility options
+        ImGui.Text("Visibility");
+        var visible = Main.GetInstance().UI.sceneTreePanel.SelectedObject.Visible;
+        if (ImGui.Checkbox("Show Object", ref visible))
+            Main.GetInstance().UI.sceneTreePanel.SelectedObject.Visible = visible;
+
+        // Object-specific options
+        ImGui.Spacing();
+        ImGui.Text("Object Settings");
+
+        // Animation options
+        ImGui.Spacing();
+        ImGui.Text("Animation");
+        ImGui.Text("Interpolation: Linear");
+        ImGui.Text("Easing: None");
+
+        ImGui.Spacing();
+        ImGui.Separator();
+    }
+    
+    private void RenderNoObjectSelected()
+    {
+        ImGui.TextColored(new System.Numerics.Vector4(1.0f, 0.5f, 0.5f, 1.0f),
+            "No object selected. Please select an object in the Scene Tree.");
+        ImGui.Spacing();
+        ImGui.Text("Please use the Scene Tree to select an object.");
+    }
+    
+    private void RenderNoObjectsInScene()
+    {
+        ImGui.TextColored(new System.Numerics.Vector4(1.0f, 0.5f, 0.5f, 1.0f), "No objects in the scene. Please add an object.");
+        ImGui.Spacing();
+        ImGui.Text("Please use the Scene Tree to add an object.");
     }
 
     private void RenderProjectProperties()
@@ -58,7 +439,8 @@ public class PropertiesPanel
 
             // Project description
             ImGui.Text("Description: NOT IMPLEMENTED");
-            if (ImGui.InputTextMultiline("##ProjectDescription", ref project._projectDescription, 512, new Vector2(250, 80)))
+            if (ImGui.InputTextMultiline("##ProjectDescription", ref project._projectDescription, 512,
+                    new Vector2(250, 80)))
             {
                 // TODO: Implement project description saving
             }
@@ -203,13 +585,13 @@ public class PropertiesPanel
                 project._projectFramerate = 60;
             }
         }
-        
+
         // Background Settings Section
         if (ImGui.CollapsingHeader("Background Settings"))
         {
             // Background Image
             ImGui.Text("Background Image: NOT IMPLEMENTED");
-            
+
             // Display current background image name
             ImGui.Text($"Current: {project._backgroundImageName}");
             if (ImGui.Button("Load Background Image"))
@@ -229,7 +611,7 @@ public class PropertiesPanel
                 //    }
                 //});
             }
-            
+
             if (ImGui.Button("Clear Background Image"))
             {
                 //_viewport3D?.ClearBackgroundImage();
@@ -255,42 +637,42 @@ public class PropertiesPanel
             // Sky Color Presets
             ImGui.Spacing();
             ImGui.Text("Presets:");
-            
+
             // First row of presets
             if (ImGui.Button("Sky Blue"))
             {
                 project._clearColor = new System.Numerics.Vector3(0.576f, 0.576f, 1.0f); // Default sky blue #9393FF
                 //NotifyBackgroundChanged();
             }
-            
+
             ImGui.SameLine();
             if (ImGui.Button("Sunset"))
             {
                 project._clearColor = new System.Numerics.Vector3(1.0f, 0.647f, 0.0f); // Orange sunset #FFA500
                 //NotifyBackgroundChanged();
             }
-            
+
             ImGui.SameLine();
             if (ImGui.Button("Dawn"))
             {
                 project._clearColor = new System.Numerics.Vector3(1.0f, 0.753f, 0.796f); // Pink dawn #FFCCCB
                 //NotifyBackgroundChanged();
             }
-            
+
             // Second row of presets
             if (ImGui.Button("Storm"))
             {
                 project._clearColor = new System.Numerics.Vector3(0.4f, 0.4f, 0.5f); // Dark stormy gray #666680
                 //NotifyBackgroundChanged();
             }
-            
+
             ImGui.SameLine();
             if (ImGui.Button("Night"))
             {
                 project._clearColor = new System.Numerics.Vector3(0.1f, 0.1f, 0.2f); // Dark night blue #191933
                 //NotifyBackgroundChanged();
             }
-            
+
             ImGui.SameLine();
             if (ImGui.Button("White"))
             {
@@ -311,7 +693,7 @@ public class PropertiesPanel
             {
                 ImGui.Spacing();
                 ImGui.Text("Floor Tile");
-                
+
                 // Create a list of available tiles for selection
                 var availableTiles = new[]
                 {
@@ -360,7 +742,7 @@ public class PropertiesPanel
             }
         }
     }
-    
+
     private (int width, int height) ParseResolution(string resolutionString)
     {
         // Extract resolution from strings like "FHD 1080p 1920x1080" or "Avatar 512x512"

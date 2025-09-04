@@ -1,4 +1,5 @@
-﻿using Godot;
+﻿using System;
+using Godot;
 using ImGuiNET;
 using SimplyRemadeMI.ui;
 using MenuBar = SimplyRemadeMI.ui.MenuBar;
@@ -8,8 +9,8 @@ namespace SimplyRemadeMI.renderer;
 public class UIRenderer
 {
     public SceneTreePanel sceneTreePanel { get; private set; } = new();
-    private PropertiesPanel propertiesPanel = new();
-    private Timeline timeline = new();
+    public PropertiesPanel propertiesPanel = new();
+    public Timeline timeline = new();
     private ViewportObject ViewportObject;
     private MenuBar menuBar = new();
 
@@ -17,6 +18,98 @@ public class UIRenderer
     {
         ViewportObject = viewportObject;
         sceneTreePanel.World = Main.GetInstance().MainViewport.World;
+    }
+
+    public void Update(float delta)
+    {
+        timeline.Update(delta);
+        
+        if (timeline.IsPlaying || timeline.IsScrubbing || timeline.IsDraggingKeyframe)
+        {
+            foreach (var obj in sceneTreePanel.SceneObjects)
+            {
+                if (timeline.HasKeyframes(obj))
+                {
+                    var animatedPosition = timeline.GetAnimatedPosition(obj);
+                    var animatedRotation = timeline.GetAnimatedRotation(obj);
+                    var animatedScale = timeline.GetAnimatedScale(obj);
+                    var animatedAlpha = timeline.GetAnimatedAlpha(obj);
+                    
+                    var pos = obj.GetPosition();
+
+                    if (obj.PosXKeyframes.Count > 0)
+                    {
+                        pos.X = animatedPosition.X;
+                    }
+
+                    if (obj.PosYKeyframes.Count > 0)
+                    {
+                        pos.Y = animatedPosition.Y;
+                    }
+
+                    if (obj.PosZKeyframes.Count > 0)
+                    {
+                        pos.Z = animatedPosition.Z;
+                    }
+
+                    obj.Position = pos;
+                    
+                    var rot = obj.GetRotationDegrees();
+
+                    if (obj.RotXKeyframes.Count > 0)
+                    {
+                        rot.X = animatedRotation.X;
+                    }
+
+                    if (obj.RotYKeyframes.Count > 0)
+                    {
+                        rot.Y = animatedRotation.Y;
+                    }
+
+                    if (obj.RotZKeyframes.Count > 0)
+                    {
+                        rot.Z = animatedRotation.Z;
+                    }
+                    
+                    obj.RotationDegrees = rot;
+                    
+                    var scale = obj.GetScale();
+
+                    if (obj.ScaleXKeyframes.Count > 0)
+                    {
+                        scale.X = animatedScale.X;
+                    }
+
+                    if (obj.ScaleYKeyframes.Count > 0)
+                    {
+                        scale.Y = animatedScale.Y;
+                    }
+
+                    if (obj.ScaleZKeyframes.Count > 0)
+                    {
+                        scale.Z = animatedScale.Z;
+                    }
+                    
+                    obj.Scale = scale;
+                    obj.Alpha = animatedAlpha;
+                }
+            }
+        }
+        
+        return;
+        
+        if (timeline.HasKeyframes() && (timeline.IsPlaying || timeline.IsScrubbing || timeline.IsDraggingKeyframe))
+        {
+            var keyframePosition = timeline.GetAnimatedPosition();
+            var keyframeRotation = timeline.GetAnimatedRotation();
+            var keyframeScale = timeline.GetAnimatedScale();
+            var keyframeAlpha = timeline.GetAnimatedAlpha();
+
+            sceneTreePanel.SelectedObject.Position = keyframePosition;
+            sceneTreePanel.SelectedObject.RotationDegrees = keyframeRotation;
+            sceneTreePanel.SelectedObject.Scale = keyframeScale;
+            sceneTreePanel.SelectedObject.Alpha = keyframeAlpha;
+        }
     }
     
     public void Render()
