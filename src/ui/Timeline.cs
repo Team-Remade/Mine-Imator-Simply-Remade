@@ -963,8 +963,25 @@ public class Timeline
             default:
                 return; // Unknown property
         }
-        
-        keyframes[frame] = value;
+
+        // Check if there is any selected keyframe for the current object and property
+        bool hasSelectedKeyframe = SelectedKeyframes.Any(k =>
+            k.Property == property &&
+            k.ObjectIndex == Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex);
+
+        if (hasSelectedKeyframe)
+        {
+            // Update the value of the selected keyframe
+            var fram = SelectedKeyframes.First(k => k.Property == property && k.ObjectIndex == Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex).Frame;
+            
+            keyframes[fram] = value;
+        }
+        else
+        {
+            // Add a new keyframe
+            keyframes[frame] = value;
+        }
+
         CalculateTotalFrames();
     }
     
