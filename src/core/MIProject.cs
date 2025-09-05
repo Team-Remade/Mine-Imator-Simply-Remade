@@ -16,7 +16,6 @@ public class MIProject
     public string _projectSaveDir = "C:\\Projects\\Untitled";
     public int _projectRenderWidth = 1920;
     public int _projectRenderHeight = 1080;
-    public int _projectFramerate = 30;
     public int _selectedResolutionIndex = 3; // Default to FHD 1080p
     
     // Background properties
@@ -26,7 +25,7 @@ public class MIProject
     public string _floorTileId = "tile040"; // Default floor tile
     
     // Resolution options
-    public readonly string[] _resolutionOptions =
+    public readonly string[] ResolutionOptions =
     {
         "Avatar 512x512",
         "VGA 640x480",

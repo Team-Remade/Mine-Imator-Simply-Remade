@@ -13,6 +13,7 @@ public partial class MainViewport : SubViewport
     [Export] public SceneWorld World { get; private set; }
     [Export] private Camera3D _camera;
     [Export] private ShaderMaterial PickingMaterial;
+    [Export] public Background BackgroundObject { get; private set; }
 
     private bool Initialized;
     
@@ -164,6 +165,19 @@ public partial class MainViewport : SubViewport
                 ImGui.End();
             }
         }
+
+        BackgroundObject.BackgroundColor.Color = new Color(Main.GetInstance().UI.propertiesPanel.project._clearColor.X, Main.GetInstance().UI.propertiesPanel.project._clearColor.Y, Main.GetInstance().UI.propertiesPanel.project._clearColor.Z);
+
+        if (Main.GetInstance().UI.propertiesPanel.project._stretchBackgroundToFit)
+        {
+            BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Scale;
+        }
+        else
+        {
+            BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Keep;
+        }
+        
+        World.Floor.Visible = Main.GetInstance().UI.propertiesPanel.project._floorVisible;
         
         ImGui.PopStyleVar();
         
@@ -350,5 +364,21 @@ public partial class MainViewport : SubViewport
             current = current.GetParent() as Node3D;
         }
         return null;
+    }
+
+    public void LoadBackgroundImage(string imagePath)
+    {
+        var img = new Image();
+        img.Load(imagePath);
+        
+        var imgTex = new ImageTexture();
+        imgTex.SetImage(img);
+        
+        BackgroundObject.BackgroundTexture.Texture = imgTex;
+    }
+
+    public void ClearBackgroundImage()
+    {
+        BackgroundObject.BackgroundTexture.Texture = null;
     }
 }

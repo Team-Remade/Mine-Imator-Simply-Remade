@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Godot;
 using ImGuiNET;
 using SimplyRemadeMI.core;
@@ -10,11 +11,21 @@ namespace SimplyRemadeMI.ui;
 public class PropertiesPanel
 {
     public MIProject project = new();
+    
+    private string? _pendingBackgroundImagePath = null;
+    private string _backgroundImageName = "None";
 
     public void Render(Vector2I position, Vector2I size)
     {
         //ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
         //ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
+        
+        if (!string.IsNullOrEmpty(_pendingBackgroundImagePath))
+        {
+            Main.GetInstance().MainViewport?.LoadBackgroundImage(_pendingBackgroundImagePath);
+            _backgroundImageName = System.IO.Path.GetFileName(_pendingBackgroundImagePath);
+            _pendingBackgroundImagePath = null;
+        }
 
         if (ImGui.Begin("Properties",
                 ImGuiWindowFlags.NoCollapse))
@@ -484,14 +495,14 @@ public class PropertiesPanel
             if (ImGui.Button("Set Thumbnail"))
             {
                 // TODO: Implement thumbnail selection
-                Console.WriteLine("Set project thumbnail");
+                //Console.WriteLine("Set project thumbnail");
             }
 
             ImGui.SameLine();
             if (ImGui.Button("Clear Thumbnail"))
             {
                 // TODO: Implement thumbnail clearing
-                Console.WriteLine("Clear project thumbnail");
+                //Console.WriteLine("Clear project thumbnail");
             }
 
             ImGui.Spacing();
@@ -507,23 +518,23 @@ public class PropertiesPanel
             if (ImGui.Button("Browse..."))
             {
                 // TODO: Implement directory browser
-                Console.WriteLine("Browse for project save directory");
+                //Console.WriteLine("Browse for project save directory");
             }
 
             ImGui.Spacing();
             ImGui.Separator();
 
             // Project render resolution
-            ImGui.Text("Project Render Resolution: NOT IMPLEMENTED");
+            ImGui.Text("Project Render Resolution");
 
             // Resolution dropdown with presets (same as export dialog)
-            if (ImGui.Combo("##ResolutionPreset", ref project._selectedResolutionIndex, project._resolutionOptions,
-                    project._resolutionOptions.Length))
+            if (ImGui.Combo("##ResolutionPreset", ref project._selectedResolutionIndex, project.ResolutionOptions,
+                    project.ResolutionOptions.Length))
             {
                 // Resolution changed - update project resolution values
                 if (project._selectedResolutionIndex != 12) // Not Custom
                 {
-                    var (width, height) = ParseResolution(project._resolutionOptions[project._selectedResolutionIndex]);
+                    var (width, height) = ParseResolution(project.ResolutionOptions[project._selectedResolutionIndex]);
                     project._projectRenderWidth = width;
                     project._projectRenderHeight = height;
                 }
@@ -558,11 +569,11 @@ public class PropertiesPanel
             ImGui.Separator();
 
             // Project framerate
-            ImGui.Text("Project Framerate: NOT IMPLEMENTED");
-            if (ImGui.InputInt("##ProjectFramerate", ref project._projectFramerate, 1, 5))
+            ImGui.Text("Project Framerate: NOT FINISHED");
+            if (ImGui.InputInt("##ProjectFramerate", ref project.FrameRate, 1, 5))
             {
-                if (project._projectFramerate < 1) project._projectFramerate = 1;
-                if (project._projectFramerate > 120) project._projectFramerate = 120;
+                if (project.FrameRate < 1) project.FrameRate = 1;
+                if (project.FrameRate > 120) project.FrameRate = 120;
             }
 
             // Common framerate presets
@@ -570,51 +581,51 @@ public class PropertiesPanel
             ImGui.Text("Presets:");
             if (ImGui.Button("24 fps"))
             {
-                project._projectFramerate = 24;
+                project.FrameRate = 24;
             }
 
             ImGui.SameLine();
             if (ImGui.Button("30 fps"))
             {
-                project._projectFramerate = 30;
+                project.FrameRate = 30;
             }
 
             ImGui.SameLine();
             if (ImGui.Button("60 fps"))
             {
-                project._projectFramerate = 60;
+                project.FrameRate = 60;
             }
         }
 
         // Background Settings Section
-        if (ImGui.CollapsingHeader("Background Settings"))
+        if (ImGui.CollapsingHeader("Background Settings: NOT FINISHED"))
         {
             // Background Image
-            ImGui.Text("Background Image: NOT IMPLEMENTED");
+            ImGui.Text("Background Image");
 
             // Display current background image name
             ImGui.Text($"Current: {project._backgroundImageName}");
             if (ImGui.Button("Load Background Image"))
             {
                 // Use file dialog to select background image
-                //_ = Task.Run(async () =>
-                //{
-                //    var imagePath = await FileDialog.ShowOpenDialogAsync("Select Background Image");
-                //    if (!string.IsNullOrEmpty(imagePath) && System.IO.File.Exists(imagePath))
-                //    {
-                //        // Store the path to load on the main thread
-                //        _pendingBackgroundImagePath = imagePath;
-                //    }
-                //    else if (!string.IsNullOrEmpty(imagePath))
-                //    {
-                //        Console.WriteLine($"Selected image not found: {imagePath}");
-                //    }
-                //});
+                _ = Task.Run(async () =>
+                {
+                    var imagePath = await util.FileDialog.ShowOpenDialogAsync("Select Background Image");
+                    if (!string.IsNullOrEmpty(imagePath) && System.IO.File.Exists(imagePath))
+                    {
+                        // Store the path to load on the main thread
+                        _pendingBackgroundImagePath = imagePath;
+                    }
+                    else if (!string.IsNullOrEmpty(imagePath))
+                    {
+                        Console.WriteLine($"Selected image not found: {imagePath}");
+                    }
+                });
             }
 
             if (ImGui.Button("Clear Background Image"))
             {
-                //_viewport3D?.ClearBackgroundImage();
+                Main.GetInstance().MainViewport.ClearBackgroundImage();
                 project._backgroundImageName = "None";
             }
 
@@ -623,8 +634,7 @@ public class PropertiesPanel
             // Stretch to Fit Toggle
             if (ImGui.Checkbox("Stretch to Fit", ref project._stretchBackgroundToFit))
             {
-                // Notify the viewport that the stretch setting changed
-                //_viewport3D?.SetBackgroundStretch(_stretchBackgroundToFit);
+                
             }
 
             // Clear Color (Sky Color)
@@ -693,52 +703,7 @@ public class PropertiesPanel
             {
                 ImGui.Spacing();
                 ImGui.Text("Floor Tile");
-
-                // Create a list of available tiles for selection
-                var availableTiles = new[]
-                {
-                    "tile040", // Grass (default)
-                    "tile002", // Dirt
-                    "tile003", // Stone
-                    "tile016", // Cobblestone
-                    "tile017", // Bedrock
-                    "tile018", // Sand
-                    "tile019", // Gravel
-                    "tile021", // Wood (log top)
-                    "tile032", // Gold ore
-                    "tile033", // Iron ore
-                    "tile034", // Coal ore
-                    "tile048", // Sponge
-                    "tile049", // Glass
-                    "tile053", // Leaves
-                    "tile062", // Dispenser top
-                    "tile074", // Note block
-                    "tile079", // Birch sapling
-                    "tile116", // Spruce log
-                    "tile117", // Birch log
-                    "tile134", // Bed top
-                    "tile149", // Bed side
-                    "tile150", // Bed bottom
-                    "tile151", // Bed side
-                    "tile152", // Bed back
-                    "tile153", // Jungle log
-                    "tile160", // Lapis ore
-                    "tile163", // Powered rail
-                    "tile176", // Sandstone top
-                    "tile191", // Lava
-                    "tile192", // Sandstone side
-                    "tile195", // Detector rail
-                    "tile208", // Sandstone bottom
-                };
-
-                //var currentTileIndex = Array.IndexOf(availableTiles, _floorTileId);
-                //if (currentTileIndex == -1) currentTileIndex = 0;
-
-                //if (ImGui.Combo("##FloorTile", ref currentTileIndex, availableTiles, availableTiles.Length))
-                //{
-                //    _floorTileId = availableTiles[currentTileIndex];
-                //    NotifyBackgroundChanged();
-                //}
+                
             }
         }
     }
