@@ -186,10 +186,10 @@ public class Timeline
     
     public void Render(Vector2I pos, Vector2I size)
     {
-        ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y));
-        ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
+        //ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y));
+        //ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
 
-        if (ImGui.Begin("Timeline", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse |  ImGuiWindowFlags.AlwaysVerticalScrollbar))
+        if (ImGui.Begin("Timeline", ImGuiWindowFlags.NoCollapse |  ImGuiWindowFlags.AlwaysVerticalScrollbar))
         {
             IsHovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows);
             HandleZoom();

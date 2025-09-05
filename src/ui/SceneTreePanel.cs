@@ -22,12 +22,12 @@ public class SceneTreePanel
 
     public void Render(Vector2I position, Vector2I size)
     {
-        ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
-        ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
+        //ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
+        //ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
         ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0.2f, 0.2f, 0.25f, 1.0f));
 
         if (ImGui.Begin("Scene Tree",
-                ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse))
+                ImGuiWindowFlags.NoCollapse))
         {
             ImGui.Text("Scene Objects:");
             ImGui.Separator();

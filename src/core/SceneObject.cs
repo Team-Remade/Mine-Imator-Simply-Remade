@@ -6,7 +6,7 @@ namespace SimplyRemadeMI.core;
 
 public partial class SceneObject : Node3D
 {
-    [Export] private Marker3D Visuals;
+    [Export] public Marker3D Visuals;
     
     public enum Type
     {
@@ -17,6 +17,8 @@ public partial class SceneObject : Node3D
         ModelPart,
         TestInvalidType,
     }
+
+    public int ID;
     
     public Type ObjectType;
     
@@ -92,6 +94,8 @@ public partial class SceneObject : Node3D
                 sceneObject.Position = new Vector3(0, -0.5f, 0) + ObjectOriginOffset + sceneObject.TargetPosition;
             }
         }
+        
+        Position = TargetPosition;
     }
 
     public void SetParent(SceneObject parent)

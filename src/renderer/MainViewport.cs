@@ -1,5 +1,9 @@
+using System;
+using System.Collections.Generic;
 using Gizmo3DPlugin;
 using Godot;
+using ImGuiGodot;
+using ImGuiNET;
 using SimplyRemadeMI.core;
 
 namespace SimplyRemadeMI.renderer;
@@ -8,8 +12,18 @@ public partial class MainViewport : SubViewport
 {
     [Export] public SceneWorld World { get; private set; }
     [Export] private Camera3D _camera;
+    [Export] private ShaderMaterial PickingMaterial;
+
+    private bool Initialized;
+    
+    private Dictionary<int, SceneObject> Objects =  new Dictionary<int, SceneObject>();
+    
+    public SubViewport ObjectPicking = new SubViewport();
+    private Camera3D ObjectPickingCam = new Camera3D();
+    private Node3D ObjectPickingObject = new();
 
     public bool Controlled;
+    private bool _debugView;
 
     public override void _Ready()
     {
@@ -22,9 +36,82 @@ public partial class MainViewport : SubViewport
         HandleInputLocally = true;
     }
 
+    private void Init()
+    {
+        if (Initialized) return;
+        
+        var main = GetNode<Main>("/root/Main");
+        
+        if (main == null) return;
+        
+        ObjectPicking.OwnWorld3D = true;
+        ObjectPicking.World3D = new World3D();
+        main.Second.AddChild(ObjectPicking);
+        ObjectPicking.RenderTargetUpdateMode = RenderTargetUpdateMode;
+        
+        ObjectPicking.AddChild(ObjectPickingCam);
+        ObjectPicking.AddChild(ObjectPickingObject);
+        
+        Initialized = true;
+    }
+
+    public void UpdatePicking()
+    {
+        Objects.Clear();
+        
+        foreach (var obj in ObjectPickingObject.GetChildren())
+        {
+            obj.QueueFree();
+        }
+
+        foreach (var obj in World.GetChildren())
+        {
+            if (obj is SceneObject so)
+            {
+                // Create a new node for the picking system instead of duplicating the entire SceneObject
+                var pickingNode = new Node3D();
+                pickingNode.Name = so.Name + "_Picking";
+                // Store the original object ID as metadata
+                pickingNode.SetMeta("object_id", so.ID);
+                ObjectPickingObject.AddChild(pickingNode);
+                
+                // Copy the transform from the original object
+                pickingNode.Transform = so.Transform;
+                
+                // Add meshes from the original object's Visuals
+                if (so.Visuals != null)
+                {
+                    foreach (var child in so.Visuals.GetChildren())
+                    {
+                        if (child is MeshInstance3D originalMesh)
+                        {
+                            var meshCopy = new MeshInstance3D();
+                            meshCopy.Mesh = originalMesh.Mesh;
+                            meshCopy.Transform = originalMesh.Transform;
+                            
+                            // Apply picking material
+                            meshCopy.MaterialOverride = PickingMaterial.Duplicate() as Material;
+                            
+                            var id = (float)so.ID;
+                            var colorId = new Color(id / 255f, 1.0f, 1.0f, 0);
+                            
+                            var mat = (ShaderMaterial)meshCopy.MaterialOverride;
+                            mat.SetShaderParameter("object_id", colorId);
+                            
+                            pickingNode.AddChild(meshCopy);
+                        }
+                    }
+                }
+                    
+                Objects.Add(so.ID, so);
+            }
+        }
+    }
+
     private void CreateSceneObject()
     {
         var sceneObject = Main.GetInstance().ObjectScene.Instantiate<SceneObject>();
+        Main.GetInstance().UI.sceneTreePanel.SceneObjects.Add(sceneObject);
         var cube = new MeshInstance3D();
         var cubeMesh = new BoxMesh();
         cube.Mesh = cubeMesh;
@@ -34,9 +121,9 @@ public partial class MainViewport : SubViewport
         cube.MaterialOverride = material;
         sceneObject.AddVisuals(cube);
         World.AddChild(sceneObject);
-            
-        Main.GetInstance().UI.sceneTreePanel.SceneObjects.Add(sceneObject);
-        sceneObject.Name = $"Cube{Main.GetInstance().UI.sceneTreePanel.SceneObjects.Count}";
+        
+        sceneObject.Name = $"Cube{Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(sceneObject)}";
+        sceneObject.ID = Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(sceneObject) + 1;
     }
 
     private void TransformGizmoOnTransformEnd(int mode)
@@ -63,9 +150,47 @@ public partial class MainViewport : SubViewport
 
     public override void _Process(double delta)
     {
+        Init();
+        
+        ImGui.SetNextWindowSize(new System.Numerics.Vector2(Size.X, Size.Y));
+        
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new System.Numerics.Vector2(0, 0));
+
+        if (_debugView)
+        {
+            if (ImGui.Begin("Debug Viewport", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse))
+            {
+                ImGuiGD.SubViewport(ObjectPicking);
+                ImGui.End();
+            }
+        }
+        
+        ImGui.PopStyleVar();
+        
+        ObjectPicking.Size = Size;
+        ObjectPickingCam.Transform = _camera.Transform;
+        
         if (Input.IsActionJustPressed("SpawnDebugCube"))
         {
             CreateSceneObject();
+            UpdatePicking();
+        }
+
+        if (Input.IsActionJustPressed("ToggleDebugView"))
+        {
+            _debugView = !_debugView;
+        }
+
+        foreach (var child in ObjectPickingObject.GetChildren())
+        {
+            if (child is not Node3D pickingNode) continue;
+            
+            // Get the original object ID from metadata
+            var objectId = (int)pickingNode.GetMeta("object_id");
+            if (Objects.TryGetValue(objectId, out var parentObj))
+            {
+                pickingNode.GlobalTransform = parentObj.GlobalTransform * new Transform3D(Basis.Identity, parentObj.ObjectOriginOffset);
+            }
         }
     }
 
@@ -114,65 +239,60 @@ public partial class MainViewport : SubViewport
         {
             return;
         }
+
+        // Get the image from the object picking viewport
+        var image = ObjectPicking.GetTexture().GetImage();
+        if (image == null)
+        {
+            GD.Print("No image available from object picking viewport");
+            return;
+        }
+
+        // Convert mouse position to viewport coordinates
+        var viewportPos = new Vector2I(
+            (int)(mousePosition.X * ObjectPicking.Size.X / Size.X),
+            (int)(mousePosition.Y * ObjectPicking.Size.Y / Size.Y)
+        );
+
+        // Ensure coordinates are within bounds
+        if (viewportPos.X < 0 || viewportPos.X >= ObjectPicking.Size.X ||
+            viewportPos.Y < 0 || viewportPos.Y >= ObjectPicking.Size.Y)
+        {
+            return;
+        }
+
+        // Read the pixel color at the mouse position
+        var pixelColor = image.GetPixel(viewportPos.X, viewportPos.Y);
         
-        if (_camera == null)
+        // Convert color back to object ID (red channel contains ID/255)
+        if (pixelColor.R > 0)
         {
-            GD.PrintErr("Camera is not initialized");
-            return;
-        }
-
-        if (World == null)
-        {
-            GD.PrintErr("World is not initialized");
-            return;
-        }
-
-        // Create a ray from the camera through the mouse position
-        var from = _camera.ProjectRayOrigin(mousePosition);
-        var to = from + _camera.ProjectRayNormal(mousePosition) * 1000;
-        var rayDir = (to - from).Normalized();
-
-        SceneObject closestHit = null;
-        float closestDistance = float.MaxValue;
-
-        // Iterate through all SceneObjects in the World
-        foreach (Node child in World.GetChildren())
-        {
-            if (child is SceneObject sceneObject)
+            int objectId = Mathf.RoundToInt(pixelColor.R * 255f);
+            
+            if (Objects.TryGetValue(objectId, out var sceneObject))
             {
-                // Check all MeshInstance3D children of the SceneObject
-                foreach (Node node in sceneObject.GetChildren())
-                {
-                    if (node is MeshInstance3D meshInstance)
-                    {
-                        // Get the global AABB of the mesh instance
-                        var aabb = meshInstance.GetAabb();
-                        var globalTransform = meshInstance.GlobalTransform;
-                        var globalAabb = new Aabb(globalTransform * aabb.Position, aabb.Size * globalTransform.Basis.Scale);
-
-                        // Check ray intersection with AABB using manual calculation
-                        if (RayIntersectsAabb(from, rayDir, globalAabb, out float distance))
-                        {
-                            if (distance < closestDistance)
-                            {
-                                closestDistance = distance;
-                                closestHit = sceneObject;
-                            }
-                        }
-                    }
-                }
+                // Select the object - convert from 1-based objectId to 0-based index
+                Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = objectId - 1;
+                
+                // Update SelectionManager
+                SelectionManager.ClearSelection();
+                SelectionManager.Selection.Add(sceneObject);
+                SelectionManager.TransformGizmo.Visible = true;
+                SelectionManager.TransformGizmo.Position = sceneObject.Position;
+                SelectionManager.TransformGizmo.Select(sceneObject);
+                GD.Print($"Selected object with ID: {objectId}");
             }
-        }
-
-        if (closestHit != null)
-        {
-            SelectionManager.Selection.Add(closestHit);
-            SelectionManager.QuerySelection(Input.IsKeyPressed(Key.Ctrl));
-            Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(closestHit);
+            else
+            {
+                GD.Print($"No object found with ID: {objectId}");
+            }
         }
         else
         {
+            // No object selected (clicked on background)
+            Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = -1;
             SelectionManager.ClearSelection();
+            GD.Print("No object selected");
         }
     }
 

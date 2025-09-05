@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Godot;
 using Godot.Collections;
+using ImGuiNET;
 using SimplyRemadeMI.renderer;
 
 namespace SimplyRemadeMI;
@@ -13,6 +14,7 @@ public partial class Main : Control
     
     [Export] public MainViewport MainViewport { get; private set; }
     [Export] public PackedScene ObjectScene { get; private set; }
+    [Export] public SubViewportContainer Second { get; private set; }
     
     [Export] public Dictionary<string, Texture2D> Icons { get; private set; }
     
@@ -51,6 +53,10 @@ public partial class Main : Control
     {
         Instance = this;
         
+        var io = ImGui.GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;
+        io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
+        
         ViewportObject = new ViewportObject(MainViewport);
         UI = new UIRenderer(ViewportObject);
         
@@ -88,6 +94,8 @@ public partial class Main : Control
         DisplayServer.WindowSetTitle("Mine Imator Simply Remade");
         UI.Update((float)delta);
         UI.Render();
+        
+        WindowSize = DisplayServer.WindowGetSize();
     }
 
     public override void _Notification(int what)
@@ -97,10 +105,6 @@ public partial class Main : Control
             //TODO: Implement unsaved project detection
             GD.Print("Window closing...");
             GetTree().Quit();
-        }
-        else if (what == NotificationWMSizeChanged)
-        {
-            WindowSize = DisplayServer.WindowGetSize();
         }
     }
 

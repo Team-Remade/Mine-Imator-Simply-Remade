@@ -64,9 +64,10 @@ public partial class Floor : MeshInstance3D
         float maxV = (uvRect.Position.Y + uvRect.Size.Y) / atlasHeight;
         //GD.Print($"Normalized UV: minU={minU}, maxU={maxU}, minV={minV}, maxV={maxV}");
         
-        // Create lists for vertices, UVs, and indices for the grid
+        // Create lists for vertices, UVs, normals, and indices for the grid
         var verticesList = new System.Collections.Generic.List<Vector3>();
         var uvsList = new System.Collections.Generic.List<Vector2>();
+        var normalsList = new System.Collections.Generic.List<Vector3>();
         var indicesList = new System.Collections.Generic.List<int>();
 
         // Number of tiles in each direction: 64x64 for 64x64 meter floor
@@ -96,6 +97,12 @@ public partial class Floor : MeshInstance3D
                 uvsList.Add(new Vector2(maxU, minV)); // Top-right
                 uvsList.Add(new Vector2(minU, minV)); // Top-left
 
+                // Add normals for the quad - all pointing up (Y+)
+                normalsList.Add(Vector3.Up); // Bottom-left
+                normalsList.Add(Vector3.Up); // Bottom-right
+                normalsList.Add(Vector3.Up); // Top-right
+                normalsList.Add(Vector3.Up); // Top-left
+
                 // Add indices for the two triangles of the quad
                 int baseIndex = verticesList.Count - 4;
                 indicesList.Add(baseIndex + 0); // Triangle 1
@@ -110,6 +117,7 @@ public partial class Floor : MeshInstance3D
         // Convert lists to arrays
         var vertices = verticesList.ToArray();
         var uvs = uvsList.ToArray();
+        var normals = normalsList.ToArray();
         var indices = indicesList.ToArray();
 
         // Create mesh arrays
@@ -117,6 +125,7 @@ public partial class Floor : MeshInstance3D
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = vertices;
         arrays[(int)Mesh.ArrayType.TexUV] = uvs;
+        arrays[(int)Mesh.ArrayType.Normal] = normals;
         arrays[(int)Mesh.ArrayType.Index] = indices;
 
         // Create and assign ArrayMesh

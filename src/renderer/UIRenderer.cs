@@ -1,5 +1,6 @@
 ﻿using System;
 using Godot;
+using ImGuiGodot;
 using ImGuiNET;
 using SimplyRemadeMI.ui;
 using MenuBar = SimplyRemadeMI.ui.MenuBar;
@@ -119,6 +120,10 @@ public class UIRenderer
 
     private void DrawUI()
     {
+        //ImGuiGD.SetMainViewport(Main.GetInstance().GetWindow());
+
+        ImGui.DockSpaceOverViewport();
+        
         var size = Main.GetInstance().WindowSize;
 
         var sceneTreeHeight = size.Y / 3;

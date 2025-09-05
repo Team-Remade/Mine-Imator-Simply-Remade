@@ -20,10 +20,10 @@ public class ViewportObject
     
     public void Render(Vector2I position, Vector2I sizez)
     {
-        ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
-        ImGui.SetNextWindowSize(new Vector2(sizez.X, sizez.Y));
+        //ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
+        //ImGui.SetNextWindowSize(new Vector2(sizez.X, sizez.Y));
         
-        if (ImGui.Begin("Viewport", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoScrollbar |  ImGuiWindowFlags.NoScrollWithMouse))
+        if (ImGui.Begin("Viewport", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoScrollbar |  ImGuiWindowFlags.NoScrollWithMouse))
         {
             var size = ImGui.GetContentRegionAvail();
             if (size.X > 5 && size.Y > 5)
@@ -63,8 +63,10 @@ public class ViewportObject
                         gizmoModeText = "Scale Mode";
                         textColor = 0xFFFF8000;
                     }
+
+                    var pos = ImGui.GetWindowPos();
                 
-                    var gizmoModePos = new Vector2(position.X + 15, position.Y + 10 + 64 + 35);
+                    var gizmoModePos = new Vector2(pos.X + 15, pos.Y + 10 + 64 + 35);
                     var gizmoModeSize = ImGui.CalcTextSize(gizmoModeText);
                 
                     var bgRectMin = gizmoModePos - new Vector2(2, 2);

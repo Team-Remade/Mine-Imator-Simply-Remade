@@ -13,11 +13,11 @@ public class PropertiesPanel
 
     public void Render(Vector2I position, Vector2I size)
     {
-        ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
-        ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
+        //ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
+        //ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
 
         if (ImGui.Begin("Properties",
-                ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoCollapse))
+                ImGuiWindowFlags.NoCollapse))
         {
             // Create tabs
             if (ImGui.BeginTabBar("##PropertiesTabs"))
