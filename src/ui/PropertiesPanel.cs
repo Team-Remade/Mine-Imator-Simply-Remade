@@ -708,7 +708,7 @@ public class PropertiesPanel
         }
     }
 
-    private (int width, int height) ParseResolution(string resolutionString)
+    public (int width, int height) ParseResolution(string resolutionString)
     {
         // Extract resolution from strings like "FHD 1080p 1920x1080" or "Avatar 512x512"
         var parts = resolutionString.Split(' ');

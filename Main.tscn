@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://cykt8uneb4j0m"]
+[gd_scene load_steps=11 format=3 uid="uid://cykt8uneb4j0m"]
 
 [ext_resource type="Script" uid="uid://cyrjeycv58rk1" path="res://Main.cs" id="1_glv2v"]
 [ext_resource type="Texture2D" uid="uid://gmuqnx7f4hic" path="res://assets/sprite/bench.png" id="2_r0du0"]
@@ -9,8 +9,9 @@
 [ext_resource type="Texture2D" uid="uid://b4bxa5k08k35o" path="res://assets/sprite/icons/play.svg" id="5_lgr22"]
 [ext_resource type="Texture2D" uid="uid://bcjkxc20nb42u" path="res://assets/sprite/icons/stop.svg" id="6_lgr22"]
 [ext_resource type="Script" uid="uid://owahw6vpwumb" path="res://TestWindow.cs" id="9_03owx"]
+[ext_resource type="PackedScene" uid="uid://bb7cs5tvtg72p" path="res://scenes/RenderOutput.tscn" id="10_wkp8b"]
 
-[node name="Main" type="Control" node_paths=PackedStringArray("MainViewport", "Second")]
+[node name="Main" type="Control" node_paths=PackedStringArray("MainViewport", "Output", "Second")]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -18,7 +19,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_glv2v")
-MainViewport = NodePath("CanvasLayer/MainViewport")
+MainViewport = NodePath("MainViewport")
+Output = NodePath("RenderOutpu")
 ObjectScene = ExtResource("2_trn2v")
 Second = NodePath("SubViewportContainer")
 Icons = Dictionary[String, Texture2D]({
@@ -29,9 +31,7 @@ Icons = Dictionary[String, Texture2D]({
 "stop": ExtResource("6_lgr22")
 })
 
-[node name="CanvasLayer" type="CanvasLayer" parent="."]
-
-[node name="MainViewport" parent="CanvasLayer" instance=ExtResource("2_uu6xs")]
+[node name="MainViewport" parent="." instance=ExtResource("2_uu6xs")]
 size = Vector2i(1152, 648)
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
@@ -46,3 +46,5 @@ initial_position = 2
 size = Vector2i(800, 800)
 visible = false
 script = ExtResource("9_03owx")
+
+[node name="RenderOutpu" parent="." instance=ExtResource("10_wkp8b")]

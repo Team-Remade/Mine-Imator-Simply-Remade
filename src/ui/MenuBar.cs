@@ -4,6 +4,9 @@ namespace SimplyRemadeMI.ui;
 
 public class MenuBar
 {
+    public bool ShouldShowRenderSettings = false;
+    public bool ShouldShowRenderAnimation = false;
+    
     public void Render()
     {
         if (ImGui.BeginMainMenuBar())
@@ -47,6 +50,27 @@ public class MenuBar
                     Main.GetInstance().GetTree().Quit();
                 }
                 
+                ImGui.EndMenu();
+            }
+            
+            if (ImGui.BeginMenu("Render DONT USE THIS IT WILL BREAK"))
+            {
+                if (ImGui.MenuItem("Render Frame", "F12"))
+                {
+                    ShouldShowRenderSettings = true;
+                }
+
+                if (ImGui.MenuItem("Render Animation", "Ctrl+F12"))
+                {
+                    ShouldShowRenderAnimation = true;
+                }
+
+                ImGui.Separator();
+                if (ImGui.MenuItem("Render Settings"))
+                {
+                    // TODO: Open render settings dialog
+                }
+
                 ImGui.EndMenu();
             }
             

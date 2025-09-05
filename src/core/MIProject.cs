@@ -17,6 +17,8 @@ public class MIProject
     public int _projectRenderWidth = 1920;
     public int _projectRenderHeight = 1080;
     public int _selectedResolutionIndex = 3; // Default to FHD 1080p
+    public float _aspectRatio = 1.0f;
+    public bool _keepAspectRatio = true;
     
     // Background properties
     public string _backgroundImagePath = "";
@@ -41,4 +43,18 @@ public class MIProject
         "UW5k Cinematic 5120x2160",
         "Custom"
     };
+
+    public int _selectedVideoFormatIndex;
+    public readonly string[] _videoFormatOptions = { "MP4", "MOV", "WMV", "PNG Sequence" };
+    public float _bitrate = 25.0f; // Mbps
+
+    public MIProject()
+    {
+        _aspectRatio = (float)_projectRenderWidth / _projectRenderHeight;
+    }
+    
+    public (int width, int height, int framerate) GetProjectRenderSettings()
+    {
+        return (_projectRenderWidth, _projectRenderHeight, FrameRate);
+    }
 }

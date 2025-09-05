@@ -1,0 +1,16 @@
+[gd_scene load_steps=3 format=3 uid="uid://bb7cs5tvtg72p"]
+
+[ext_resource type="Script" uid="uid://cyc1wmful31ms" path="res://src/renderer/RenderOutput.cs" id="1_8y1so"]
+[ext_resource type="PackedScene" uid="uid://bwhawq0w3vp6w" path="res://scenes/Background.tscn" id="2_qp20s"]
+
+[node name="RenderOutpu" type="SubViewport" node_paths=PackedStringArray("MainCamera", "BackgroundObject")]
+render_target_update_mode = 4
+script = ExtResource("1_8y1so")
+MainCamera = NodePath("ViewportCamera")
+BackgroundObject = NodePath("Background")
+
+[node name="ViewportCamera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 3, 3)
+current = true
+
+[node name="Background" parent="." instance=ExtResource("2_qp20s")]

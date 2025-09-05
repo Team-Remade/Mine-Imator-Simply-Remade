@@ -25,6 +25,11 @@ public partial class MainViewport : SubViewport
 
     public bool Controlled;
     private bool _debugView;
+    
+    public bool _shouldRenderToFile = false;
+    public int _renderWidth = 0;
+    public int _renderHeight = 0;
+    public string _renderFilePath = "";
 
     public override void _Ready()
     {
@@ -153,6 +158,8 @@ public partial class MainViewport : SubViewport
     {
         Init();
         
+        Main.GetInstance().Output.MainCamera.GlobalTransform = _camera.GlobalTransform;
+        
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(Size.X, Size.Y));
         
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new System.Numerics.Vector2(0, 0));
@@ -167,14 +174,17 @@ public partial class MainViewport : SubViewport
         }
 
         BackgroundObject.BackgroundColor.Color = new Color(Main.GetInstance().UI.propertiesPanel.project._clearColor.X, Main.GetInstance().UI.propertiesPanel.project._clearColor.Y, Main.GetInstance().UI.propertiesPanel.project._clearColor.Z);
+        Main.GetInstance().Output.BackgroundObject.BackgroundColor.Color = new Color(Main.GetInstance().UI.propertiesPanel.project._clearColor.X, Main.GetInstance().UI.propertiesPanel.project._clearColor.Y, Main.GetInstance().UI.propertiesPanel.project._clearColor.Z);
 
         if (Main.GetInstance().UI.propertiesPanel.project._stretchBackgroundToFit)
         {
             BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Scale;
+            Main.GetInstance().Output.BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Scale;
         }
         else
         {
             BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Keep;
+            Main.GetInstance().Output.BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Keep;
         }
         
         World.Floor.Visible = Main.GetInstance().UI.propertiesPanel.project._floorVisible;
@@ -310,47 +320,6 @@ public partial class MainViewport : SubViewport
         }
     }
 
-    private bool RayIntersectsAabb(Vector3 rayOrigin, Vector3 rayDir, Aabb aabb, out float distance)
-    {
-        distance = 0;
-        var tmin = 0.0f;
-        var tmax = float.MaxValue;
-
-        for (int i = 0; i < 3; i++)
-        {
-            if (Mathf.Abs(rayDir[i]) < float.Epsilon)
-            {
-                // Ray is parallel to this axis
-                if (rayOrigin[i] < aabb.Position[i] || rayOrigin[i] > aabb.Position[i] + aabb.Size[i])
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                var ood = 1.0f / rayDir[i];
-                var t1 = (aabb.Position[i] - rayOrigin[i]) * ood;
-                var t2 = (aabb.Position[i] + aabb.Size[i] - rayOrigin[i]) * ood;
-
-                if (t1 > t2)
-                {
-                    (t1, t2) = (t2, t1);
-                }
-
-                tmin = Mathf.Max(tmin, t1);
-                tmax = Mathf.Min(tmax, t2);
-
-                if (tmin > tmax)
-                {
-                    return false;
-                }
-            }
-        }
-
-        distance = tmin;
-        return true;
-    }
-
     private SceneObject FindSceneObject(Node3D node)
     {
         // Traverse up the hierarchy to find a SceneObject
@@ -375,10 +344,12 @@ public partial class MainViewport : SubViewport
         imgTex.SetImage(img);
         
         BackgroundObject.BackgroundTexture.Texture = imgTex;
+        Main.GetInstance().Output.BackgroundObject.BackgroundTexture.Texture = imgTex;
     }
 
     public void ClearBackgroundImage()
     {
         BackgroundObject.BackgroundTexture.Texture = null;
+        Main.GetInstance().Output.BackgroundObject.BackgroundTexture.Texture = null;
     }
 }

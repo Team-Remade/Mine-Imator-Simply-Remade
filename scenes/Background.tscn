@@ -1,0 +1,36 @@
+[gd_scene load_steps=2 format=3 uid="uid://bwhawq0w3vp6w"]
+
+[ext_resource type="Script" uid="uid://bsb82u6gwgta2" path="res://src/renderer/Background.cs" id="1_274mx"]
+
+[node name="Background" type="CanvasLayer" node_paths=PackedStringArray("BackgroundColor", "BackgroundTexture")]
+layer = 4
+follow_viewport_enabled = true
+script = ExtResource("1_274mx")
+BackgroundColor = NodePath("Control/ColorRect")
+BackgroundTexture = NodePath("Control/TextureRect")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.576471, 0.576471, 1, 1)
+
+[node name="TextureRect" type="TextureRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1

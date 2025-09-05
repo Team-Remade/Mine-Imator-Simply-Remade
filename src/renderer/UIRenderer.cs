@@ -1,9 +1,11 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using Godot;
 using ImGuiGodot;
 using ImGuiNET;
 using SimplyRemadeMI.ui;
 using MenuBar = SimplyRemadeMI.ui.MenuBar;
+using Vector2 = System.Numerics.Vector2;
 
 namespace SimplyRemadeMI.renderer;
 
@@ -14,6 +16,10 @@ public class UIRenderer
     public Timeline timeline = new();
     private ViewportObject ViewportObject;
     private MenuBar menuBar = new();
+    
+    public bool ShowPreviewWindow = true;
+    
+    private Dialog? dialog;
 
     public UIRenderer(ViewportObject viewportObject)
     {
@@ -96,21 +102,6 @@ public class UIRenderer
                 }
             }
         }
-        
-        return;
-        
-        if (timeline.HasKeyframes() && (timeline.IsPlaying || timeline.IsScrubbing || timeline.IsDraggingKeyframe))
-        {
-            var keyframePosition = timeline.GetAnimatedPosition();
-            var keyframeRotation = timeline.GetAnimatedRotation();
-            var keyframeScale = timeline.GetAnimatedScale();
-            var keyframeAlpha = timeline.GetAnimatedAlpha();
-
-            sceneTreePanel.SelectedObject.Position = keyframePosition;
-            sceneTreePanel.SelectedObject.RotationDegrees = keyframeRotation;
-            sceneTreePanel.SelectedObject.Scale = keyframeScale;
-            sceneTreePanel.SelectedObject.Alpha = keyframeAlpha;
-        }
     }
     
     public void Render()
@@ -135,5 +126,145 @@ public class UIRenderer
         timeline.Render(new Vector2I(0, size.Y - 200), new Vector2I(size.X - 280, 200));
         ViewportObject.Render(new Vector2I(0, (int)menuBarHeight), new Vector2I(size.X - 280, size.Y - 200 - (int)menuBarHeight));
         menuBar.Render();
+        
+        if (menuBar.ShouldShowRenderSettings)
+        {
+            RenderDialogInputBlocker(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Size.X, Main.GetInstance().GetWindow().Size.Y));
+            ShowRenderSettingsDialog();
+        }
+        
+        if (menuBar.ShouldShowRenderAnimation)
+        {
+            RenderDialogInputBlocker(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Size.X, Main.GetInstance().GetWindow().Size.Y));
+            //ShowRenderAnimationDialog();
+        }
+
+        if (ShowPreviewWindow)
+        {
+            RenderPreviewWindow();
+        }
+        
+        if (dialog != null)
+        {
+            // Render overlay first
+            RenderDialogOverlay(new System.Numerics.Vector2(Main.GetInstance().WindowSize.X, Main.GetInstance().WindowSize.Y));
+
+            // Finally render the dialog on top
+            dialog.Render(new System.Numerics.Vector2(Main.GetInstance().WindowSize.X, Main.GetInstance().WindowSize.Y));
+
+            // Check for outside clicks and close dialog if needed
+            if (dialog.CheckOutsideClick())
+            {
+                dialog = null;
+            }
+            // Remove dialog if it's no longer visible (only check if dialog still exists)
+            else if (!dialog.Visible)
+            {
+                dialog = null;
+            }
+        }
+    }
+
+    private void RenderPreviewWindow()
+    {
+        if (!Main.GetInstance().Output.PreviewMode)
+            return;
+        
+        //ImGui.SetNextWindowSize(new Vector2(Main.GetInstance().Output.Size.X, Main.GetInstance().Output.Size.Y));
+
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+
+        var windowFlags = ImGuiWindowFlags.NoCollapse |
+                          ImGuiWindowFlags.NoScrollbar;
+
+        if (Main.GetInstance().MainViewport.Controlled)
+        {
+            windowFlags |= ImGuiWindowFlags.NoInputs;
+        }
+
+        if (ImGui.Begin("Preview", windowFlags))
+        {
+            var size = ImGui.GetContentRegionAvail();
+            if (size.X > 5 && size.Y > 5)
+            {
+                Main.GetInstance().Output.CallDeferred(SubViewport.MethodName.SetSize,
+                    new Vector2I((int)(size.Y * Main.GetInstance().UI.propertiesPanel.project._aspectRatio), (int)size.Y));
+
+                ImGuiGD.SubViewport(Main.GetInstance().Output);
+
+                //ImGuiGD.SubViewport(Main.GetInstance().Output);
+
+                
+            }
+            
+            ImGui.End();
+        }
+
+        ImGui.PopStyleVar();
+    }
+    
+    private void RenderDialogOverlay(System.Numerics.Vector2 windowSize)
+    {
+        // Create a fullscreen overlay - just provides the dark visual background
+        ImGui.SetNextWindowPos(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Position.X, Main.GetInstance().GetWindow().Position.Y));
+        ImGui.SetNextWindowSize(windowSize);
+        ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black overlay
+
+        if (ImGui.Begin("##DialogOverlay", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
+                                           ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar |
+                                           ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoInputs))
+        {
+            // Overlay just provides visual background - no input blocking
+        }
+
+        ImGui.End();
+        ImGui.PopStyleColor();
+    }
+    
+    private void RenderDialogInputBlocker(System.Numerics.Vector2 windowSize)
+    {
+        // Create a fullscreen invisible input blocker
+        ImGui.SetNextWindowPos(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Position.X, Main.GetInstance().GetWindow().Position.Y));
+        ImGui.SetNextWindowSize(windowSize);
+        if (ImGui.Begin("##DialogInputBlocker", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
+                                                ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar |
+                                                ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoBringToFrontOnFocus))
+        {
+            // Invisible button that captures all input to block UI behind the dialog
+            ImGui.InvisibleButton("##InputBlocker", windowSize);
+        }
+
+        ImGui.End();
+    }
+
+    private void ShowRenderSettingsDialog()
+    {
+        if (dialog == null)
+        {
+            var io = ImGui.GetIO();
+            var center = new Vector2(io.DisplaySize.X * 0.5f - 150, io.DisplaySize.Y * 0.5f - 100);
+            
+            dialog = new Dialog(
+                DialogType.RenderSettings,
+                "RENDER SETTINGS",
+                "",
+                center,
+                () => {  },
+                RemoveDialog,
+                (width, height, filePath) =>
+                {
+                    Main.GetInstance().MainViewport._shouldRenderToFile = true;
+                    Main.GetInstance().MainViewport._renderWidth = width;
+                    Main.GetInstance().MainViewport._renderHeight = height;
+                    Main.GetInstance().MainViewport._renderFilePath = filePath;
+                },
+                propertiesPanel: propertiesPanel
+            );
+        }
+    }
+
+    private void RemoveDialog()
+    {
+        menuBar.ShouldShowRenderSettings = false;
     }
 }
