@@ -14,10 +14,12 @@ public class UIRenderer
     public SceneTreePanel sceneTreePanel { get; private set; } = new();
     public PropertiesPanel propertiesPanel = new();
     public Timeline timeline = new();
+    public SpawnObjectsMenu spawnObjectsMenu = new();
     private ViewportObject ViewportObject;
     private MenuBar menuBar = new();
     
     public bool ShowPreviewWindow = true;
+    public bool ShowSpawnMenu = false;
     
     private Dialog? dialog;
 
@@ -42,7 +44,7 @@ public class UIRenderer
                     var animatedScale = timeline.GetAnimatedScale(obj);
                     var animatedAlpha = timeline.GetAnimatedAlpha(obj);
                     
-                    var pos = obj.GetPosition();
+                    var pos = obj.TargetPosition;
 
                     if (obj.PosXKeyframes.Count > 0)
                     {
@@ -59,7 +61,7 @@ public class UIRenderer
                         pos.Z = animatedPosition.Z;
                     }
 
-                    obj.Position = pos;
+                    obj.TargetPosition = pos;
                     
                     var rot = obj.GetRotationDegrees();
 
@@ -135,8 +137,8 @@ public class UIRenderer
         
         if (menuBar.ShouldShowRenderAnimation)
         {
-            RenderDialogInputBlocker(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Size.X, Main.GetInstance().GetWindow().Size.Y));
-            //ShowRenderAnimationDialog();
+            RenderDialogInputBlocker(new Vector2(Main.GetInstance().GetWindow().Size.X, Main.GetInstance().GetWindow().Size.Y));
+            ShowRenderAnimationDialog();
         }
 
         if (ShowPreviewWindow)
@@ -162,6 +164,39 @@ public class UIRenderer
             {
                 dialog = null;
             }
+        }
+        
+        // Render spawn menu if visible
+        if (ShowSpawnMenu)
+        {
+            RenderSpawnMenu();
+        }
+    }
+    
+    private void ShowRenderAnimationDialog()
+    {
+        if (dialog == null)
+        {
+            var io = ImGui.GetIO();
+            var centerPos = new Vector2(io.DisplaySize.X * 0.5f - 200, io.DisplaySize.Y * 0.5f - 150);
+
+            dialog = new Dialog(
+                DialogType.RenderAnimation,
+                "RENDER ANIMATION",
+                "",
+                centerPos,
+                () => {  },
+                () =>
+                {
+                    RemoveDialog();
+                },
+                null, // No single frame render callback for animation dialog
+                (width, height, framerate, bitrate, format, filePath) =>
+                {
+                    Main.GetInstance().RenderAnimation(filePath, width, height, framerate, bitrate, format);
+                },
+                propertiesPanel // Pass the properties panel reference
+            );
         }
     }
 
@@ -266,5 +301,26 @@ public class UIRenderer
     private void RemoveDialog()
     {
         menuBar.ShouldShowRenderSettings = false;
+        menuBar.ShouldShowRenderAnimation = false;
+    }
+    
+    private void RenderSpawnMenu()
+    {
+        // Get the bench position from ViewportObject
+        var benchPos = ViewportObject.GetBenchPosition();
+        var benchSize = new Vector2(64, 64);
+        
+        // Position the menu to the right of the bench
+        var menuPos = new Vector2(benchPos.X + benchSize.X + 10, benchPos.Y);
+        ImGui.SetNextWindowPos(menuPos);
+        
+        // Render the spawn menu
+        spawnObjectsMenu.Render();
+        
+        // Check for outside clicks to close the menu
+        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
+        {
+            //ShowSpawnMenu = false;
+        }
     }
 }

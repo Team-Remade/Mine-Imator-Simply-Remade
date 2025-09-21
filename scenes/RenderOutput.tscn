@@ -4,6 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://bwhawq0w3vp6w" path="res://scenes/Background.tscn" id="2_qp20s"]
 
 [node name="RenderOutpu" type="SubViewport" node_paths=PackedStringArray("MainCamera", "BackgroundObject")]
+msaa_3d = 3
+use_occlusion_culling = true
 render_target_update_mode = 4
 script = ExtResource("1_8y1so")
 MainCamera = NodePath("ViewportCamera")

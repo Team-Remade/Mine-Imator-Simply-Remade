@@ -426,8 +426,8 @@ public class Dialog
                     (width, height) = _propertiesPanel.ParseResolution(_propertiesPanel.project.ResolutionOptions[_propertiesPanel.project._selectedResolutionIndex]);
                 }
 
-                // Trigger the render operation
-                _onRenderComplete?.Invoke(width, height, selectedPath);
+                // Save the Output viewport texture with the specified resolution
+                Main.GetInstance().SaveOutputTexture(selectedPath, width, height);
                 _onYes?.Invoke();
             }
         }

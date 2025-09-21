@@ -53,7 +53,7 @@ public class MenuBar
                 ImGui.EndMenu();
             }
             
-            if (ImGui.BeginMenu("Render DONT USE THIS IT WILL BREAK"))
+            if (ImGui.BeginMenu("Render"))
             {
                 if (ImGui.MenuItem("Render Frame", "F12"))
                 {

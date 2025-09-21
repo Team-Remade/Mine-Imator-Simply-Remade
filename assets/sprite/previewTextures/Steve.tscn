@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3 uid="uid://yr3tv0xxu3gh"]
+
+[ext_resource type="PackedScene" uid="uid://58c61ew6d53r" path="res://assets/mesh/Steve.glb" id="1_lxfb8"]
+
+[node name="Steve" instance=ExtResource("1_lxfb8")]
+
+[node name="RA" parent="Armature/Skeleton3D" index="0"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.375, 1.375, -3.55271e-15)
+
+[node name="LA" parent="Armature/Skeleton3D" index="1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.375, 1.375, 3.55271e-15)
+
+[node name="H" parent="Armature/Skeleton3D" index="2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+
+[node name="B" parent="Armature/Skeleton3D" index="3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+
+[node name="RL" parent="Armature/Skeleton3D" index="4"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.125, 0.75, 0)
+
+[node name="LL" parent="Armature/Skeleton3D" index="5"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.125, 0.75, 0)

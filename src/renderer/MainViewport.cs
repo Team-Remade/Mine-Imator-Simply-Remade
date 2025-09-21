@@ -61,6 +61,23 @@ public partial class MainViewport : SubViewport
         Initialized = true;
     }
 
+    private IEnumerable<SceneObject> GetAllSceneObjects(Node node)
+    {
+        var sceneObjects = new List<SceneObject>();
+        
+        if (node is SceneObject sceneObject)
+        {
+            sceneObjects.Add(sceneObject);
+        }
+        
+        foreach (var child in node.GetChildren())
+        {
+            sceneObjects.AddRange(GetAllSceneObjects(child));
+        }
+        
+        return sceneObjects;
+    }
+
     public void UpdatePicking()
     {
         Objects.Clear();
@@ -70,47 +87,47 @@ public partial class MainViewport : SubViewport
             obj.QueueFree();
         }
 
-        foreach (var obj in World.GetChildren())
+        // Get all SceneObjects recursively from the World
+        var allSceneObjects = GetAllSceneObjects(World);
+        
+        foreach (var so in allSceneObjects)
         {
-            if (obj is SceneObject so)
+            // Create a new node for the picking system instead of duplicating the entire SceneObject
+            var pickingNode = new Node3D();
+            pickingNode.Name = so.Name + "_Picking";
+            // Store the original object ID as metadata
+            pickingNode.SetMeta("object_id", so.ID);
+            ObjectPickingObject.AddChild(pickingNode);
+            
+            // Copy the transform from the original object
+            pickingNode.Transform = so.Transform;
+            
+            // Add meshes from the original object's Visuals
+            if (so.Visuals != null)
             {
-                // Create a new node for the picking system instead of duplicating the entire SceneObject
-                var pickingNode = new Node3D();
-                pickingNode.Name = so.Name + "_Picking";
-                // Store the original object ID as metadata
-                pickingNode.SetMeta("object_id", so.ID);
-                ObjectPickingObject.AddChild(pickingNode);
-                
-                // Copy the transform from the original object
-                pickingNode.Transform = so.Transform;
-                
-                // Add meshes from the original object's Visuals
-                if (so.Visuals != null)
+                foreach (var child in so.Visuals.GetChildren())
                 {
-                    foreach (var child in so.Visuals.GetChildren())
+                    if (child is MeshInstance3D originalMesh)
                     {
-                        if (child is MeshInstance3D originalMesh)
-                        {
-                            var meshCopy = new MeshInstance3D();
-                            meshCopy.Mesh = originalMesh.Mesh;
-                            meshCopy.Transform = originalMesh.Transform;
-                            
-                            // Apply picking material
-                            meshCopy.MaterialOverride = PickingMaterial.Duplicate() as Material;
-                            
-                            var id = (float)so.ID;
-                            var colorId = new Color(id / 255f, 1.0f, 1.0f, 0);
-                            
-                            var mat = (ShaderMaterial)meshCopy.MaterialOverride;
-                            mat.SetShaderParameter("object_id", colorId);
-                            
-                            pickingNode.AddChild(meshCopy);
-                        }
+                        var meshCopy = new MeshInstance3D();
+                        meshCopy.Mesh = originalMesh.Mesh;
+                        meshCopy.Transform = originalMesh.Transform;
+                        
+                        // Apply picking material
+                        meshCopy.MaterialOverride = PickingMaterial.Duplicate() as Material;
+                        
+                        var id = (float)so.ID;
+                        var colorId = new Color(id / 255f, 1.0f, 1.0f, 0);
+                        
+                        var mat = (ShaderMaterial)meshCopy.MaterialOverride;
+                        mat.SetShaderParameter("object_id", colorId);
+                        
+                        pickingNode.AddChild(meshCopy);
                     }
                 }
-                    
-                Objects.Add(so.ID, so);
             }
+                
+            Objects.Add(so.ID, so);
         }
     }
 
@@ -121,10 +138,12 @@ public partial class MainViewport : SubViewport
         var cube = new MeshInstance3D();
         var cubeMesh = new BoxMesh();
         cube.Mesh = cubeMesh;
+        cube.SortingOffset = 1;
         sceneObject.ObjectType = SceneObject.Type.Cube;
         var material = new StandardMaterial3D();
         material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        cube.MaterialOverride = material;
+        material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Always;
+        cube.Mesh.SurfaceSetMaterial(0, material);
         sceneObject.AddVisuals(cube);
         World.AddChild(sceneObject);
         
@@ -164,9 +183,19 @@ public partial class MainViewport : SubViewport
         
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new System.Numerics.Vector2(0, 0));
 
+        
+
         if (_debugView)
         {
-            if (ImGui.Begin("Debug Viewport", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse))
+            var flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize |
+                        ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse;
+
+            if (Controlled)
+            {
+                flags |=  ImGuiWindowFlags.NoInputs;
+            }
+            
+            if (ImGui.Begin("Debug Viewport", flags))
             {
                 ImGuiGD.SubViewport(ObjectPicking);
                 ImGui.End();

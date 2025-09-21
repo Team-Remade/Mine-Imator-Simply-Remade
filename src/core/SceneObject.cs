@@ -78,8 +78,11 @@ public partial class SceneObject : Node3D
         {
             foreach (MeshInstance3D mesh in GetMeshes())
             {
-                var mat = (StandardMaterial3D)mesh.MaterialOverride;
-                mat.AlbedoColor = new Color(mat.AlbedoColor.R, mat.AlbedoColor.G, mat.AlbedoColor.B, Alpha);
+                for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
+                {
+                    var mat = (StandardMaterial3D)mesh.Mesh.SurfaceGetMaterial(i);
+                    mat.AlbedoColor = new Color(mat.AlbedoColor.R, mat.AlbedoColor.G, mat.AlbedoColor.B, Alpha);
+                }
             }
         }
 

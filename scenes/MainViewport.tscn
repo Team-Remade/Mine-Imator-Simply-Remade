@@ -29,7 +29,7 @@ albedo_color = Color(0, 1, 1, 1)
 [sub_resource type="BoxMesh" id="BoxMesh_w13yp"]
 
 [node name="MainViewport" type="SubViewport" node_paths=PackedStringArray("World", "_camera", "BackgroundObject")]
-msaa_3d = 2
+msaa_3d = 1
 use_occlusion_culling = true
 render_target_update_mode = 4
 script = ExtResource("1_bj8v6")
