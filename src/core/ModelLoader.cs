@@ -11,13 +11,7 @@ public partial class ModelLoader : Node
     {
         // Load the GLB file using ResourceLoader
         var packedScene = ResourceLoader.Load<PackedScene>(glbPath);
-        if (packedScene == null)
-        {
-            GD.PrintErr($"Failed to load GLB file: {glbPath}");
-            return null;
-        }
-
-        // Instantiate the scene
+        
         var modelInstance = packedScene.Instantiate<Node3D>();
         if (modelInstance == null)
         {
@@ -42,14 +36,16 @@ public partial class ModelLoader : Node
 
         // Free the model instance
         modelInstance.QueueFree();
-
+        
         return rootBoneObject;
     }
 
     private Skeleton3D FindSkeleton(Node node)
     {
         if (node is Skeleton3D skeleton)
+        {
             return skeleton;
+        }
 
         foreach (Node child in node.GetChildren())
         {
@@ -72,9 +68,31 @@ public partial class ModelLoader : Node
 
         for (int boneId = 0; boneId < skeleton.GetBoneCount(); boneId++)
         {
-            if (boneAttachments.TryGetValue(skeleton.GetBoneName(boneId), out var bone))
+            if (boneAttachments.TryGetValue(skeleton.GetBoneName(boneId), out var boneAttachment))
             {
-                continue;
+                // For bones with attachments, don't create SceneObject, but find mesh and attach to parent bone
+                var attachmentBoneName = skeleton.GetBoneName(boneId);
+
+                // Find mesh in the attachment that matches the bone name
+                var mesh = FindMeshInAttachment(boneAttachment, attachmentBoneName);
+                if (mesh != null)
+                {
+                    // Get parent bone ID
+                    int attachmentParentBoneId = skeleton.GetBoneParent(boneId);
+                    if (attachmentParentBoneId >= 0 && boneObjects.ContainsKey(attachmentParentBoneId))
+                    {
+                        var parentBoneObject = boneObjects[attachmentParentBoneId];
+                        
+                        var rotation = skeleton.GetBoneGlobalPose(boneId).Basis.GetEuler();
+                        AttachMeshToBoneObject(mesh, parentBoneObject, rotation);
+                    }
+                    else
+                    {
+                        // If no parent bone, skip or handle differently
+                        GD.PrintErr($"No parent bone found for bone with attachment '{attachmentBoneName}'");
+                    }
+                }
+                continue; // Skip creating SceneObject for this bone
             }
             
             var boneName = skeleton.GetBoneName(boneId);
@@ -93,8 +111,23 @@ public partial class ModelLoader : Node
                 parentNode = boneObjects[parentBoneId];
             }
 
-            // Create SceneObject for this bone
-            var boneObject = CreateSceneObject(boneName, parentNode);
+            // Find meshes for this bone
+            var meshes = FindMeshesForBone(skeleton, boneId);
+            MeshInstance3D firstMesh = null;
+            if (meshes.Count > 0)
+            {
+                firstMesh = meshes[0];
+            }
+
+            // Create SceneObject for this bone using MainViewport's method
+            var mainViewport = Main.GetInstance()?.MainViewport;
+            if (mainViewport == null)
+            {
+                GD.PrintErr("MainViewport is null");
+                continue;
+            }
+            
+            var boneObject = mainViewport.CreateSceneObject(SceneObject.Type.ModelPart, null, boneName, parentNode);
             
             // Set target position
             boneObject.TargetPosition = boneTransform.Origin;
@@ -106,10 +139,10 @@ public partial class ModelLoader : Node
             boneObject.OriginalOriginOffset = Vector3.Zero;
 
             // Handle rotation based on BoneAttachment3D node if exists
-            if (boneAttachments.TryGetValue(boneName, out var attachment))
+            if (boneAttachments.TryGetValue(boneName, out var attachmentForRotation))
             {
                 // Calculate the global transform of the BoneAttachment3D node using bone global transform and attachment local transform
-                var attachmentGlobalTransform = boneGlobalTransform * attachment.Transform;
+                var attachmentGlobalTransform = boneGlobalTransform * attachmentForRotation.Transform;
                 // Get the rotation as Euler angles from the calculated global transform
                 var attachmentEuler = attachmentGlobalTransform.Basis.GetEuler();
                 boneObject.GlobalRotation = attachmentEuler;
@@ -146,6 +179,8 @@ public partial class ModelLoader : Node
         {
             AttachMeshesToBones(skeleton, boneObjects);
         }
+        
+        Main.GetInstance().MainViewport.UpdatePicking();
 
         return rootBoneObject ?? boneObjects.Values.FirstOrDefault();
     }
@@ -171,26 +206,6 @@ public partial class ModelLoader : Node
         return attachments;
     }
 
-    private SceneObject CreateSceneObject(string name, Node parent)
-    {
-        var main = Main.GetInstance();
-        if (main?.ObjectScene == null)
-        {
-            GD.PrintErr("Main instance or ObjectScene is null");
-            return null;
-        }
-
-        var sceneObject = main.ObjectScene.Instantiate<SceneObject>();
-        if (sceneObject == null)
-        {
-            GD.PrintErr("Failed to instantiate SceneObject");
-            return null;
-        }
-
-        sceneObject.Name = name;
-        parent.AddChild(sceneObject);
-        return sceneObject;
-    }
 
     private int AttachBoneMesh(Skeleton3D skeleton, int boneId, SceneObject boneObject)
     {
@@ -324,29 +339,55 @@ public partial class ModelLoader : Node
         {
             FindAllMeshes(child, meshes);
         }
+    
+    }
+
+    private MeshInstance3D FindMeshInAttachment(Node attachment, string boneName)
+    {
+        // Recursively search for MeshInstance3D in the attachment
+        if (attachment is MeshInstance3D meshInstance && DoesMeshNameMatchBone(meshInstance.Name, boneName))
+        {
+            return meshInstance;
+        }
+
+        foreach (Node child in attachment.GetChildren())
+        {
+            var foundMesh = FindMeshInAttachment(child, boneName);
+            if (foundMesh != null)
+            {
+                return foundMesh;
+            }
+        }
+
+        return null;
+    }
+
+    private void AttachMeshToBoneObject(MeshInstance3D mesh, SceneObject boneObject, Vector3 rotation)
+    {
+        // Create a new MeshInstance3D with the same mesh
+        var newMeshInstance = new MeshInstance3D
+        {
+            Mesh = mesh.Mesh,
+            Name = mesh.Name,
+            Rotation = rotation // Set the rotation from attachment
+        };
+
+        // Copy material override if exists
+        if (mesh.MaterialOverride != null)
+        {
+            newMeshInstance.MaterialOverride = mesh.MaterialOverride;
+        }
+
+        // Add to the bone object
+        boneObject.AddVisuals(newMeshInstance);
     }
 
     private bool DoesMeshNameMatchBone(string meshName, string boneName)
     {
-        // Common Minecraft model naming conventions
-        var mapping = new Dictionary<string, string[]>
-        {
-            ["Body"] = new[] { "B", "Body" },
-            ["Right Arm"] = new[] { "RA", "RightArm", "Right_Arm" },
-            ["Left Arm"] = new[] { "LA", "LeftArm", "Left_Arm" },
-            ["Head"] = new[] { "H", "Head" },
-            ["Right Leg"] = new[] { "RL", "RightLeg", "Right_Leg" },
-            ["Left Leg"] = new[] { "LL", "LeftLeg", "Left_Leg" }
-        };
-
-        // Check if the bone name is in our mapping
-        if (mapping.ContainsKey(boneName))
-        {
-            return mapping[boneName].Contains(meshName);
-        }
-
-        // Fallback: exact match
-        return meshName == boneName;
+        // Replace periods with underscores in both names for comparison
+        string processedMeshName = meshName.Replace(".", "_");
+        string processedBoneName = boneName.Replace(".", "_");
+        return processedMeshName.Equals(processedBoneName, System.StringComparison.OrdinalIgnoreCase);
     }
 
     private void AttachMeshesToBones(Skeleton3D skeleton, Dictionary<int, SceneObject> boneObjects)
@@ -379,7 +420,8 @@ public partial class ModelLoader : Node
                         newMeshInstance.MaterialOverride = mesh.MaterialOverride;
                     }
 
-                    boneObject.AddVisuals(newMeshInstance);
+                    // Use zero rotation for meshes attached without specific attachment rotation
+                    AttachMeshToBoneObject(mesh, boneObject, Vector3.Zero);
                     attached = true;
                     break;
                 }

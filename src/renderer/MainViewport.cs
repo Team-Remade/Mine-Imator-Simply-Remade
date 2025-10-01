@@ -131,24 +131,51 @@ public partial class MainViewport : SubViewport
         }
     }
 
-    private void CreateSceneObject()
+    public SceneObject CreateSceneObject(SceneObject.Type objectType = SceneObject.Type.Cube, MeshInstance3D meshInstance = null, string name = null, Node parent = null)
     {
         var sceneObject = Main.GetInstance().ObjectScene.Instantiate<SceneObject>();
         Main.GetInstance().UI.sceneTreePanel.SceneObjects.Add(sceneObject);
-        var cube = new MeshInstance3D();
-        var cubeMesh = new BoxMesh();
-        cube.Mesh = cubeMesh;
-        cube.SortingOffset = 1;
-        sceneObject.ObjectType = SceneObject.Type.Cube;
-        var material = new StandardMaterial3D();
-        material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Always;
-        cube.Mesh.SurfaceSetMaterial(0, material);
-        sceneObject.AddVisuals(cube);
-        World.AddChild(sceneObject);
         
-        sceneObject.Name = $"Cube{Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(sceneObject)}";
+        if (meshInstance == null && objectType == SceneObject.Type.Cube)
+        {
+            var cube = new MeshInstance3D();
+            var cubeMesh = new BoxMesh();
+            cube.Mesh = cubeMesh;
+            cube.SortingOffset = 1;
+            var material = new StandardMaterial3D();
+            material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
+            material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Always;
+            cube.Mesh.SurfaceSetMaterial(0, material);
+            sceneObject.AddVisuals(cube);
+        }
+        else if (meshInstance != null)
+        {
+            sceneObject.AddVisuals(meshInstance);
+        }
+        
+        sceneObject.ObjectType = objectType;
+        
+        // Add to the provided parent or default to World
+        if (parent != null)
+        {
+            parent.AddChild(sceneObject);
+        }
+        else
+        {
+            World.AddChild(sceneObject);
+        }
+        
+        if (string.IsNullOrEmpty(name))
+        {
+            sceneObject.Name = $"{objectType}{Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(sceneObject)}";
+        }
+        else
+        {
+            sceneObject.Name = name;
+        }
+        
         sceneObject.ID = Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(sceneObject) + 1;
+        return sceneObject;
     }
 
     private void TransformGizmoOnTransformEnd(int mode)

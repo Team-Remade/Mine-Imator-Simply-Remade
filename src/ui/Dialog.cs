@@ -64,6 +64,7 @@ public class Dialog
 
         // Create the dialog window
         ImGui.SetNextWindowPos(Position);
+        ImGui.SetNextWindowFocus();
 
         // Make it modal-like with no close button and always on top
         var flags = ImGuiWindowFlags.NoMove |

@@ -1,7 +1,9 @@
 using System;
 using ImGuiNET;
-using System.Numerics;
+using Godot;
 using SimplyRemadeMI.core;
+using Vector2 = System.Numerics.Vector2;
+using Vector4 = System.Numerics.Vector4;
 
 namespace SimplyRemadeMI.ui;
 
@@ -11,7 +13,7 @@ public class SpawnObjectsMenu
     private int _selectedCategoryIndex = 0;
     private int _selectedCharacterIndex = -1;
     private string[] _categories = { "Character" };
-    private string[] _allCharacters = { "Steve", "SomeTestGuy" };
+    private string[] _allCharacters = { "Steve", "Balloonicorn", "PyroBaby" };
     private ModelLoader _modelLoader = new ModelLoader();
 
     public void Render()
@@ -164,33 +166,20 @@ public class SpawnObjectsMenu
 
         var characterName = _allCharacters[_selectedCharacterIndex];
         
-        if (characterName == "Steve")
-        {
-            SpawnSteve();
-        }
-        // Add other character cases here as needed
+        SpawnModel(characterName);
     }
 
-    private void SpawnSteve()
+    private void SpawnModel(string modelName, bool packed = false)
     {
         var main = Main.GetInstance();
         if (main?.MainViewport?.World == null)
         {
-            Godot.GD.PrintErr("Main viewport or world is not available");
+            GD.PrintErr("Main viewport or world is not available");
             return;
         }
 
-        // Load Steve.glb from assets folder
-        string stevePath = "res://assets/mesh/Steve.glb";
-        var steveObject = _modelLoader.LoadModel(stevePath, main.MainViewport.World);
-        
-        if (steveObject != null)
-        {
-            Godot.GD.Print($"Successfully spawned Steve at {steveObject.Position}");
-        }
-        else
-        {
-            Godot.GD.PrintErr("Failed to spawn Steve");
-        }
+        // Load .glb from assets folder
+        string path = "res://assets/mesh/" + modelName + ".glb";
+        _modelLoader.LoadModel(path, main.MainViewport.World);
     }
 }
