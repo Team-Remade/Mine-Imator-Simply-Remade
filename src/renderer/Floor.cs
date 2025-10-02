@@ -44,7 +44,6 @@ public partial class Floor : MeshInstance3D
         var uvRect = terrainAtlas.GetTextureUvRect("res://assets/sprite/terrain/tile040.png");
         if (uvRect.Size == Vector2I.Zero)
         {
-            GD.PrintErr("UV rect for tile040 not found");
             return;
         }
 

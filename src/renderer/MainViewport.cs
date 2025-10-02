@@ -351,20 +351,28 @@ public partial class MainViewport : SubViewport
             
             if (Objects.TryGetValue(objectId, out var sceneObject))
             {
+                SceneObject objectToSelect;
+                
+                // If no other scene objects are selected, follow the parent chain and select the first scene object
+                if (SelectionManager.Selection.Count == 0)
+                {
+                    objectToSelect = FindFirstSceneObjectInChain(sceneObject);
+                }
+                else
+                {
+                    // If other objects are selected, select the clicked object directly
+                    objectToSelect = sceneObject;
+                }
+                
                 // Select the object - convert from 1-based objectId to 0-based index
-                Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = objectId - 1;
+                Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = objectToSelect.ID - 1;
                 
                 // Update SelectionManager
                 SelectionManager.ClearSelection();
-                SelectionManager.Selection.Add(sceneObject);
+                SelectionManager.Selection.Add(objectToSelect);
                 SelectionManager.TransformGizmo.Visible = true;
-                SelectionManager.TransformGizmo.Position = sceneObject.Position;
-                SelectionManager.TransformGizmo.Select(sceneObject);
-                GD.Print($"Selected object with ID: {objectId}");
-            }
-            else
-            {
-                GD.Print($"No object found with ID: {objectId}");
+                SelectionManager.TransformGizmo.Position = objectToSelect.Position;
+                SelectionManager.TransformGizmo.Select(objectToSelect);
             }
         }
         else
@@ -372,7 +380,6 @@ public partial class MainViewport : SubViewport
             // No object selected (clicked on background)
             Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = -1;
             SelectionManager.ClearSelection();
-            GD.Print("No object selected");
         }
     }
 
@@ -389,6 +396,29 @@ public partial class MainViewport : SubViewport
             current = current.GetParent() as Node3D;
         }
         return null;
+    }
+
+    private SceneObject FindFirstSceneObjectInChain(SceneObject sceneObject)
+    {
+        // Follow the parent chain upwards to find the first SceneObject (root of the hierarchy)
+        var current = sceneObject;
+        SceneObject rootSceneObject = sceneObject;
+        
+        while (current != null)
+        {
+            var parent = current.GetParent();
+            if (parent is SceneObject parentSceneObject)
+            {
+                rootSceneObject = parentSceneObject;
+                current = parentSceneObject;
+            }
+            else
+            {
+                break;
+            }
+        }
+        
+        return rootSceneObject;
     }
 
     public void LoadBackgroundImage(string imagePath)

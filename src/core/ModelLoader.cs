@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
-using SimplyRemadeMI.core;
 
 namespace SimplyRemadeMI.core;
 
@@ -77,6 +76,8 @@ public partial class ModelLoader : Node
                 var mesh = FindMeshInAttachment(boneAttachment, attachmentBoneName);
                 if (mesh != null)
                 {
+                    // Material duplication is handled in AttachMeshToBoneObject to avoid sharing
+                    
                     // Get parent bone ID
                     int attachmentParentBoneId = skeleton.GetBoneParent(boneId);
                     if (attachmentParentBoneId >= 0 && boneObjects.ContainsKey(attachmentParentBoneId))
@@ -215,19 +216,31 @@ public partial class ModelLoader : Node
         
         foreach (var mesh in meshes)
         {
-            // Create a new MeshInstance3D with the same mesh
+            // Create a new MeshInstance3D with a duplicated mesh to avoid sharing
             var newMeshInstance = new MeshInstance3D
             {
-                Mesh = mesh.Mesh,
+                Mesh = mesh.Mesh.Duplicate() as Mesh,
                 Name = mesh.Name
             };
 
+            // Copy material override if exists
+            if (mesh.MaterialOverride != null)
+            {
+                // Create a duplicate of the material to avoid modifying the original
+                var overrideMat = (StandardMaterial3D)mesh.MaterialOverride.Duplicate();
+                overrideMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                overrideMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                newMeshInstance.MaterialOverride = overrideMat;
+            }
 
+            // Configure surface materials for alpha transparency - duplicate materials to avoid sharing
             for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
             {
-                var mat = (StandardMaterial3D)mesh.Mesh.SurfaceGetMaterial(i);
-                mat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
-                mat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                var originalMat = (StandardMaterial3D)mesh.Mesh.SurfaceGetMaterial(i);
+                var duplicatedMat = (StandardMaterial3D)originalMat.Duplicate();
+                duplicatedMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                duplicatedMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                newMeshInstance.Mesh.SurfaceSetMaterial(i, duplicatedMat);
             }
 
             // Add to the bone object using AddVisuals
@@ -364,10 +377,10 @@ public partial class ModelLoader : Node
 
     private void AttachMeshToBoneObject(MeshInstance3D mesh, SceneObject boneObject, Vector3 rotation)
     {
-        // Create a new MeshInstance3D with the same mesh
+        // Create a new MeshInstance3D with a duplicated mesh to avoid sharing
         var newMeshInstance = new MeshInstance3D
         {
-            Mesh = mesh.Mesh,
+            Mesh = mesh.Mesh.Duplicate() as Mesh,
             Name = mesh.Name,
             Rotation = rotation // Set the rotation from attachment
         };
@@ -375,7 +388,21 @@ public partial class ModelLoader : Node
         // Copy material override if exists
         if (mesh.MaterialOverride != null)
         {
-            newMeshInstance.MaterialOverride = mesh.MaterialOverride;
+            // Create a duplicate of the material to avoid modifying the original
+            var overrideMat = (StandardMaterial3D)mesh.MaterialOverride.Duplicate();
+            overrideMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+            overrideMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+            newMeshInstance.MaterialOverride = overrideMat;
+        }
+
+        // Configure surface materials for alpha transparency - duplicate materials to avoid sharing
+        for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
+        {
+            var originalMat = (StandardMaterial3D)mesh.Mesh.SurfaceGetMaterial(i);
+            var duplicatedMat = (StandardMaterial3D)originalMat.Duplicate();
+            duplicatedMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+            duplicatedMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+            newMeshInstance.Mesh.SurfaceSetMaterial(i, duplicatedMat);
         }
 
         // Add to the bone object
@@ -411,13 +438,17 @@ public partial class ModelLoader : Node
                     var boneObject = boneObjects[boneId];
                     var newMeshInstance = new MeshInstance3D
                     {
-                        Mesh = mesh.Mesh,
+                        Mesh = mesh.Mesh.Duplicate() as Mesh,
                         Name = mesh.Name
                     };
 
                     if (mesh.MaterialOverride != null)
                     {
-                        newMeshInstance.MaterialOverride = mesh.MaterialOverride;
+                        // Create a duplicate of the material to avoid modifying the original
+                        var overrideMat = (StandardMaterial3D)mesh.MaterialOverride.Duplicate();
+                        overrideMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                        overrideMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                        newMeshInstance.MaterialOverride = overrideMat;
                     }
 
                     // Use zero rotation for meshes attached without specific attachment rotation

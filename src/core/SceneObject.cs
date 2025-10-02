@@ -72,16 +72,46 @@ public partial class SceneObject : Node3D
         return meshes.ToArray();
     }
 
+    public float GetEffectiveAlpha()
+    {
+        float effectiveAlpha = Alpha;
+        Node current = GetParent();
+        
+        while (current != null)
+        {
+            if (current is SceneObject sceneObject)
+            {
+                effectiveAlpha *= sceneObject.Alpha;
+            }
+            current = current.GetParent();
+        }
+        
+        return effectiveAlpha;
+    }
+
     public override void _Process(double delta)
     {
+        float effectiveAlpha = GetEffectiveAlpha();
+        
         if (GetMeshes().Length > 0)
         {
             foreach (MeshInstance3D mesh in GetMeshes())
             {
+                // Update material override if it exists
+                for (int i = 0; i < mesh.GetSurfaceOverrideMaterialCount(); i++)
+                {
+                    var mat = (StandardMaterial3D)mesh.GetSurfaceOverrideMaterial(i);
+                    if (mat != null)
+                    {
+                        mat.AlbedoColor = new Color(mat.AlbedoColor.R, mat.AlbedoColor.G, mat.AlbedoColor.B, effectiveAlpha);
+                    }
+                }
+                
+                // Update surface materials
                 for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
                 {
                     var mat = (StandardMaterial3D)mesh.Mesh.SurfaceGetMaterial(i);
-                    mat.AlbedoColor = new Color(mat.AlbedoColor.R, mat.AlbedoColor.G, mat.AlbedoColor.B, Alpha);
+                    mat.AlbedoColor = new Color(mat.AlbedoColor.R, mat.AlbedoColor.G, mat.AlbedoColor.B, effectiveAlpha);
                 }
             }
         }
