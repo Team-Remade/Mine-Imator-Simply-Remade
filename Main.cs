@@ -30,8 +30,10 @@ public partial class Main : Control
     public UIRenderer UI { get; private set; }
     
     private TextureAtlas _terrainAtlas;
+    private TextureAtlas _itemAtlas;
     
     public TextureAtlas TerrainAtlas => _terrainAtlas;
+    public TextureAtlas ItemAtlas => _itemAtlas;
     
     public Vector2I WindowSize { get; private set; }
     
@@ -92,6 +94,12 @@ public partial class Main : Control
         _terrainAtlas.LoadTexturesFromPattern("res://assets/sprite/terrain/tile###.png");
         _terrainAtlas.GenerateAtlas();
         GD.Print($"Terrain atlas generated with {_terrainAtlas.GetTextureCount()} textures");
+        
+        // Initialize item texture atlas
+        _itemAtlas = new TextureAtlas(2048, 2048);
+        _itemAtlas.LoadTexturesFromPattern("res://assets/sprite/item/tile###.png");
+        _itemAtlas.GenerateAtlas();
+        GD.Print($"Item atlas generated with {_itemAtlas.GetTextureCount()} textures");
         
         CheckRandomWindowIcon();
     }

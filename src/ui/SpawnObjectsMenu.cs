@@ -12,7 +12,7 @@ public class SpawnObjectsMenu
     private string _searchText = "";
     private int _selectedCategoryIndex = 0;
     private int _selectedCharacterIndex = -1;
-    private string[] _categories = { "Character" };
+    private string[] _categories = { "Character", "Item" };
     private string[] _allCharacters = { "Steve", "Balloonicorn", "PyroBaby" };
     private ModelLoader _modelLoader = new ModelLoader();
 
