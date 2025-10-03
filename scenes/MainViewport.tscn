@@ -63,6 +63,7 @@ mesh = SubResource("BoxMesh_w13yp")
 
 [node name="ViewportCamera" type="Camera3D" parent="World"]
 transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 3, 3, 3)
+cull_mask = 524287
 script = ExtResource("2_i3gsq")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]

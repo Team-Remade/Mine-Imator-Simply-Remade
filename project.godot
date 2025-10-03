@@ -8,6 +8,10 @@
 
 config_version=5
 
+[addons]
+
+imgui/config="uid://b5w7u77gth2td"
+
 [application]
 
 config/name="Simply Remade MI"
@@ -46,7 +50,7 @@ naming/scene_name_casing=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/Gizmo3DSharp/plugin.cfg", "res://addons/imgui-godot/plugin.cfg", "res://addons/scene_texture/plugin.cfg", "res://addons/window-placement-switcher/plugin.cfg")
+enabled=PackedStringArray("res://addons/Gizmo3DSharp/plugin.cfg", "res://addons/imgui-godot/plugin.cfg", "res://addons/scene_texture/plugin.cfg", "res://addons/script-ide/plugin.cfg", "res://addons/sprite_mesh/plugin.cfg", "res://addons/window-placement-switcher/plugin.cfg")
 
 [input]
 
@@ -63,4 +67,6 @@ ToggleDebugView={
 
 [rendering]
 
+textures/canvas_textures/default_texture_filter=0
+textures/default_filters/use_nearest_mipmap_filter=true
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)

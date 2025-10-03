@@ -27,6 +27,8 @@ public class UIRenderer
     {
         ViewportObject = viewportObject;
         sceneTreePanel.World = Main.GetInstance().MainViewport.World;
+        
+        ImGuiGD.Connect(Render);
     }
 
     public void Update(float delta)

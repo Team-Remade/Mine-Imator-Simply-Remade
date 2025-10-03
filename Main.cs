@@ -5,11 +5,8 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
 using Godot;
-using Godot.Collections;
 using ImGuiNET;
-using SimplyRemadeMI.core;
 using SimplyRemadeMI.renderer;
-using SimplyRemadeMI.ui;
 
 namespace SimplyRemadeMI;
 
@@ -20,6 +17,8 @@ public partial class Main : Control
     [Export] public MainViewport MainViewport { get; private set; }
     [Export] public RenderOutput Output { get; private set; }
     [Export] public PackedScene ObjectScene { get; private set; }
+    [Export] public PackedScene ItemObjectScene { get; private set; }
+    [Export] public PackedScene SpriteMesh { get; private set; }
     [Export] public SubViewportContainer Second { get; private set; }
     
     [Export] public Godot.Collections.Dictionary<string, Texture2D> Icons { get; private set; }
@@ -108,7 +107,6 @@ public partial class Main : Control
     {
         DisplayServer.WindowSetTitle("Mine Imator Simply Remade");
         UI.Update((float)delta);
-        UI.Render();
         
         WindowSize = DisplayServer.WindowGetSize();
     }
