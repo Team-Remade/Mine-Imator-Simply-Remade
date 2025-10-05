@@ -10,4 +10,8 @@
     <PackageReference Include="ImGui.NET" Version="1.91.6.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
+    
+  <ItemGroup>
+    <Folder Include="src\core\block\blocks\" />
+  </ItemGroup>
 </Project>

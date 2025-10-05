@@ -52,6 +52,7 @@ Floor = NodePath("Floor")
 environment = ExtResource("6_tnues")
 
 [node name="Floor" type="MeshInstance3D" parent="World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0, 0.5)
 material_override = SubResource("StandardMaterial3D_w13yp")
 mesh = SubResource("PlaneMesh_ssepm")
 script = ExtResource("2_w13yp")

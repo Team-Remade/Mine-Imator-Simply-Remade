@@ -60,6 +60,12 @@ public partial class Main : Control
     public override void _Ready()
     {
         Instance = this;
+
+        // Copy this once
+        if (File.Exists(OS.GetExecutablePath().GetBaseDir() + "data/imgui.ini") && !File.Exists(OS.GetUserDataDir() + "imgui.ini"))
+        {
+            File.Copy(OS.GetExecutablePath().GetBaseDir() + "data/imgui.ini", OS.GetUserDataDir() + "imgui.ini");
+        }
         
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.ViewportsEnable;

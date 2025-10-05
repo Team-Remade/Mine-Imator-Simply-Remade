@@ -1,0 +1,17 @@
+[gd_scene load_steps=3 format=3 uid="uid://ci7l383h0lj1m"]
+
+[ext_resource type="PackedScene" uid="uid://c6lnmdhv4dha5" path="res://scenes/objects/SceneObject.tscn" id="1_8877b"]
+[ext_resource type="PackedScene" uid="uid://cy0pw2s460c5b" path="res://assets/mesh/Camera.glb" id="2_r4n56"]
+
+[node name="CameraSceneObject" instance=ExtResource("1_8877b")]
+
+[node name="Camera" parent="Visual" index="0" instance=ExtResource("2_r4n56")]
+transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 0)
+
+[node name="Cube" parent="Visual/Camera" index="0"]
+layers = 2
+
+[node name="Camera3D" type="Camera3D" parent="Visual" index="1"]
+cull_mask = 524285
+
+[editable path="Visual/Camera"]

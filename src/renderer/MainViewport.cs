@@ -143,8 +143,8 @@ public partial class MainViewport : SubViewport
             cube.Mesh = cubeMesh;
             cube.SortingOffset = 1;
             var material = new StandardMaterial3D();
-            material.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-            material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Always;
+            material.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+            material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
             cube.Mesh.SurfaceSetMaterial(0, material);
             sceneObject.AddVisuals(cube);
         }

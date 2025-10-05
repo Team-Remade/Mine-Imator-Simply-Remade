@@ -36,8 +36,8 @@ public partial class SpriteMesh : MeshInstance3D
         Mesh.SurfaceSetMaterial(0, ReferenceMaterial);
         
         var mat = (StandardMaterial3D)MeshInstance.GetSurfaceOverrideMaterial(0);
-        mat.Transparency = BaseMaterial3D.TransparencyEnum.Alpha;
-        mat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.Always;
+        mat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+        mat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
         
         Main.GetInstance().MainViewport.UpdatePicking();
     }
