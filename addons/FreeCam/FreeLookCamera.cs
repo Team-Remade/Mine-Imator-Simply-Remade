@@ -49,7 +49,7 @@ partial class FreeLookCamera : FreeLookCameraBase
         }
     }
 
-    private bool _enabled = false;
+    private bool _enabled = true;
     private Camera3D _previousCamera;
     private Input.MouseModeEnum _previousMouseMode;
 

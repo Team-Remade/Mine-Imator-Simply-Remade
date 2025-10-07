@@ -18,6 +18,7 @@ public partial class Main : Control
     [Export] public RenderOutput Output { get; private set; }
     [Export] public PackedScene ObjectScene { get; private set; }
     [Export] public PackedScene ItemObjectScene { get; private set; }
+    [Export] public PackedScene CameraObjectScene { get; private set; }
     [Export] public PackedScene SpriteMesh { get; private set; }
     [Export] public SubViewportContainer Second { get; private set; }
     

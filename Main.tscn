@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://cykt8uneb4j0m"]
+[gd_scene load_steps=14 format=3 uid="uid://cykt8uneb4j0m"]
 
 [ext_resource type="Script" uid="uid://cyrjeycv58rk1" path="res://Main.cs" id="1_glv2v"]
 [ext_resource type="Texture2D" uid="uid://gmuqnx7f4hic" path="res://assets/sprite/bench.png" id="2_r0du0"]
@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" uid="uid://cdey3danuxgug" path="res://assets/sprite/icons/chevron-double-left.svg" id="3_cm0pq"]
 [ext_resource type="Texture2D" uid="uid://88v5b3ql5qmw" path="res://assets/sprite/icons/pause.svg" id="4_3dxm6"]
 [ext_resource type="PackedScene" uid="uid://bj3r074bg3spt" path="res://scenes/resource/SpriteMesh.tscn" id="4_5vvyt"]
+[ext_resource type="PackedScene" uid="uid://ci7l383h0lj1m" path="res://scenes/objects/CameraSceneObject.tscn" id="4_c6i3y"]
 [ext_resource type="Texture2D" uid="uid://b4bxa5k08k35o" path="res://assets/sprite/icons/play.svg" id="5_lgr22"]
 [ext_resource type="Texture2D" uid="uid://bcjkxc20nb42u" path="res://assets/sprite/icons/stop.svg" id="6_lgr22"]
 [ext_resource type="Texture2D" uid="uid://c2uxt166o4q8e" path="res://assets/sprite/previewTextures/Steve.tres" id="8_wkp8b"]
@@ -25,6 +26,7 @@ MainViewport = NodePath("MainViewport")
 Output = NodePath("RenderOutpu")
 ObjectScene = ExtResource("2_trn2v")
 ItemObjectScene = ExtResource("3_20pc6")
+CameraObjectScene = ExtResource("4_c6i3y")
 SpriteMesh = ExtResource("4_5vvyt")
 Second = NodePath("SubViewportContainer")
 Icons = Dictionary[String, Texture2D]({

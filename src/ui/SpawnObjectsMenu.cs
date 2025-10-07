@@ -560,6 +560,9 @@ public class SpawnObjectsMenu
             case 2: // Block
                 RenderBlockContent();
                 break;
+            case 3: // Camera
+                RenderCameraContent();
+                break;
             default:
                 ImGui.Text("No content available for this category");
                 break;
@@ -1162,6 +1165,64 @@ public class SpawnObjectsMenu
                 SpawnSelectedBlock();
             }
         }
+    }
+
+    private void RenderCameraContent()
+    {
+        ImGui.Text("Camera Objects");
+        ImGui.Separator();
+        
+        ImGui.Text("Available Cameras");
+        ImGui.Separator();
+        
+        // Simple camera selection - just one type for now
+        ImGui.Text("Default Camera");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Spawns a camera object at the current viewport camera position");
+        }
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        // Create button at the bottom
+        if (ImGui.Button("Create Camera", new Vector2(-1, 30)))
+        {
+            Main.GetInstance().UI.ShowSpawnMenu = false;
+            SpawnCamera();
+        }
+    }
+
+    private void SpawnCamera()
+    {
+        var main = Main.GetInstance();
+        if (main?.MainViewport == null)
+        {
+            GD.PrintErr("Main viewport is not available");
+            return;
+        }
+        
+        // Instantiate the CameraObjectScene from Main
+        var cameraNode = main.CameraObjectScene.Instantiate() as Node3D;
+        if (cameraNode == null)
+        {
+            GD.PrintErr("Failed to instantiate CameraObjectScene");
+            return;
+        }
+        
+        // Use MainViewport to create SceneObject of type Camera
+        var sceneObject = main.MainViewport.CreateSceneObject(SceneObject.Type.Camera, null, "Camera");
+        
+        // Set the scene object position and rotation to match the current camera
+        sceneObject.TargetPosition = main.MainViewport.Camera.GlobalPosition;
+        sceneObject.GlobalRotation = main.MainViewport.Camera.GlobalRotation;
+        
+        // Update picking system to include the new object
+        main.MainViewport.UpdatePicking();
+        
+        // Update the available cameras list in the UI
+        main.UI.UpdateAvailableCameras();
     }
 
     private void SpawnSelectedBlock()

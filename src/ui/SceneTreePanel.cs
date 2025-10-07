@@ -156,6 +156,9 @@ public class SceneTreePanel
             case SceneObject.Type.ModelPart:
                 ImGui.TextColored(new Vector4(0.7f, 0.9f, 0.7f, 1.0f), "[ModelPart]");
                 break;
+            case SceneObject.Type.Camera:
+                ImGui.TextColored(new Vector4(0.7f, 0.9f, 0.7f, 1.0f), "[Camera]");
+                break;
             default:
                 Main.GetInstance().ShowErrorDialog("Invalid object type: " + obj.ObjectType, "Object type not supported");
                 System.Environment.Exit(1);

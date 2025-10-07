@@ -12,6 +12,7 @@ public partial class MainViewport : SubViewport
 {
     [Export] public SceneWorld World { get; private set; }
     [Export] private Camera3D _camera;
+    public Camera3D Camera => _camera;
     [Export] private ShaderMaterial PickingMaterial;
     [Export] public Background BackgroundObject { get; private set; }
 
@@ -35,6 +36,7 @@ public partial class MainViewport : SubViewport
     {
         // Make this viewport handle input
         SelectionManager.TransformGizmo.Visible = false;
+        SelectionManager.TransformGizmo.Layers = 2;
         SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Move;
         SelectionManager.TransformGizmo.TransformEnd += TransformGizmoOnTransformEnd;
         World.AddChild(SelectionManager.TransformGizmo);
@@ -134,7 +136,6 @@ public partial class MainViewport : SubViewport
     public SceneObject CreateSceneObject(SceneObject.Type objectType = SceneObject.Type.Cube, MeshInstance3D meshInstance = null, string name = null, Node parent = null)
     {
         var sceneObject = Main.GetInstance().ObjectScene.Instantiate<SceneObject>();
-        Main.GetInstance().UI.sceneTreePanel.SceneObjects.Add(sceneObject);
         
         if (meshInstance == null && objectType == SceneObject.Type.Cube)
         {
@@ -152,6 +153,14 @@ public partial class MainViewport : SubViewport
         {
             sceneObject.AddVisuals(meshInstance);
         }
+        else if (objectType == SceneObject.Type.Camera)
+        {
+            sceneObject = Main.GetInstance().CameraObjectScene.Instantiate<SceneObject>();
+            sceneObject.OriginalOriginOffset = Vector3.Zero;
+            sceneObject.ObjectOriginOffset = Vector3.Zero;
+        }
+        
+        Main.GetInstance().UI.sceneTreePanel.SceneObjects.Add(sceneObject);
         
         sceneObject.ObjectType = objectType;
         
@@ -203,8 +212,6 @@ public partial class MainViewport : SubViewport
     public override void _Process(double delta)
     {
         Init();
-        
-        Main.GetInstance().Output.MainCamera.GlobalTransform = _camera.GlobalTransform;
         
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(Size.X, Size.Y));
         

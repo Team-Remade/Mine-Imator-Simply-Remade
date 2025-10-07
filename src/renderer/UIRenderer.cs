@@ -1,8 +1,10 @@
 ﻿#nullable enable
 using System;
+using System.Collections.Generic;
 using Godot;
 using ImGuiGodot;
 using ImGuiNET;
+using SimplyRemadeMI.core;
 using SimplyRemadeMI.ui;
 using MenuBar = SimplyRemadeMI.ui.MenuBar;
 using Vector2 = System.Numerics.Vector2;
@@ -17,6 +19,8 @@ public class UIRenderer
     public SpawnObjectsMenu spawnObjectsMenu = new();
     private ViewportObject ViewportObject;
     private MenuBar menuBar = new();
+    
+    private Camera3D? ActiveCamera;
     
     public bool ShowPreviewWindow = true;
     public bool ShowSpawnMenu = false;
@@ -34,6 +38,8 @@ public class UIRenderer
     public void Update(float delta)
     {
         timeline.Update(delta);
+
+        ActiveCamera ??= Main.GetInstance().MainViewport.Camera;
         
         if (timeline.IsPlaying || timeline.IsScrubbing || timeline.IsDraggingKeyframe)
         {
@@ -118,7 +124,9 @@ public class UIRenderer
         //ImGuiGD.SetMainViewport(Main.GetInstance().GetWindow());
 
         ImGui.DockSpaceOverViewport();
-        
+
+        if (ActiveCamera != null) Main.GetInstance().Output.MainCamera.GlobalTransform = ActiveCamera.GlobalTransform;
+
         var size = Main.GetInstance().WindowSize;
 
         var sceneTreeHeight = size.Y / 3;
@@ -202,12 +210,37 @@ public class UIRenderer
         }
     }
 
+    private int _selectedCameraIndex = 0;
+    private List<Camera3D> _availableCameras = new List<Camera3D>();
+
+    public void UpdateAvailableCameras()
+    {
+        _availableCameras.Clear();
+        
+        // Always include the main camera from RenderOutput
+        _availableCameras.Add(Main.GetInstance().Output.MainCamera);
+        
+        // Find all SceneObjects of type Camera that have a valid camera component
+        foreach (var sceneObject in sceneTreePanel.SceneObjects)
+        {
+            if (sceneObject.ObjectType == SceneObject.Type.Camera)
+            {
+                var camera = sceneObject.GetCamera();
+                if (camera != null)
+                {
+                    _availableCameras.Add(camera);
+                }
+            }
+        }
+    }
+
     private void RenderPreviewWindow()
     {
         if (!Main.GetInstance().Output.PreviewMode)
             return;
         
-        //ImGui.SetNextWindowSize(new Vector2(Main.GetInstance().Output.Size.X, Main.GetInstance().Output.Size.Y));
+        // Update available cameras list
+        UpdateAvailableCameras();
 
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
 
@@ -221,6 +254,29 @@ public class UIRenderer
 
         if (ImGui.Begin("Preview", windowFlags))
         {
+            // Camera selection dropdown at the top
+            ImGui.Text("Camera:");
+            ImGui.SetNextItemWidth(-1); // Full width
+            if (ImGui.Combo("##CameraSelect", ref _selectedCameraIndex, GetCameraNames(), _availableCameras.Count))
+            {
+                // Camera selection changed, set the selected camera as current
+                if (_selectedCameraIndex >= 0 && _selectedCameraIndex < _availableCameras.Count)
+                {
+                    // First set all cameras to non-current
+                    foreach (var camera in _availableCameras)
+                    {
+                        camera.Visible = false;
+                    }
+                    
+                    // Then set the selected camera as current
+                    var selectedCamera = _availableCameras[_selectedCameraIndex];
+                    selectedCamera.Visible = true;
+                    ActiveCamera = selectedCamera;
+                }
+            }
+
+            ImGui.Separator();
+
             var size = ImGui.GetContentRegionAvail();
             if (size.X > 5 && size.Y > 5)
             {
@@ -228,16 +284,32 @@ public class UIRenderer
                     new Vector2I((int)(size.Y * Main.GetInstance().UI.propertiesPanel.project._aspectRatio), (int)size.Y));
 
                 ImGuiGD.SubViewport(Main.GetInstance().Output);
-
-                //ImGuiGD.SubViewport(Main.GetInstance().Output);
-
-                
             }
             
             ImGui.End();
         }
 
         ImGui.PopStyleVar();
+    }
+
+    private string[] GetCameraNames()
+    {
+        var names = new string[_availableCameras.Count];
+        for (int i = 0; i < _availableCameras.Count; i++)
+        {
+            if (i == 0)
+            {
+                names[i] = "Main Camera";
+            }
+            else
+            {
+                // For user cameras, try to get the name from the parent SceneObject
+                var camera = _availableCameras[i];
+                var sceneObject = camera.GetParent()?.GetParent() as SceneObject;
+                names[i] = sceneObject != null ? sceneObject.Name : $"Camera {i}";
+            }
+        }
+        return names;
     }
     
     private void RenderDialogOverlay(System.Numerics.Vector2 windowSize)

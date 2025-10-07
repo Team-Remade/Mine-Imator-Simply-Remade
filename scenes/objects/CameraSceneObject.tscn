@@ -1,7 +1,18 @@
-[gd_scene load_steps=3 format=3 uid="uid://ci7l383h0lj1m"]
+[gd_scene load_steps=5 format=3 uid="uid://ci7l383h0lj1m"]
 
 [ext_resource type="PackedScene" uid="uid://c6lnmdhv4dha5" path="res://scenes/objects/SceneObject.tscn" id="1_8877b"]
 [ext_resource type="PackedScene" uid="uid://cy0pw2s460c5b" path="res://assets/mesh/Camera.glb" id="2_r4n56"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_r4n56"]
+no_depth_test = true
+shading_mode = 0
+diffuse_mode = 1
+specular_mode = 2
+disable_ambient_light = true
+disable_fog = true
+
+[sub_resource type="SphereMesh" id="SphereMesh_r4n56"]
+radius = 1.0
 
 [node name="CameraSceneObject" instance=ExtResource("1_8877b")]
 
@@ -10,8 +21,13 @@ transform = Transform3D(-4.37114e-08, 0, 1, 0, 1, 0, -1, 0, -4.37114e-08, 0, 0, 
 
 [node name="Cube" parent="Visual/Camera" index="0"]
 layers = 2
+material_override = SubResource("StandardMaterial3D_r4n56")
 
-[node name="Camera3D" type="Camera3D" parent="Visual" index="1"]
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Visual" index="1"]
+layers = 524288
+mesh = SubResource("SphereMesh_r4n56")
+
+[node name="Camera3D" type="Camera3D" parent="Visual/MeshInstance3D" index="0"]
 cull_mask = 524285
 
 [editable path="Visual/Camera"]

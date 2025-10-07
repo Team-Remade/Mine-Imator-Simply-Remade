@@ -15,6 +15,7 @@ public partial class SceneObject : Node3D
         Block,
         Item,
         ModelPart,
+        Camera,
         TestInvalidType,
     }
 
@@ -154,5 +155,25 @@ public partial class SceneObject : Node3D
         }
 
         return false;
+    }
+
+    public Camera3D GetCamera()
+    {
+        // Traverse children to find a Camera3D node
+        foreach (var child in Visuals.GetChildren())
+        {
+            if (child is MeshInstance3D meshInstance)
+            {
+                foreach (var meshChild in meshInstance.GetChildren())
+                {
+                    
+                    if (meshChild is Camera3D camera)
+                    {
+                        return camera;
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
