@@ -51,7 +51,7 @@ public class SceneTreePanel
             if (SceneObjects.Count == 0 || renderedCount == 0)
             {
                 ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1.0f), "No objects in scene");
-                ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1.0f), "Press F7 to spawn a cube");
+                ImGui.TextColored(new Vector4(0.6f, 0.6f, 0.6f, 1.0f), "Press F7 to spawn an empty object");
             }
         }
 

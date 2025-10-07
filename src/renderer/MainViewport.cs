@@ -259,7 +259,7 @@ public partial class MainViewport : SubViewport
         
         if (Input.IsActionJustPressed("SpawnDebugCube"))
         {
-            CreateSceneObject();
+            CreateSceneObject(SceneObject.Type.Empty);
             UpdatePicking();
         }
 
