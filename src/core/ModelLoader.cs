@@ -240,6 +240,7 @@ public partial class ModelLoader : Node
                 var duplicatedMat = (StandardMaterial3D)originalMat.Duplicate();
                 duplicatedMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
                 duplicatedMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                //duplicatedMat.Uv1Scale = new Vector3(1.01f, 1.01f, 1.01f);
                 newMeshInstance.Mesh.SurfaceSetMaterial(i, duplicatedMat);
             }
 
@@ -380,7 +381,6 @@ public partial class ModelLoader : Node
         // Create a new MeshInstance3D with a duplicated mesh to avoid sharing
         var newMeshInstance = new MeshInstance3D
         {
-            Mesh = mesh.Mesh.Duplicate() as Mesh,
             Name = mesh.Name,
             Rotation = rotation // Set the rotation from attachment
         };
@@ -398,6 +398,22 @@ public partial class ModelLoader : Node
         // Configure surface materials for alpha transparency - duplicate materials to avoid sharing
         for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
         {
+            newMeshInstance.Mesh = mesh.Mesh.Duplicate() as Mesh;
+            
+            var m = newMeshInstance.Mesh as ArrayMesh;
+            var dataTool = new MeshDataTool();
+            dataTool.CreateFromSurface(m, i);
+            for (int j = 0; j < dataTool.GetVertexCount(); j++)
+            {
+                var uv = dataTool.GetVertexUV(j);
+                //TODO: Scale the UV on the center
+                dataTool.SetVertexUV(j, uv);
+            }
+                
+            m.ClearSurfaces();
+
+            dataTool.CommitToSurface(m);
+            
             var originalMat = (StandardMaterial3D)mesh.Mesh.SurfaceGetMaterial(i);
             var duplicatedMat = (StandardMaterial3D)originalMat.Duplicate();
             duplicatedMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;

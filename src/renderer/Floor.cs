@@ -9,15 +9,40 @@ public partial class Floor : MeshInstance3D
     public override void _Ready()
     {
         // Try to create the mesh immediately, but defer if Main isn't ready yet
-        TryCreateMesh();
+        //TryCreateMesh();
+        var main = GetNode<Main>("/root/Main");
+        if (main == null)
+        {
+            // Main node not ready yet, try again later
+            return;
+        }
+        //SetTexture(Main.GetInstance().TerrainTextures["tile040"]);
+    }
+
+    public void SetTexture(Texture2D texture)
+    {
+        var mat = (StandardMaterial3D)MaterialOverride;
+        mat.AlbedoTexture = texture;
     }
 
     public override void _Process(double delta)
     {
         // If mesh hasn't been created yet, try again each frame until successful
+        //if (!_meshCreated)
+        {
+            //TryCreateMesh();
+        }
+        
+        var main = GetNode<Main>("/root/Main");
+        if (main == null)
+        {
+            // Main node not ready yet, try again later
+            return;
+        }
+
         if (!_meshCreated)
         {
-            TryCreateMesh();
+            TrySetTexture(main.TerrainTextures["tile040"]);
         }
     }
 
@@ -148,5 +173,19 @@ public partial class Floor : MeshInstance3D
 
         _meshCreated = true;
         SetProcess(false); // Stop processing once mesh is created
+    }
+
+    private void TrySetTexture(Texture2D texture)
+    {
+        var main = GetNode<Main>("/root/Main");
+        if (main == null)
+        {
+            // Main node not ready yet, try again later
+            return;
+        }
+        
+        var mat = (StandardMaterial3D)MaterialOverride;
+        mat.AlbedoTexture = texture;
+        _meshCreated = true;
     }
 }

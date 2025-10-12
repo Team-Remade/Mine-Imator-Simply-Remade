@@ -1,0 +1,9 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://jd7dbgtpepsd"]
+
+[ext_resource type="Texture2D" uid="uid://bwdmqya2n7xlr" path="res://assets/mesh/PyroBaby_sprBaby.png" id="1_d87hl"]
+
+[resource]
+resource_name = "Material"
+transparency = 4
+albedo_texture = ExtResource("1_d87hl")
+texture_filter = 2

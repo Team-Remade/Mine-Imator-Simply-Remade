@@ -1,0 +1,107 @@
+[gd_scene load_steps=11 format=3 uid="uid://c1jy5gwigpsrl"]
+
+[ext_resource type="CompositorEffect" uid="uid://v0kty216hlxo" path="res://NewCloudsGD.tres" id="1_nv18y"]
+[ext_resource type="Script" uid="uid://bxlm4e5qfb7uu" path="res://addons/SunshineClouds2/SunshineCloudEffector.gd" id="3_afwv5"]
+[ext_resource type="Script" uid="uid://djusduuxf0voj" path="res://addons/SunshineClouds2/SunshineCloudsDriver.gd" id="3_unbdf"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_unbdf"]
+sky_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+ground_horizon_color = Color(0.662243, 0.671743, 0.686743, 1)
+
+[sub_resource type="Sky" id="Sky_nuogy"]
+sky_material = SubResource("ProceduralSkyMaterial_unbdf")
+
+[sub_resource type="Environment" id="Environment_ftegy"]
+background_mode = 2
+sky = SubResource("Sky_nuogy")
+tonemap_mode = 2
+glow_enabled = true
+
+[sub_resource type="Compositor" id="Compositor_nuogy"]
+compositor_effects = Array[CompositorEffect]([ExtResource("1_nv18y")])
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_o8tia"]
+height = 1.0
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_o8tia"]
+size = Vector2(10, 10)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_nv18y"]
+
+[node name="ExampleScene" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_ftegy")
+compositor = SubResource("Compositor_nuogy")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.28213, 0.412798, 0, 0.825596, 0.564261, -0.5, 0.488664, -0.714988, -8, 2, -2)
+shadow_enabled = true
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, 0)
+mesh = SubResource("CylinderMesh_o8tia")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="."]
+transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, -40000)
+mesh = SubResource("CylinderMesh_o8tia")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="."]
+transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, -20000)
+mesh = SubResource("CylinderMesh_o8tia")
+
+[node name="MeshInstance3D4" type="MeshInstance3D" parent="."]
+transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, -60000)
+mesh = SubResource("CylinderMesh_o8tia")
+
+[node name="MeshInstance3D5" type="MeshInstance3D" parent="."]
+transform = Transform3D(1000, 0, 0, 0, 12000, 0, 0, 0, 1000, 6000, 6000, -80000)
+mesh = SubResource("CylinderMesh_o8tia")
+
+[node name="MeshInstance3D6" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_o8tia")
+
+[node name="MeshInstance3D7" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_nv18y")
+
+[node name="Label3D" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.985589, 0.16916, 0, -0.16916, 0.985589, 0, 2.61482, -5.55018)
+modulate = Color(0, 0, 0, 1)
+text = "This is an example scene, 
+please note the quality settings are all set to high, 
+this is mostly just an example, 
+feel free to try turning down the settings."
+font_size = 128
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10743.6, 6693.89, -43458.2)
+light_color = Color(0.76, 0.374933, 0.1824, 1)
+light_energy = 11.685
+omni_range = 20000.0
+
+[node name="SunshineCloudsEffector" type="Node3D" parent="."]
+transform = Transform3D(0.241651, 0, 0.970363, 0, 1, 0, -0.970363, 0, 0.241651, 19316.8, -2863.07, -3971.34)
+script = ExtResource("3_afwv5")
+Radius = 18900.9
+Power = 1.18
+metadata/_custom_type_script = "uid://bxlm4e5qfb7uu"
+
+[node name="SunshineCloudsDriverGD" type="Node" parent="." node_paths=PackedStringArray("tracked_directional_lights", "tracked_point_lights", "tracked_point_effectors")]
+script = ExtResource("3_unbdf")
+update_continuously = true
+clouds_resource = ExtResource("1_nv18y")
+ambience_sample_environment = SubResource("Environment_ftegy")
+tracked_directional_lights = [NodePath("../DirectionalLight3D")]
+tracked_directional_light_shadow_steps = Array[int]([32])
+tracked_point_lights = [NodePath("../OmniLight3D")]
+tracked_point_effectors = [NodePath("../SunshineCloudsEffector")]
+extra_large_structures_wind_speed = 0.0
+large_structures_wind_speed = 0.0
+medium_structures_wind_speed = 0.0
+small_structures_wind_speed = 0.0
+metadata/_custom_type_script = "uid://djusduuxf0voj"
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 12376.3, 3579.21)
+far = 400000.0

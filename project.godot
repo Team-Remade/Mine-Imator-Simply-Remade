@@ -55,7 +55,7 @@ naming/scene_name_casing=1
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/Gizmo3DSharp/plugin.cfg", "res://addons/imgui-godot/plugin.cfg", "res://addons/obj_exporter/plugin.cfg", "res://addons/scene_texture/plugin.cfg", "res://addons/script-ide/plugin.cfg", "res://addons/sprite_mesh/plugin.cfg", "res://addons/window-placement-switcher/plugin.cfg")
+enabled=PackedStringArray("res://addons/Gizmo3DSharp/plugin.cfg", "res://addons/SunshineClouds2/plugin.cfg", "res://addons/imgui-godot/plugin.cfg", "res://addons/obj_exporter/plugin.cfg", "res://addons/scene_texture/plugin.cfg", "res://addons/script-ide/plugin.cfg", "res://addons/sprite_mesh/plugin.cfg", "res://addons/window-placement-switcher/plugin.cfg")
 
 [gui]
 
@@ -82,9 +82,11 @@ ToggleRenderMode={
 
 [rendering]
 
-textures/canvas_textures/default_texture_filter=0
+textures/canvas_textures/default_texture_filter=3
 global_illumination/gi/use_half_resolution=true
 textures/default_filters/use_nearest_mipmap_filter=true
 textures/default_filters/anisotropic_filtering_level=0
 anti_aliasing/screen_space_roughness_limiter/enabled=false
+textures/decals/filter=2
+textures/light_projectors/filter=2
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)
