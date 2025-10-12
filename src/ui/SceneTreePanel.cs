@@ -180,4 +180,24 @@ public class SceneTreePanel
 
         ImGui.PopID();
     }
+    public void DeleteSelectedObject()
+    {
+        if (SelectedObjectIndex < 0 || SelectedObjectIndex >= SceneObjects.Count)
+            return;
+
+        var selectedObject = SceneObjects[SelectedObjectIndex];
+        
+        // Remove from the scene tree
+        selectedObject.QueueFree();
+        
+        // Remove from the list
+        SceneObjects.RemoveAt(SelectedObjectIndex);
+        
+        // Clear selection
+        SelectedObjectIndex = -1;
+        SelectionManager.ClearSelection();
+        
+        // Remove the picking node for this object and update the viewport picking system
+        Main.GetInstance().MainViewport.RemovePickingNode(selectedObject.ID);
+    }
 }

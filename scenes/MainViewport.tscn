@@ -16,6 +16,7 @@ shader = ExtResource("2_ssepm")
 shader_parameter/object_id = Color(0, 0, 0, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_w13yp"]
+transparency = 4
 albedo_texture = ExtResource("2_fe5f8")
 texture_filter = 4
 texture_repeat = false
@@ -29,8 +30,7 @@ albedo_color = Color(0, 1, 1, 1)
 [sub_resource type="BoxMesh" id="BoxMesh_w13yp"]
 
 [node name="MainViewport" type="SubViewport" node_paths=PackedStringArray("World", "_camera", "BackgroundObject")]
-msaa_3d = 1
-use_occlusion_culling = true
+anisotropic_filtering_level = 0
 render_target_update_mode = 4
 script = ExtResource("1_bj8v6")
 World = NodePath("World")
@@ -75,3 +75,10 @@ transform = Transform3D(1, 0, 0, 0, 0.141264, 0.989972, 0, -0.989972, 0.141264, 
 sky_mode = 1
 
 [node name="Background" parent="." instance=ExtResource("9_tnues")]
+
+[node name="PickingTimer" type="Timer" parent="."]
+wait_time = 0.2
+autostart = true
+ignore_time_scale = true
+
+[connection signal="timeout" from="PickingTimer" to="." method="UpdatePickingView"]

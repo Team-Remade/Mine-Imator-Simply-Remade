@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Godot;
+using SimplyRemadeMI;
 
 public class TextureAtlas
 {
@@ -46,7 +47,7 @@ public class TextureAtlas
         }
     }
 
-    public void LoadTexturesFromPattern(string pattern)
+    public void LoadTexturesFromPattern(string pattern, bool items = false)
     {
         // Extract the numeric pattern part (tile###.png -> ###)
         string numericPattern = pattern.Substring(pattern.IndexOf("tile") + 4);
@@ -75,6 +76,15 @@ public class TextureAtlas
                     else
                     {
                         //GD.Print($"Successfully added texture to atlas: {fullPath}");
+                    }
+
+                    if (!items)
+                    {
+                        Main.GetInstance().TerrainTextures.Add(fullPath.GetFile().GetBaseName(), texture);
+                    }
+                    else
+                    {
+                        Main.GetInstance().ItemTextures.Add(fullPath.GetFile().GetBaseName(), texture);
                     }
                 }
                 else

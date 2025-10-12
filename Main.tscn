@@ -41,6 +41,7 @@ PreviewTextures = Dictionary[String, Texture2D]({
 })
 
 [node name="RenderOutpu" parent="." instance=ExtResource("10_wkp8b")]
+anisotropic_filtering_level = 0
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 visible = false

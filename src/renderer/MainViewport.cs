@@ -35,6 +35,8 @@ public partial class MainViewport : SubViewport
     public override void _Ready()
     {
         // Make this viewport handle input
+        ObjectPicking.AnisotropicFilteringLevel = AnisotropicFiltering.Disabled;
+        ObjectPicking.SetUpdateMode(UpdateMode.Disabled);
         SelectionManager.TransformGizmo.Visible = false;
         SelectionManager.TransformGizmo.Layers = 2;
         SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Move;
@@ -61,6 +63,11 @@ public partial class MainViewport : SubViewport
         ObjectPicking.AddChild(ObjectPickingObject);
         
         Initialized = true;
+    }
+
+    private void UpdatePickingView()
+    {
+        ObjectPicking.SetUpdateMode(UpdateMode.Once);
     }
 
     private IEnumerable<SceneObject> GetAllSceneObjects(Node node)
@@ -130,6 +137,26 @@ public partial class MainViewport : SubViewport
             }
                 
             Objects.Add(so.ID, so);
+        }
+    }
+
+    public void RemovePickingNode(int objectId)
+    {
+        // Remove from Objects dictionary
+        Objects.Remove(objectId);
+        
+        // Find and remove the picking node with the matching object_id meta
+        foreach (var child in ObjectPickingObject.GetChildren())
+        {
+            if (child is Node3D pickingNode && pickingNode.HasMeta("object_id"))
+            {
+                int id = (int)pickingNode.GetMeta("object_id");
+                if (id == objectId)
+                {
+                    pickingNode.QueueFree();
+                    break;
+                }
+            }
         }
     }
 
@@ -316,6 +343,14 @@ public partial class MainViewport : SubViewport
             else if (eventKey.Keycode == Key.G)
             {
                 SelectionManager.TransformGizmo.UseLocalSpace = !SelectionManager.TransformGizmo.UseLocalSpace;
+            }
+            else if (eventKey.Keycode == Key.X)
+            {
+                // Delete selected object with X key
+                if (SelectionManager.Selection.Count > 0)
+                {
+                    Main.GetInstance().UI.ShowDeleteConfirmationDialog();
+                }
             }
         }
     }

@@ -57,10 +57,10 @@ public partial class Floor : MeshInstance3D
         //GD.Print($"Atlas dimensions: {atlasWidth}x{atlasHeight}");
 
         // Calculate normalized UV coordinates for the tile
-        float minU = uvRect.Position.X / atlasWidth;
-        float maxU = (uvRect.Position.X + uvRect.Size.X) / atlasWidth;
-        float minV = uvRect.Position.Y / atlasHeight;
-        float maxV = (uvRect.Position.Y + uvRect.Size.Y) / atlasHeight;
+        float minU = uvRect.Position.X / atlasWidth + 0.0001f;
+        float maxU = (uvRect.Position.X + uvRect.Size.X) / atlasWidth - 0.0001f;
+        float minV = uvRect.Position.Y / atlasHeight + 0.0001f;
+        float maxV = (uvRect.Position.Y + uvRect.Size.Y) / atlasHeight - 0.0001f;
         //GD.Print($"Normalized UV: minU={minU}, maxU={maxU}, minV={minV}, maxV={maxV}");
         
         // Create lists for vertices, UVs, normals, and indices for the grid

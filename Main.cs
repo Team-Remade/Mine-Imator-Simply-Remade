@@ -24,6 +24,8 @@ public partial class Main : Control
     
     [Export] public Godot.Collections.Dictionary<string, Texture2D> Icons { get; private set; }
     [Export] public Godot.Collections.Dictionary<string, Texture2D> PreviewTextures { get; private set; }
+    public Dictionary<string, Texture2D> TerrainTextures { get; private set; } = new Dictionary<string, Texture2D>();
+    public Dictionary<string, Texture2D> ItemTextures { get; private set; } = new Dictionary<string, Texture2D>();
     
     private ViewportObject ViewportObject;
     
@@ -63,9 +65,9 @@ public partial class Main : Control
         Instance = this;
 
         // Copy this once
-        if (File.Exists(OS.GetExecutablePath().GetBaseDir() + "data/imgui.ini") && !File.Exists(OS.GetUserDataDir() + "imgui.ini"))
+        if (File.Exists(OS.GetExecutablePath().GetBaseDir() + "/data/imgui.ini") && !File.Exists(OS.GetUserDataDir() + "/imgui.ini"))
         {
-            File.Copy(OS.GetExecutablePath().GetBaseDir() + "data/imgui.ini", OS.GetUserDataDir() + "imgui.ini");
+            File.Copy(OS.GetExecutablePath().GetBaseDir() + "/data/imgui.ini", OS.GetUserDataDir() + "/imgui.ini");
         }
         
         var io = ImGui.GetIO();
@@ -81,8 +83,8 @@ public partial class Main : Control
         if (!File.Exists(ffmpegPath))
         {
             //ShowErrorDialog(
-            //    $"FFmpeg binary ({ffmpegExecutable}) not found.",
-            //    "Mine Imator Simply Remade - Missing Dependency");
+                //$"FFmpeg binary ({ffmpegExecutable}) not found.",
+                //"Mine Imator Simply Remade - Missing Dependency");
             //GetTree().Quit(1);
             //return;
         }
@@ -103,7 +105,7 @@ public partial class Main : Control
         
         // Initialize item texture atlas
         _itemAtlas = new TextureAtlas(2048, 2048);
-        _itemAtlas.LoadTexturesFromPattern("res://assets/sprite/item/tile###.png");
+        _itemAtlas.LoadTexturesFromPattern("res://assets/sprite/item/tile###.png", true);
         _itemAtlas.GenerateAtlas();
         GD.Print($"Item atlas generated with {_itemAtlas.GetTextureCount()} textures");
         

@@ -372,6 +372,31 @@ public class UIRenderer
         }
     }
 
+    public void ShowDeleteConfirmationDialog()
+    {
+        if (sceneTreePanel.SelectedObject == null)
+            return;
+
+        var io = ImGui.GetIO();
+        var centerPos = new Vector2(io.DisplaySize.X * 0.5f - 150, io.DisplaySize.Y * 0.5f - 50);
+
+        dialog = new Dialog(
+            DialogType.DeleteConfirmation,
+            "DELETE OBJECT",
+            $"Are you sure you want to delete '{sceneTreePanel.SelectedObject.Name}'?",
+            centerPos,
+            () =>
+            {
+                // Delete the object
+                sceneTreePanel.DeleteSelectedObject();
+            },
+            () =>
+            {
+                // Cancel - do nothing
+            }
+        );
+    }
+
     private void RemoveDialog()
     {
         menuBar.ShouldShowRenderSettings = false;

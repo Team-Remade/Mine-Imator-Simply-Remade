@@ -22,8 +22,6 @@ public class SpawnObjectsMenu
     private string[] _textureSheets = { "Item Sheet", "Terrain Sheet" };
     private string[] _categories = { "Character", "Item", "Block", "Camera" };
     private string[] _allCharacters = { "Steve", "Balloonicorn", "PyroBaby" };
-    private Dictionary<string, Texture2D> _itemTextures = new Dictionary<string, Texture2D>();
-    private Dictionary<string, Texture2D> _terrainTextures = new Dictionary<string, Texture2D>();
     private ModelLoader _modelLoader = new ModelLoader();
     
     // Available blocks with their texture definitions
@@ -641,16 +639,6 @@ public class SpawnObjectsMenu
 
     private void RenderItemContent()
     {
-        // Load textures for the selected sheet if not already loaded
-        if (_selectedTextureSheet == 0 && _itemTextures.Count == 0)
-        {
-            LoadItemTextures();
-        }
-        else if (_selectedTextureSheet == 1 && _terrainTextures.Count == 0)
-        {
-            LoadTerrainTextures();
-        }
-
         // Texture sheet dropdown
         ImGui.Text("Texture Sheet");
         ImGui.SetNextItemWidth(-1);
@@ -680,7 +668,7 @@ public class SpawnObjectsMenu
         ImGui.BeginChild("##ItemGrid", new Vector2(-1, ImGui.GetContentRegionAvail().Y - 100), ImGuiChildFlags.None, ImGuiWindowFlags.None);
         
         // Get the current texture dictionary based on selected sheet
-        var currentTextures = _selectedTextureSheet == 0 ? _itemTextures : _terrainTextures;
+        var currentTextures = _selectedTextureSheet == 0 ? Main.GetInstance().ItemTextures : Main.GetInstance().TerrainTextures;
         var textureNames = currentTextures.Keys.ToArray();
         
         // Filter items based on search text
@@ -760,82 +748,10 @@ public class SpawnObjectsMenu
         }
     }
 
-    private void LoadItemTextures()
-    {
-        // Load all .png files from assets/sprite/item directory
-        using var dir = DirAccess.Open("res://assets/sprite/item");
-        if (dir != null)
-        {
-            dir.ListDirBegin();
-            string fileName = dir.GetNext();
-            while (fileName != "")
-            {
-                if (!dir.CurrentIsDir() && fileName.EndsWith(".png"))
-                {
-                    var textureName = fileName.Replace(".png", "");
-                    var texturePath = "res://assets/sprite/item/" + fileName;
-                    var texture = ResourceLoader.Load<Texture2D>(texturePath);
-                    
-                    if (texture != null)
-                    {
-                        // Store the Texture2D directly
-                        _itemTextures[textureName] = texture;
-                    }
-                    else
-                    {
-                        GD.PrintErr("Failed to load texture: " + texturePath);
-                    }
-                }
-                fileName = dir.GetNext();
-            }
-            dir.ListDirEnd();
-        }
-        else
-        {
-            GD.PrintErr("Failed to open assets/sprite/item directory");
-        }
-    }
-
-    private void LoadTerrainTextures()
-    {
-        // Load all .png files from assets/sprite/terrain directory
-        using var dir = DirAccess.Open("res://assets/sprite/terrain");
-        if (dir != null)
-        {
-            dir.ListDirBegin();
-            string fileName = dir.GetNext();
-            while (fileName != "")
-            {
-                if (!dir.CurrentIsDir() && fileName.EndsWith(".png"))
-                {
-                    var textureName = fileName.Replace(".png", "");
-                    var texturePath = "res://assets/sprite/terrain/" + fileName;
-                    var texture = ResourceLoader.Load<Texture2D>(texturePath);
-                    
-                    if (texture != null)
-                    {
-                        // Store the Texture2D directly
-                        _terrainTextures[textureName] = texture;
-                    }
-                    else
-                    {
-                        GD.PrintErr("Failed to load texture: " + texturePath);
-                    }
-                }
-                fileName = dir.GetNext();
-            }
-            dir.ListDirEnd();
-        }
-        else
-        {
-            GD.PrintErr("Failed to open assets/sprite/terrain directory");
-        }
-    }
-
     private void SpawnSelectedItem()
     {
         // Get the current texture dictionary based on selected sheet
-        var currentTextures = _selectedTextureSheet == 0 ? _itemTextures : _terrainTextures;
+        var currentTextures = _selectedTextureSheet == 0 ? Main.GetInstance().ItemTextures : Main.GetInstance().TerrainTextures;
         var textureNames = currentTextures.Keys.ToArray();
         if (_selectedItemIndex < 0 || _selectedItemIndex >= textureNames.Length)
             return;
@@ -1244,12 +1160,6 @@ public class SpawnObjectsMenu
             return;
         }
         
-        // Load terrain textures if not already loaded
-        if (_terrainTextures.Count == 0)
-        {
-            LoadTerrainTextures();
-        }
-        
         // Get the block texture definition
         var textureDef = _availableBlocks[blockName];
         
@@ -1259,7 +1169,7 @@ public class SpawnObjectsMenu
         if (textureDef is string singleTextureName)
         {
             // Single texture for all faces
-            if (!_terrainTextures.TryGetValue(singleTextureName, out var tileTexture))
+            if (!Main.GetInstance().TerrainTextures.TryGetValue(singleTextureName, out var tileTexture))
             {
                 GD.PrintErr($"Texture {singleTextureName} not found in terrain textures");
                 return;
@@ -1273,12 +1183,12 @@ public class SpawnObjectsMenu
         else if (textureDef is Dictionary<string, string> multiTextures)
         {
             // Multi-texture block (like Grass)
-            if (!_terrainTextures.TryGetValue(multiTextures["top"], out var topTexture) ||
-                !_terrainTextures.TryGetValue(multiTextures["bottom"], out var bottomTexture) ||
-                !_terrainTextures.TryGetValue(multiTextures["front"], out var frontTexture) ||
-                !_terrainTextures.TryGetValue(multiTextures["back"], out var backTexture) ||
-                !_terrainTextures.TryGetValue(multiTextures["left"], out var leftTexture) ||
-                !_terrainTextures.TryGetValue(multiTextures["right"], out var rightTexture))
+            if (!Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["top"], out var topTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["bottom"], out var bottomTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["front"], out var frontTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["back"], out var backTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["left"], out var leftTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["right"], out var rightTexture))
             {
                 GD.PrintErr("One or more grass textures not found in terrain textures");
                 return;
@@ -1290,7 +1200,7 @@ public class SpawnObjectsMenu
             // For Farmland, check hydration status and use tile086 for top if hydrated
             if (blockName == "Farmland" && _farmlandHydrated)
             {
-                if (_terrainTextures.TryGetValue("tile086", out var hydratedTopTexture))
+                if (Main.GetInstance().TerrainTextures.TryGetValue("tile086", out var hydratedTopTexture))
                 {
                     topTexture = hydratedTopTexture;
                 }
@@ -1320,12 +1230,12 @@ public class SpawnObjectsMenu
                 return;
             }
             
-            if (!_terrainTextures.TryGetValue(textures["top"], out var topTexture) ||
-                !_terrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
-                !_terrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
-                !_terrainTextures.TryGetValue(textures["back"], out var backTexture) ||
-                !_terrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
-                !_terrainTextures.TryGetValue(textures["right"], out var rightTexture))
+            if (!Main.GetInstance().TerrainTextures.TryGetValue(textures["top"], out var topTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["back"], out var backTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["right"], out var rightTexture))
             {
                 GD.PrintErr("One or more furnace textures not found in terrain textures");
                 return;
@@ -1334,7 +1244,7 @@ public class SpawnObjectsMenu
             // Check if burning is enabled and use burning texture for front face
             if (_furnaceBurning && furnaceDef.ContainsKey("burning_textures") && furnaceDef["burning_textures"] is Dictionary<string, string> burningTextures)
             {
-                if (burningTextures.ContainsKey("front") && _terrainTextures.TryGetValue(burningTextures["front"], out var burningFrontTexture))
+                if (burningTextures.ContainsKey("front") && Main.GetInstance().TerrainTextures.TryGetValue(burningTextures["front"], out var burningFrontTexture))
                 {
                     frontTexture = burningFrontTexture;
                 }
@@ -1375,12 +1285,12 @@ public class SpawnObjectsMenu
                 return;
             }
 
-            if (!_terrainTextures.TryGetValue(textures["top"], out var topTexture) ||
-                !_terrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
-                !_terrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
-                !_terrainTextures.TryGetValue(textures["back"], out var backTexture) ||
-                !_terrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
-                !_terrainTextures.TryGetValue(textures["right"], out var rightTexture))
+            if (!Main.GetInstance().TerrainTextures.TryGetValue(textures["top"], out var topTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["back"], out var backTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
+                !Main.GetInstance().TerrainTextures.TryGetValue(textures["right"], out var rightTexture))
             {
                 GD.PrintErr($"One or more {blockName.ToLower()} textures not found in terrain textures");
                 return;
@@ -1441,7 +1351,7 @@ public class SpawnObjectsMenu
                 return;
             }
 
-            if (!_terrainTextures.TryGetValue(textureName, out var texture))
+            if (!Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
             {
                 GD.PrintErr($"Texture {textureName} not found in terrain textures");
                 return;
@@ -1545,7 +1455,7 @@ public class SpawnObjectsMenu
                     if (!string.IsNullOrEmpty(selectedTextureName) && textures.TryGetValue(selectedTextureName, out var textureName))
                     {
                         GD.Print($"Selected texture name: {textureName} for block: {blockName}");
-                        if (_terrainTextures.TryGetValue(textureName, out var texture))
+                        if (Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
                         {
                             GD.Print($"Successfully loaded texture: {textureName}");
                             var material = new StandardMaterial3D();
@@ -1564,7 +1474,7 @@ public class SpawnObjectsMenu
                         else
                         {
                             GD.PrintErr($"Texture {textureName} not found in terrain textures");
-                            GD.Print($"Available terrain textures: {string.Join(", ", _terrainTextures.Keys)}");
+                            GD.Print($"Available terrain textures: {string.Join(", ", Main.GetInstance().TerrainTextures.Keys)}");
                         }
                     }
                     else
@@ -1576,7 +1486,7 @@ public class SpawnObjectsMenu
                 // Apply single texture if specified
                 else if (modelDef.ContainsKey("texture") && modelDef["texture"] is string textureName)
                 {
-                    if (_terrainTextures.TryGetValue(textureName, out var texture))
+                    if (Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
                     {
                         var material = new StandardMaterial3D();
                         material.AlbedoTexture = texture;
@@ -1606,7 +1516,7 @@ public class SpawnObjectsMenu
                         redstoneTextureName = modelDef["unpowered_texture"] as string;
                     }
                     
-                    if (!string.IsNullOrEmpty(redstoneTextureName) && _terrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
+                    if (!string.IsNullOrEmpty(redstoneTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
                     {
                         var redstoneMaterial = new StandardMaterial3D();
                         redstoneMaterial.AlbedoTexture = redstoneTexture;
@@ -1674,7 +1584,7 @@ public class SpawnObjectsMenu
                         redstoneTextureName = modelDef["unpowered_texture"] as string;
                     }
                     
-                    if (!string.IsNullOrEmpty(redstoneTextureName) && _terrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
+                    if (!string.IsNullOrEmpty(redstoneTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
                     {
                         var redstoneMaterial = new StandardMaterial3D();
                         redstoneMaterial.AlbedoTexture = redstoneTexture;
@@ -1706,7 +1616,7 @@ public class SpawnObjectsMenu
                 else if (blockName == "Stair" && modelDef.ContainsKey("textures") && modelDef["textures"] is Dictionary<string, string> stairTextures)
                 {
                     string selectedStairType = _stairTypes[_selectedStairTypeIndex];
-                    if (stairTextures.TryGetValue(selectedStairType, out var stairTextureName) && _terrainTextures.TryGetValue(stairTextureName, out var stairTexture))
+                    if (stairTextures.TryGetValue(selectedStairType, out var stairTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(stairTextureName, out var stairTexture))
                     {
                         var stairMaterial = new StandardMaterial3D();
                         stairMaterial.AlbedoTexture = stairTexture;
