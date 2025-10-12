@@ -1,0 +1,39 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3cqouwr3w3iu"]
+
+[ext_resource type="Script" uid="uid://cydam0rt6undd" path="res://src/ui/frame_counter.gd" id="1_bq2x5"]
+
+[node name="FrameCounter" type="MarginContainer" node_paths=PackedStringArray("textLabel")]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -40.0
+offset_right = 52.0
+grow_vertical = 0
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 7
+script = ExtResource("1_bq2x5")
+textLabel = NodePath("Label")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+text = "## FPS"
+
+[node name="MarginContainer" type="MarginContainer" parent="Label"]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = -5
+theme_override_constants/margin_top = -5
+theme_override_constants/margin_right = -5
+theme_override_constants/margin_bottom = -5
+
+[node name="BG" type="ColorRect" parent="Label/MarginContainer"]
+show_behind_parent = true
+layout_mode = 2
+color = Color(0.23921569, 0.23921569, 0.23921569, 0.50980395)

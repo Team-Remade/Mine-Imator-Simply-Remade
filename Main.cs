@@ -156,9 +156,11 @@ public partial class Main : Control
             // Store original size and preview mode
             var originalSize = Output.Size;
             var originalPreviewMode = Output.PreviewMode;
+            var originalRenderMode = Output.RenderedMode;
 
             // Set the viewport to the desired render size and disable preview mode
             Output.PreviewMode = false;
+            Output.RenderedMode = true;
             Output.Size = new Vector2I(width, height);
 
             // Wait for multiple frames to ensure the viewport is fully rendered with the new size
@@ -188,6 +190,7 @@ public partial class Main : Control
                 // Restore original settings
                 Output.Size = originalSize;
                 Output.PreviewMode = originalPreviewMode;
+                Output.RenderedMode = originalRenderMode;
                 return;
             }
 
@@ -205,6 +208,7 @@ public partial class Main : Control
             // Restore original settings
             Output.Size = originalSize;
             Output.PreviewMode = originalPreviewMode;
+            Output.RenderedMode = originalRenderMode;
         }
         catch (Exception e)
         {
