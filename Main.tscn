@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://cykt8uneb4j0m"]
+[gd_scene load_steps=15 format=3 uid="uid://cykt8uneb4j0m"]
 
 [ext_resource type="Script" uid="uid://cyrjeycv58rk1" path="res://Main.cs" id="1_glv2v"]
 [ext_resource type="Texture2D" uid="uid://gmuqnx7f4hic" path="res://assets/sprite/bench.png" id="2_r0du0"]
@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" uid="uid://bcjkxc20nb42u" path="res://assets/sprite/icons/stop.svg" id="6_lgr22"]
 [ext_resource type="Texture2D" uid="uid://c2uxt166o4q8e" path="res://assets/sprite/previewTextures/Steve.tres" id="8_wkp8b"]
 [ext_resource type="PackedScene" uid="uid://bb7cs5tvtg72p" path="res://scenes/RenderOutput.tscn" id="10_wkp8b"]
+[ext_resource type="Script" uid="uid://m67kyatek3xk" path="res://resolution_scaler/resolution_scaler.gd" id="14_c2ibq"]
 
 [node name="Main" type="Control" node_paths=PackedStringArray("MainViewport", "Output", "Second")]
 layout_mode = 3
@@ -40,8 +41,13 @@ PreviewTextures = Dictionary[String, Texture2D]({
 "Steve": ExtResource("8_wkp8b")
 })
 
+[node name="ResolutionScaler" type="Node" parent="."]
+script = ExtResource("14_c2ibq")
+enabled = true
+target_fps = 30
+metadata/_custom_type_script = "uid://m67kyatek3xk"
+
 [node name="RenderOutpu" parent="." instance=ExtResource("10_wkp8b")]
-anisotropic_filtering_level = 0
 
 [node name="SubViewportContainer" type="SubViewportContainer" parent="."]
 visible = false
