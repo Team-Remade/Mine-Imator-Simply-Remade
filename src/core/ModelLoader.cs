@@ -382,6 +382,7 @@ public partial class ModelLoader : Node
         var newMeshInstance = new MeshInstance3D
         {
             Name = mesh.Name,
+            Mesh = mesh.Mesh.Duplicate() as Mesh,
             Rotation = rotation // Set the rotation from attachment
         };
 
@@ -398,22 +399,6 @@ public partial class ModelLoader : Node
         // Configure surface materials for alpha transparency - duplicate materials to avoid sharing
         for (int i = 0; i < mesh.Mesh.GetSurfaceCount(); i++)
         {
-            newMeshInstance.Mesh = mesh.Mesh.Duplicate() as Mesh;
-            
-            var m = newMeshInstance.Mesh as ArrayMesh;
-            var dataTool = new MeshDataTool();
-            dataTool.CreateFromSurface(m, i);
-            for (int j = 0; j < dataTool.GetVertexCount(); j++)
-            {
-                var uv = dataTool.GetVertexUV(j);
-                //TODO: Scale the UV on the center
-                dataTool.SetVertexUV(j, uv);
-            }
-                
-            m.ClearSurfaces();
-
-            dataTool.CommitToSurface(m);
-            
             var originalMat = (StandardMaterial3D)mesh.Mesh.SurfaceGetMaterial(i);
             var duplicatedMat = (StandardMaterial3D)originalMat.Duplicate();
             duplicatedMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
