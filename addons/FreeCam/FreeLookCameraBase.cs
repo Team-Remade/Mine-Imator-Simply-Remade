@@ -113,6 +113,17 @@ partial class FreeLookCameraBase : Camera3D
                     _e = keyEvent.Pressed;
                 }
                 break;
+                
+                case Key.Space:
+                {
+                    _shift = keyEvent.Pressed;
+                } 
+                    break;
+                case Key.Shift:
+                    {
+                    _alt = keyEvent.Pressed;
+                    }
+                    break;
             }
         }
     }
