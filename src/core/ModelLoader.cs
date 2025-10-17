@@ -382,6 +382,7 @@ public partial class ModelLoader : Node
         var newMeshInstance = new MeshInstance3D
         {
             Name = mesh.Name,
+            //TODO: Fix UVs
             Mesh = mesh.Mesh.Duplicate() as Mesh,
             Rotation = rotation // Set the rotation from attachment
         };

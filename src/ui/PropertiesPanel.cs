@@ -15,11 +15,8 @@ public class PropertiesPanel
     private string? _pendingBackgroundImagePath = null;
     private string _backgroundImageName = "None";
 
-    public void Render(Vector2I position, Vector2I size)
+    public void Render()
     {
-        //ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
-        //ImGui.SetNextWindowSize(new Vector2(size.X, size.Y));
-        
         if (!string.IsNullOrEmpty(_pendingBackgroundImagePath))
         {
             Main.GetInstance().MainViewport?.LoadBackgroundImage(_pendingBackgroundImagePath);

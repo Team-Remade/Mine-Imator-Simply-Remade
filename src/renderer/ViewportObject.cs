@@ -18,11 +18,8 @@ public class ViewportObject
         Viewport = viewport;
     }
     
-    public void Render(Vector2I position, Vector2I sizez)
+    public void Render(Vector2I position)
     {
-        //ImGui.SetNextWindowPos(new Vector2(position.X, position.Y));
-        //ImGui.SetNextWindowSize(new Vector2(sizez.X, sizez.Y));
-        
         if (ImGui.Begin("Viewport", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoScrollbar |  ImGuiWindowFlags.NoScrollWithMouse))
         {
             var size = ImGui.GetContentRegionAvail();
