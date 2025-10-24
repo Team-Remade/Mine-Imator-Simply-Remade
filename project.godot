@@ -36,6 +36,10 @@ config/windows_native_icon="res://assets/appIcon01.ico"
 ImGuiRoot="*res://addons/imgui-godot/data/ImGuiRoot.tscn"
 OBJExporter="*res://addons/obj_exporter/OBJExporter.tscn"
 
+[copy_files_on_export]
+
+files=Array[PackedStringArray]([PackedStringArray("res://ffmpeg-bin", "data/lib/ffmpeg", ""), PackedStringArray("res://assets/imgui.ini", "data/imgui.ini", "")])
+
 [debug]
 
 file_logging/log_path="user://logs/simplyRemade.log"
