@@ -1,0 +1,9 @@
+{
+  "Category": "Inherited",
+  "Backend": "NitroJIT",
+  "Inherit": "Control",
+  "Name": "Control Base",
+  "Description": "Base Control Script (NitroJIT)",
+  "Author": "Hamid.Memar",
+  "Version": 1.0
+}

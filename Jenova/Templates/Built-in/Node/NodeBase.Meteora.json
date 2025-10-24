@@ -1,0 +1,9 @@
+{
+  "Category": "Inherited",
+  "Backend": "Meteora",
+  "Inherit": "Node",
+  "Name": "Node Base",
+  "Description": "Smart Template for Base Node Script (Meteora)",
+  "Author": "Hamid.Memar",
+  "Version": 1.0
+}

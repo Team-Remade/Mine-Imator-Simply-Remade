@@ -1,0 +1,9 @@
+{
+  "Category": "Inherited",
+  "Backend": "Meteora",
+  "Inherit": "Control",
+  "Name": "Control Base",
+  "Description": "Base Control Script (Meteora)",
+  "Author": "Hamid.Memar",
+  "Version": 1.0
+}

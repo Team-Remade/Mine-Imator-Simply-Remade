@@ -1,0 +1,8 @@
+{
+  "Category": "Global",
+  "Backend": "Universal",
+  "Name": "Editor Plugin",
+  "Description": "Smart Template for Implementing New Editor Plugins",
+  "Author": "Hamid.Memar",
+  "Version": 1.0
+}

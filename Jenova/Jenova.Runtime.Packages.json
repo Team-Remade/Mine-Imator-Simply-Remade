@@ -1,0 +1,34 @@
+{
+  "packages": [
+    {
+      "pkgDestination": "res://Jenova/Packages/GodotSDK-4.5.3",
+      "pkgHash": "6b6394f2583d578b2bfaf82d2602d4a6",
+      "pkgInstallScript": false,
+      "pkgName": "Godot SDK 4.5.3 (MSVC)",
+      "pkgPlatform": 0,
+      "pkgType": 1,
+      "pkgUninstallScript": false,
+      "pkgVersion": "4.5.3 (x64)"
+    },
+    {
+      "pkgDestination": "res://Jenova/Packages/JenovaImGui-1.0.0",
+      "pkgHash": "af77ffdeef0ff2036d598ca5111b4567",
+      "pkgInstallScript": false,
+      "pkgName": "Immediate Mode Graphical User Interface (Vulkan/MSVC)",
+      "pkgPlatform": 0,
+      "pkgType": 5,
+      "pkgUninstallScript": false,
+      "pkgVersion": "1.0.0 (x64)"
+    },
+    {
+      "pkgDestination": "res://Jenova/Packages/JenovaMSVCCompiler-14.38.33130",
+      "pkgHash": "42ee241be3ddf31733153c7a14f7577e",
+      "pkgInstallScript": false,
+      "pkgName": "Microsoft Visual C++ 14.38.33130 Toolchain",
+      "pkgPlatform": 0,
+      "pkgType": 0,
+      "pkgUninstallScript": false,
+      "pkgVersion": "14.38.33130 (x64)"
+    }
+  ]
+}

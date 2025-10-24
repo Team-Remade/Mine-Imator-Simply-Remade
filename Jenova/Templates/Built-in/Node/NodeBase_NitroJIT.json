@@ -1,0 +1,9 @@
+{
+  "Category": "Inherited",
+  "Backend": "NitroJIT",
+  "Inherit": "Node",
+  "Name": "Node Base",
+  "Description": "Smart Template for Base Node Script (NitroJIT)",
+  "Author": "Hamid.Memar",
+  "Version": 1.0
+}
