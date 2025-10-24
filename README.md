@@ -8,7 +8,7 @@ Install dependencies:
 
 Requirements
 - Dotnet SDK 9
-- Godot 4.5.0 Mono
+- Godot 4.5.1 Mono
 ##
 - Open the project in Godot.
 - Build the C# project(Alt + B), you will have to re-enable the Gizmo3DSharp plugin
