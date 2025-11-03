@@ -12,7 +12,7 @@ namespace SimplyRemadeMI;
 
 public partial class Main : Control
 {
-    private static Main Instance;
+    private static Main _instance;
     
     [Export] public MainViewport MainViewport { get; private set; }
     [Export] public RenderOutput Output { get; private set; }
@@ -24,30 +24,29 @@ public partial class Main : Control
     
     [Export] public Godot.Collections.Dictionary<string, Texture2D> Icons { get; private set; }
     [Export] public Godot.Collections.Dictionary<string, Texture2D> PreviewTextures { get; private set; }
+    [Export] public Godot.Collections.Dictionary<string, PackedScene> SceneObjects { get; private set; }
     public Dictionary<string, Texture2D> TerrainTextures { get; private set; } = new Dictionary<string, Texture2D>();
     public Dictionary<string, Texture2D> ItemTextures { get; private set; } = new Dictionary<string, Texture2D>();
     
     private ViewportObject ViewportObject;
     
     public UIRenderer UI { get; private set; }
-    
-    private TextureAtlas _terrainAtlas;
-    private TextureAtlas _itemAtlas;
-    
-    public TextureAtlas TerrainAtlas => _terrainAtlas;
-    public TextureAtlas ItemAtlas => _itemAtlas;
-    
+
+    public TextureAtlas TerrainAtlas { get; private set; }
+
+    public TextureAtlas ItemAtlas { get; private set; }
+
     public Vector2I WindowSize { get; private set; }
     
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+    [LibraryImport("user32.dll", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial int MessageBox(IntPtr hWnd, string text, string caption, uint type);
 
     private string GetFFmpegPath()
     {
         return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "ffmpeg.exe" : "ffmpeg";
     }
 
-    public void ShowErrorDialog(string message, string title)
+    public static void ShowErrorDialog(string message, string title)
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
@@ -57,17 +56,22 @@ public partial class Main : Control
 
     public static Main GetInstance()
     {
-        return Instance;
+        return _instance;
     }
     
     public override void _Ready()
     {
-        Instance = this;
+        _instance = this;
 
         // Copy this once
         if (File.Exists(OS.GetExecutablePath().GetBaseDir() + "/data/imgui.ini") && !File.Exists(OS.GetUserDataDir() + "/imgui.ini"))
         {
             File.Copy(OS.GetExecutablePath().GetBaseDir() + "/data/imgui.ini", OS.GetUserDataDir() + "/imgui.ini");
+        }
+
+        if (OS.HasFeature("editor") && !File.Exists(OS.GetUserDataDir() + "/imgui.ini"))
+        {
+            File.Copy(ProjectSettings.GlobalizePath("res://assets/imgui.ini"), OS.GetUserDataDir() + "/imgui.ini");
         }
         
         var io = ImGui.GetIO();
@@ -80,13 +84,13 @@ public partial class Main : Control
         // Check if ffmpeg binary exists in the application directory
         var ffmpegExecutable = GetFFmpegPath();
         var ffmpegPath = Path.Combine(OS.GetExecutablePath().GetBaseDir(), "data/lib/ffmpeg", ffmpegExecutable);
-        if (!File.Exists(ffmpegPath))
+        if (!OS.HasFeature("editor") && !File.Exists(ffmpegPath))
         {
-            //ShowErrorDialog(
-                //$"FFmpeg binary ({ffmpegExecutable}) not found.",
-                //"Mine Imator Simply Remade - Missing Dependency");
-            //GetTree().Quit(1);
-            //return;
+            ShowErrorDialog(
+                $"FFmpeg binary ({ffmpegExecutable}) not found.",
+                "Mine Imator Simply Remade - Missing Dependency");
+            GetTree().Quit(1);
+            return;
         }
         
         var screenSize = DisplayServer.ScreenGetSize();
@@ -98,23 +102,23 @@ public partial class Main : Control
         GD.Print("Initialized Vulkan...");
         
         // Initialize terrain texture atlas
-        _terrainAtlas = new TextureAtlas(2048, 2048);
-        _terrainAtlas.LoadTexturesFromPattern("res://assets/sprite/terrain/tile###.png");
-        _terrainAtlas.GenerateAtlas();
-        GD.Print($"Terrain atlas generated with {_terrainAtlas.GetTextureCount()} textures");
+        TerrainAtlas = new TextureAtlas(2048, 2048);
+        TerrainAtlas.LoadTexturesFromPattern("res://assets/sprite/terrain/tile###.png");
+        TerrainAtlas.GenerateAtlas();
+        GD.Print($"Terrain atlas generated with {TerrainAtlas.GetTextureCount()} textures");
         
         // Initialize item texture atlas
-        _itemAtlas = new TextureAtlas(2048, 2048);
-        _itemAtlas.LoadTexturesFromPattern("res://assets/sprite/item/tile###.png", true);
-        _itemAtlas.GenerateAtlas();
-        GD.Print($"Item atlas generated with {_itemAtlas.GetTextureCount()} textures");
+        ItemAtlas = new TextureAtlas(2048, 2048);
+        ItemAtlas.LoadTexturesFromPattern("res://assets/sprite/item/tile###.png", true);
+        ItemAtlas.GenerateAtlas();
+        GD.Print($"Item atlas generated with {ItemAtlas.GetTextureCount()} textures");
         
         CheckRandomWindowIcon();
+        DisplayServer.WindowSetTitle("Mine Imator Simply Remade");
     }
 
     public override void _Process(double delta)
     {
-        DisplayServer.WindowSetTitle("Mine Imator Simply Remade");
         UI.Update((float)delta);
         
         WindowSize = DisplayServer.WindowGetSize();
@@ -130,17 +134,15 @@ public partial class Main : Control
         }
     }
 
-    private void CheckRandomWindowIcon()
+    private static void CheckRandomWindowIcon()
     {
         var random = new Random();
         var useChegg = random.Next(1000) == 0;
 
-        if (useChegg)
-        {
-            var img = ResourceLoader.Load<Texture2D>("res://assets/chegg.png");
-            
-            DisplayServer.SetIcon(img.GetImage());
-        }
+        if (!useChegg) return;
+        var img = ResourceLoader.Load<Texture2D>("res://assets/chegg.png");
+        
+        DisplayServer.SetIcon(img.GetImage());
     }
 
     public async void SaveOutputTexture(string filePath, int width, int height)
@@ -179,6 +181,7 @@ public partial class Main : Control
                 // Restore original settings
                 Output.Size = originalSize;
                 Output.PreviewMode = originalPreviewMode;
+                Output.RenderedMode = originalRenderMode;
                 return;
             }
 
@@ -210,9 +213,9 @@ public partial class Main : Control
             Output.PreviewMode = originalPreviewMode;
             Output.RenderedMode = originalRenderMode;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            throw; // TODO handle exception
+            ShowErrorDialog($"Image rendering failed: {ex.Message}", "Rendering Error");
         }
     }
 
@@ -230,9 +233,9 @@ public partial class Main : Control
 
             // Collect all keyframe frames from all scene objects to determine the range
             var keyframeFrames = new HashSet<int>();
-            if (UI.sceneTreePanel.SceneObjects != null)
+            if (UI.SceneTreePanel.SceneObjects != null)
             {
-                foreach (var obj in UI.sceneTreePanel.SceneObjects)
+                foreach (var obj in UI.SceneTreePanel.SceneObjects)
                 {
                     keyframeFrames.UnionWith(obj.PosXKeyframes.Keys);
                     keyframeFrames.UnionWith(obj.PosYKeyframes.Keys);
@@ -248,7 +251,7 @@ public partial class Main : Control
             }
 
             int startFrame = 0;
-            int endFrame = UI.timeline.TotalFrames;
+            int endFrame = UI.Timeline.TotalFrames;
             
             // If there are keyframes, use the min and max keyframe values
             if (keyframeFrames.Count > 0)
@@ -260,11 +263,11 @@ public partial class Main : Control
             bool isPngSequence = format.Equals("PNG Sequence", StringComparison.OrdinalIgnoreCase);
 
             // Store original timeline state
-            int originalFrame = UI.timeline.CurrentFrame;
-            bool wasPlaying = UI.timeline.IsPlaying;
+            int originalFrame = UI.Timeline.CurrentFrame;
+            bool wasPlaying = UI.Timeline.IsPlaying;
 
             // Stop playback if active
-            UI.timeline.IsPlaying = false;
+            UI.Timeline.IsPlaying = false;
 
             // Store original engine settings
             var originalVsyncMode = DisplayServer.WindowGetVsyncMode();
@@ -283,37 +286,27 @@ public partial class Main : Control
             Output.Size = new Vector2I(width, height);
 
             // Wait for viewport to resize and stabilize
-            await ToSignal(GetTree(), "process_frame");
-            await ToSignal(GetTree(), "process_frame");
-            await ToSignal(GetTree(), "process_frame");
-            await ToSignal(GetTree(), "process_frame");
-            await ToSignal(GetTree(), "process_frame");
-
+            for (int i = 0; i < 4; i++)
+            {
+                await ToSignal(GetTree(), "process_frame");
+            }
+            
             // Render each frame from startFrame to endFrame inclusive
             for (int frame = startFrame; frame <= endFrame; frame++)
             {
                 // Set current frame and apply keyframes to update object positions
-                UI.timeline.CurrentFrame = frame;
-                UI.timeline.ApplyKeyframesToObjects();
+                UI.Timeline.CurrentFrame = frame;
+                UI.Timeline.ApplyKeyframesToObjects();
 
                 // Wait for rendering to complete - more frames to ensure proper visual updates
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
-                await ToSignal(GetTree(), "process_frame");
+                for (int i = 0; i < 4; i++)
+                {
+                    await ToSignal(GetTree(), "process_frame");
+                }
 
                 // Save frame to temporary directory
                 string framePath = Path.Combine(tempDir, $"frame_{frame:D4}.png");
                 SaveOutputTexture(framePath, width, height);
-
-                // Additional delay to ensure smooth rendering between frames
-                await ToSignal(GetTree(), "process_frame");
             }
 
             // Restore original viewport settings
@@ -325,9 +318,9 @@ public partial class Main : Control
             Engine.MaxFps = originalMaxFps;
 
             // Restore original timeline state
-            UI.timeline.CurrentFrame = originalFrame;
-            UI.timeline.IsPlaying = wasPlaying;
-            UI.timeline.ApplyKeyframesToObjects();
+            UI.Timeline.CurrentFrame = originalFrame;
+            UI.Timeline.IsPlaying = wasPlaying;
+            UI.Timeline.ApplyKeyframesToObjects();
 
             if (isPngSequence)
             {
@@ -335,7 +328,7 @@ public partial class Main : Control
                 string outputDir = Path.GetDirectoryName(filePath);
                 if (!Directory.Exists(outputDir))
                 {
-                    Directory.CreateDirectory(outputDir);
+                    if (outputDir != null) Directory.CreateDirectory(outputDir);
                 }
 
                 // Copy all frames to the output directory
@@ -364,29 +357,27 @@ public partial class Main : Control
                                   $"-c:v libx264 -pix_fmt yuv420p -b:v {bitrate}k \"{filePath}\"";
 
                 // Execute FFmpeg
-                using (var process = new Process())
-                {
-                    process.StartInfo.FileName = ffmpegPath;
-                    process.StartInfo.Arguments = arguments;
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.RedirectStandardError = true;
-                    process.StartInfo.CreateNoWindow = true;
+                using var process = new Process();
+                process.StartInfo.FileName = ffmpegPath;
+                process.StartInfo.Arguments = arguments;
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+                process.StartInfo.CreateNoWindow = true;
 
-                    process.Start();
+                process.Start();
                     
-                    // Read output asynchronously to avoid blocking
-                    string output = await process.StandardError.ReadToEndAsync();
-                    await process.WaitForExitAsync();
+                // Read output asynchronously to avoid blocking
+                string output = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
 
-                    if (process.ExitCode != 0)
-                    {
-                        ShowErrorDialog($"FFmpeg encoding failed: {output}", "Encoding Error");
-                    }
-                    else
-                    {
-                        GD.Print($"Video encoded successfully to {filePath}");
-                    }
+                if (process.ExitCode != 0)
+                {
+                    ShowErrorDialog($"FFmpeg encoding failed: {output}", "Encoding Error");
+                }
+                else
+                {
+                    GD.Print($"Video encoded successfully to {filePath}");
                 }
             }
 

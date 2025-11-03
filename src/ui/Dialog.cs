@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using ImGuiNET;
 using SimplyRemadeMI.util;
@@ -101,7 +102,7 @@ public class Dialog
             if (adjustedPos.Y < 10)
                 adjustedPos.Y = 10;
 
-            if (adjustedPos.X != currentDialogPos.X || adjustedPos.Y != currentDialogPos.Y)
+            if (Math.Abs(adjustedPos.X - currentDialogPos.X) > 0.01f || Math.Abs(adjustedPos.Y - currentDialogPos.Y) > 0.01f)
                 ImGui.SetWindowPos(adjustedPos);
 
             // Store final dialog bounds for outside-click detection
@@ -141,6 +142,8 @@ public class Dialog
             case DialogType.RenderProgress:
                 RenderRenderProgress();
                 break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
     
@@ -296,27 +299,27 @@ public class Dialog
         ImGui.Text(labelText);
 
         // Center the dropdown
-        var dropdownWidth = 200f;
+        const float dropdownWidth = 200f;
         ImGui.SetCursorPosX((windowWidth - dropdownWidth) * 0.5f);
         ImGui.SetNextItemWidth(dropdownWidth);
-        if (_propertiesPanel != null && ImGui.Combo("##ImageSize", ref _propertiesPanel.project._selectedResolutionIndex, _propertiesPanel.project.ResolutionOptions, _propertiesPanel.project.ResolutionOptions.Length))
+        if (_propertiesPanel != null && ImGui.Combo("##ImageSize", ref _propertiesPanel.Project.SelectedResolutionIndex, _propertiesPanel.Project.ResolutionOptions, _propertiesPanel.Project.ResolutionOptions.Length))
         {
             // Resolution changed - update aspect ratio if switching to custom
-            if (_propertiesPanel.project._selectedResolutionIndex == 12) // Custom
+            if (_propertiesPanel.Project.SelectedResolutionIndex == 12) // Custom
             {
-                _propertiesPanel.project._aspectRatio = (float)_propertiesPanel.project._projectRenderWidth / _propertiesPanel.project._projectRenderHeight;
+                _propertiesPanel.Project.AspectRatio = (float)_propertiesPanel.Project.ProjectRenderWidth / _propertiesPanel.Project.ProjectRenderHeight;
             }
         }
 
         // Show custom resolution controls if "Custom" is selected
-        if (_propertiesPanel != null && _propertiesPanel.project._selectedResolutionIndex == 12) // Custom option
+        if (_propertiesPanel != null && _propertiesPanel.Project.SelectedResolutionIndex == 12) // Custom option
         {
             ImGui.Spacing();
 
             // Calculate total width for the width/height controls
             var widthLabelSize = ImGui.CalcTextSize("Width:").X;
             var heightLabelSize = ImGui.CalcTextSize("Height:").X;
-            var inputWidth = 80f;
+            const float inputWidth = 80f;
             var itemSpacing = ImGui.GetStyle().ItemSpacing.X;
             var totalControlsWidth = widthLabelSize + itemSpacing + inputWidth + itemSpacing + heightLabelSize +
                                      itemSpacing + inputWidth;
@@ -328,14 +331,14 @@ public class Dialog
             ImGui.Text("Width:");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(inputWidth);
-            int oldWidth = _propertiesPanel.project._projectRenderWidth;
-            if (ImGui.InputInt("##Width", ref _propertiesPanel.project._projectRenderWidth, 1, 10))
+            int oldWidth = _propertiesPanel.Project.ProjectRenderWidth;
+            if (ImGui.InputInt("##Width", ref _propertiesPanel.Project.ProjectRenderWidth, 1, 10))
             {
-                if (_propertiesPanel.project._projectRenderWidth < 1) _propertiesPanel.project._projectRenderWidth = 1;
-                if (_propertiesPanel.project._keepAspectRatio && oldWidth != _propertiesPanel.project._projectRenderWidth)
+                if (_propertiesPanel.Project.ProjectRenderWidth < 1) _propertiesPanel.Project.ProjectRenderWidth = 1;
+                if (_propertiesPanel.Project.KeepAspectRatio && oldWidth != _propertiesPanel.Project.ProjectRenderWidth)
                 {
-                    _propertiesPanel.project._projectRenderHeight = (int)(_propertiesPanel.project._projectRenderHeight / _propertiesPanel.project._aspectRatio);
-                    if (_propertiesPanel.project._projectRenderHeight < 1) _propertiesPanel.project._projectRenderHeight = 1;
+                    _propertiesPanel.Project.ProjectRenderHeight = (int)(_propertiesPanel.Project.ProjectRenderHeight / _propertiesPanel.Project.AspectRatio);
+                    if (_propertiesPanel.Project.ProjectRenderHeight < 1) _propertiesPanel.Project.ProjectRenderHeight = 1;
                 }
             }
 
@@ -343,14 +346,14 @@ public class Dialog
             ImGui.Text("Height:");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(inputWidth);
-            int oldHeight = _propertiesPanel.project._projectRenderHeight;
-            if (ImGui.InputInt("##Height", ref _propertiesPanel.project._projectRenderHeight, 1, 10))
+            int oldHeight = _propertiesPanel.Project.ProjectRenderHeight;
+            if (ImGui.InputInt("##Height", ref _propertiesPanel.Project.ProjectRenderHeight, 1, 10))
             {
-                if (_propertiesPanel.project._projectRenderHeight < 1) _propertiesPanel.project._projectRenderHeight = 1;
-                if (_propertiesPanel.project._keepAspectRatio && oldHeight != _propertiesPanel.project._projectRenderHeight)
+                if (_propertiesPanel.Project.ProjectRenderHeight < 1) _propertiesPanel.Project.ProjectRenderHeight = 1;
+                if (_propertiesPanel.Project.KeepAspectRatio && oldHeight != _propertiesPanel.Project.ProjectRenderHeight)
                 {
-                    _propertiesPanel.project._projectRenderWidth = (int)(_propertiesPanel.project._projectRenderHeight * _propertiesPanel.project._aspectRatio);
-                    if (_propertiesPanel.project._projectRenderWidth < 1) _propertiesPanel.project._projectRenderWidth = 1;
+                    _propertiesPanel.Project.ProjectRenderWidth = (int)(_propertiesPanel.Project.ProjectRenderHeight * _propertiesPanel.Project.AspectRatio);
+                    if (_propertiesPanel.Project.ProjectRenderWidth < 1) _propertiesPanel.Project.ProjectRenderWidth = 1;
                 }
             }
 
@@ -360,11 +363,11 @@ public class Dialog
             var checkboxText = "Keep Aspect Ratio";
             var checkboxWidth = ImGui.CalcTextSize(checkboxText).X + ImGui.GetFrameHeight() + itemSpacing;
             ImGui.SetCursorPosX((windowWidth - checkboxWidth) * 0.5f);
-            if (ImGui.Checkbox(checkboxText, ref _propertiesPanel.project._keepAspectRatio))
+            if (ImGui.Checkbox(checkboxText, ref _propertiesPanel.Project.KeepAspectRatio))
             {
-                if (_propertiesPanel.project._keepAspectRatio)
+                if (_propertiesPanel.Project.KeepAspectRatio)
                 {
-                    _propertiesPanel.project._aspectRatio = (float)_propertiesPanel.project._projectRenderWidth / _propertiesPanel.project._projectRenderHeight;
+                    _propertiesPanel.Project.AspectRatio = (float)_propertiesPanel.Project.ProjectRenderWidth / _propertiesPanel.Project.ProjectRenderHeight;
                 }
             }
         }
@@ -412,25 +415,24 @@ public class Dialog
         {
             var selectedPath = await FileDialog.ShowSaveDialogAsync("render");
 
-            if (!string.IsNullOrEmpty(selectedPath))
+            if (string.IsNullOrEmpty(selectedPath)) return;
+            // Get actual resolution values
+            int width, height;
+            if (_propertiesPanel?.Project.SelectedResolutionIndex == 12) // Custom
             {
-                // Get actual resolution values
-                int width, height;
-                if (_propertiesPanel.project._selectedResolutionIndex == 12) // Custom
-                {
-                    width = _propertiesPanel.project._projectRenderWidth;
-                    height = _propertiesPanel.project._projectRenderHeight;
-                }
-                else
-                {
-                    // Parse resolution from preset options
-                    (width, height) = _propertiesPanel.ParseResolution(_propertiesPanel.project.ResolutionOptions[_propertiesPanel.project._selectedResolutionIndex]);
-                }
-
-                // Save the Output viewport texture with the specified resolution
-                Main.GetInstance().SaveOutputTexture(selectedPath, width, height);
-                _onYes?.Invoke();
+                width = _propertiesPanel.Project.ProjectRenderWidth;
+                height = _propertiesPanel.Project.ProjectRenderHeight;
             }
+            else
+            {
+                // Parse resolution from preset options
+                Debug.Assert(_propertiesPanel != null, nameof(_propertiesPanel) + " != null");
+                (width, height) = PropertiesPanel.ParseResolution(_propertiesPanel.Project.ResolutionOptions[_propertiesPanel.Project.SelectedResolutionIndex]);
+            }
+
+            // Save the Output viewport texture with the specified resolution
+            Main.GetInstance().SaveOutputTexture(selectedPath, width, height);
+            _onYes?.Invoke();
         }
         catch (Exception ex)
         {
@@ -442,15 +444,8 @@ public class Dialog
     {
         var windowWidth = ImGui.GetWindowSize().X;
 
-        // Initialize with project properties if available
-        if (_propertiesPanel != null)
-        {
-            var (projectWidth, projectHeight, projectFramerate) = _propertiesPanel.project.GetProjectRenderSettings();
-            var projectResolutionIndex = _propertiesPanel.project._selectedResolutionIndex;
-        }
-
         // Center the title
-        var titleText = "RENDER ANIMATION";
+        const string titleText = "RENDER ANIMATION";
         var titleWidth = ImGui.CalcTextSize(titleText).X;
         ImGui.SetCursorPosX((windowWidth - titleWidth) * 0.5f);
         ImGui.Text(titleText);
@@ -458,29 +453,30 @@ public class Dialog
         ImGui.Spacing();
 
         // Center "Image Size:" label
-        var imageSizeText = "Image Size:";
+        const string imageSizeText = "Image Size:";
         var imageSizeWidth = ImGui.CalcTextSize(imageSizeText).X;
         ImGui.SetCursorPosX((windowWidth - imageSizeWidth) * 0.5f);
         ImGui.Text(imageSizeText);
 
         // Center the resolution dropdown
-        var dropdownWidth = 200f;
+        const float dropdownWidth = 200f;
         ImGui.SetCursorPosX((windowWidth - dropdownWidth) * 0.5f);
         ImGui.SetNextItemWidth(dropdownWidth);
-        if (ImGui.Combo("##ImageSize", ref _propertiesPanel.project._selectedResolutionIndex, _propertiesPanel.project.ResolutionOptions, _propertiesPanel.project.ResolutionOptions.Length))
+        Debug.Assert(_propertiesPanel != null, nameof(_propertiesPanel) + " != null");
+        if (ImGui.Combo("##ImageSize", ref _propertiesPanel.Project.SelectedResolutionIndex, _propertiesPanel.Project.ResolutionOptions, _propertiesPanel.Project.ResolutionOptions.Length))
         {
             // Resolution changed - update aspect ratio if switching to custom
-            if (_propertiesPanel.project._selectedResolutionIndex == 12) // Custom
+            if (_propertiesPanel.Project.SelectedResolutionIndex == 12) // Custom
             {
-                _propertiesPanel.project._aspectRatio = (float)_propertiesPanel.project._projectRenderWidth / _propertiesPanel.project._projectRenderHeight;
+                _propertiesPanel.Project.AspectRatio = (float)_propertiesPanel.Project.ProjectRenderWidth / _propertiesPanel.Project.ProjectRenderHeight;
             }
             else
             {
                 // Update values with selected preset
-                var (width, height) = _propertiesPanel.ParseResolution(_propertiesPanel.project.ResolutionOptions[_propertiesPanel.project._selectedResolutionIndex]);
-                _propertiesPanel.project._projectRenderWidth = width;
-                _propertiesPanel.project._projectRenderHeight = height;
-                _propertiesPanel.project._aspectRatio = (float)_propertiesPanel.project._projectRenderWidth / _propertiesPanel.project._projectRenderHeight;
+                var (width, height) = PropertiesPanel.ParseResolution(_propertiesPanel.Project.ResolutionOptions[_propertiesPanel.Project.SelectedResolutionIndex]);
+                _propertiesPanel.Project.ProjectRenderWidth = width;
+                _propertiesPanel.Project.ProjectRenderHeight = height;
+                _propertiesPanel.Project.AspectRatio = (float)_propertiesPanel.Project.ProjectRenderWidth / _propertiesPanel.Project.ProjectRenderHeight;
 
                 // TODO: Sync back to project properties
                 Console.WriteLine($"Resolution preset selected: {width}x{height}");
@@ -488,14 +484,14 @@ public class Dialog
         }
 
         // Show custom resolution controls if "Custom" is selected
-        if (_propertiesPanel.project._selectedResolutionIndex == 12) // Custom option
+        if (_propertiesPanel.Project.SelectedResolutionIndex == 12) // Custom option
         {
             ImGui.Spacing();
 
             // Calculate total width for the width/height controls
             var widthLabelSize = ImGui.CalcTextSize("Width:").X;
             var heightLabelSize = ImGui.CalcTextSize("Height:").X;
-            var inputWidth = 80f;
+            const float inputWidth = 80f;
             var itemSpacing = ImGui.GetStyle().ItemSpacing.X;
             var totalControlsWidth = widthLabelSize + itemSpacing + inputWidth + itemSpacing + heightLabelSize +
                                      itemSpacing + inputWidth;
@@ -507,14 +503,14 @@ public class Dialog
             ImGui.Text("Width:");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(inputWidth);
-            int oldWidth = _propertiesPanel.project._projectRenderWidth;
-            if (ImGui.InputInt("##Width", ref _propertiesPanel.project._projectRenderWidth, 1, 10))
+            int oldWidth = _propertiesPanel.Project.ProjectRenderWidth;
+            if (ImGui.InputInt("##Width", ref _propertiesPanel.Project.ProjectRenderWidth, 1, 10))
             {
-                if (_propertiesPanel.project._projectRenderWidth < 1) _propertiesPanel.project._projectRenderWidth = 1;
-                if (_propertiesPanel.project._keepAspectRatio && oldWidth != _propertiesPanel.project._projectRenderWidth)
+                if (_propertiesPanel.Project.ProjectRenderWidth < 1) _propertiesPanel.Project.ProjectRenderWidth = 1;
+                if (_propertiesPanel.Project.KeepAspectRatio && oldWidth != _propertiesPanel.Project.ProjectRenderWidth)
                 {
-                    _propertiesPanel.project._projectRenderHeight = (int)(_propertiesPanel.project._projectRenderWidth / _propertiesPanel.project._aspectRatio);
-                    if (_propertiesPanel.project._projectRenderHeight < 1) _propertiesPanel.project._projectRenderHeight = 1;
+                    _propertiesPanel.Project.ProjectRenderHeight = (int)(_propertiesPanel.Project.ProjectRenderWidth / _propertiesPanel.Project.AspectRatio);
+                    if (_propertiesPanel.Project.ProjectRenderHeight < 1) _propertiesPanel.Project.ProjectRenderHeight = 1;
                 }
             }
 
@@ -522,28 +518,28 @@ public class Dialog
             ImGui.Text("Height:");
             ImGui.SameLine();
             ImGui.SetNextItemWidth(inputWidth);
-            int oldHeight = _propertiesPanel.project._projectRenderHeight;
-            if (ImGui.InputInt("##Height", ref _propertiesPanel.project._projectRenderHeight, 1, 10))
+            int oldHeight = _propertiesPanel.Project.ProjectRenderHeight;
+            if (ImGui.InputInt("##Height", ref _propertiesPanel.Project.ProjectRenderHeight, 1, 10))
             {
-                if (_propertiesPanel.project._projectRenderHeight < 1) _propertiesPanel.project._projectRenderHeight = 1;
-                if (_propertiesPanel.project._keepAspectRatio && oldHeight != _propertiesPanel.project._projectRenderHeight)
+                if (_propertiesPanel.Project.ProjectRenderHeight < 1) _propertiesPanel.Project.ProjectRenderHeight = 1;
+                if (_propertiesPanel.Project.KeepAspectRatio && oldHeight != _propertiesPanel.Project.ProjectRenderHeight)
                 {
-                    _propertiesPanel.project._projectRenderWidth = (int)(_propertiesPanel.project._projectRenderHeight * _propertiesPanel.project._aspectRatio);
-                    if (_propertiesPanel.project._projectRenderWidth < 1) _propertiesPanel.project._projectRenderWidth = 1;
+                    _propertiesPanel.Project.ProjectRenderWidth = (int)(_propertiesPanel.Project.ProjectRenderHeight * _propertiesPanel.Project.AspectRatio);
+                    if (_propertiesPanel.Project.ProjectRenderWidth < 1) _propertiesPanel.Project.ProjectRenderWidth = 1;
                 }
             }
 
             ImGui.Spacing();
 
             // Center the checkbox
-            var checkboxText = "Keep Aspect Ratio";
+            const string checkboxText = "Keep Aspect Ratio";
             var checkboxWidth = ImGui.CalcTextSize(checkboxText).X + ImGui.GetFrameHeight() + itemSpacing;
             ImGui.SetCursorPosX((windowWidth - checkboxWidth) * 0.5f);
-            if (ImGui.Checkbox(checkboxText, ref _propertiesPanel.project._keepAspectRatio))
+            if (ImGui.Checkbox(checkboxText, ref _propertiesPanel.Project.KeepAspectRatio))
             {
-                if (_propertiesPanel.project._keepAspectRatio)
+                if (_propertiesPanel.Project.KeepAspectRatio)
                 {
-                    _propertiesPanel.project._aspectRatio = (float)_propertiesPanel.project._projectRenderWidth / _propertiesPanel.project._projectRenderHeight;
+                    _propertiesPanel.Project.AspectRatio = (float)_propertiesPanel.Project.ProjectRenderWidth / _propertiesPanel.Project.ProjectRenderHeight;
                 }
             }
         }
@@ -551,7 +547,7 @@ public class Dialog
         ImGui.Spacing();
 
         // Center "Video Format:" label
-        var formatText = "Video Format:";
+        const string formatText = "Video Format:";
         var formatWidth = ImGui.CalcTextSize(formatText).X;
         ImGui.SetCursorPosX((windowWidth - formatWidth) * 0.5f);
         ImGui.Text(formatText);
@@ -559,12 +555,12 @@ public class Dialog
         // Center the video format dropdown
         ImGui.SetCursorPosX((windowWidth - dropdownWidth) * 0.5f);
         ImGui.SetNextItemWidth(dropdownWidth);
-        ImGui.Combo("##VideoFormat", ref _propertiesPanel.project._selectedVideoFormatIndex, _propertiesPanel.project._videoFormatOptions, _propertiesPanel.project._videoFormatOptions.Length);
+        ImGui.Combo("##VideoFormat", ref _propertiesPanel.Project.SelectedVideoFormatIndex, _propertiesPanel.Project.VideoFormatOptions, _propertiesPanel.Project.VideoFormatOptions.Length);
 
         ImGui.Spacing();
 
         // Center bitrate controls (disabled for PNG sequence)
-        bool isPngSequence = _propertiesPanel.project._selectedVideoFormatIndex == 3; // PNG Sequence
+        bool isPngSequence = _propertiesPanel.Project.SelectedVideoFormatIndex == 3; // PNG Sequence
         if (!isPngSequence)
         {
             var bitrateText = "Bitrate (Mbps):";
@@ -576,14 +572,14 @@ public class Dialog
             ImGui.Text(bitrateText);
             ImGui.SameLine();
             ImGui.SetNextItemWidth(bitrateInputWidth);
-            if (ImGui.InputFloat("##Bitrate", ref _propertiesPanel.project._bitrate, 0.5f, 5.0f, "%.1f"))
+            if (ImGui.InputFloat("##Bitrate", ref _propertiesPanel.Project.Bitrate, 0.5f, 5.0f, "%.1f"))
             {
-                if (_propertiesPanel.project._bitrate < 0.6f) _propertiesPanel.project._bitrate = 0.6f;
-                if (_propertiesPanel.project._bitrate > 75.0f) _propertiesPanel.project._bitrate = 75.0f;
+                if (_propertiesPanel.Project.Bitrate < 0.6f) _propertiesPanel.Project.Bitrate = 0.6f;
+                if (_propertiesPanel.Project.Bitrate > 75.0f) _propertiesPanel.Project.Bitrate = 75.0f;
             }
 
             // Add help text for bitrate range
-            var helpText = "Range: 0.6 - 75.0 Mbps";
+            const string helpText = "Range: 0.6 - 75.0 Mbps";
             var helpTextWidth = ImGui.CalcTextSize(helpText).X;
             ImGui.SetCursorPosX((windowWidth - helpTextWidth) * 0.5f);
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.7f, 0.7f, 0.7f, 1.0f)); // Gray text
@@ -605,10 +601,10 @@ public class Dialog
         ImGui.Text(framerateText);
         ImGui.SameLine();
         ImGui.SetNextItemWidth(framerateInputWidth);
-        if (ImGui.InputInt("##Framerate", ref _propertiesPanel.project.FrameRate, 1, 10))
+        if (ImGui.InputInt("##Framerate", ref _propertiesPanel.Project.FrameRate, 1, 10))
         {
-            if (_propertiesPanel.project.FrameRate < 1) _propertiesPanel.project.FrameRate = 1;
-            if (_propertiesPanel.project.FrameRate > 120) _propertiesPanel.project.FrameRate = 120;
+            if (_propertiesPanel.Project.FrameRate < 1) _propertiesPanel.Project.FrameRate = 1;
+            if (_propertiesPanel.Project.FrameRate > 120) _propertiesPanel.Project.FrameRate = 120;
         }
 
         ImGui.Spacing();
@@ -655,7 +651,7 @@ public class Dialog
             // Determine file filter and default name based on format
             string filter;
             string defaultName;
-            bool isPngSequence = _propertiesPanel.project._selectedVideoFormatIndex == 3;
+            bool isPngSequence = _propertiesPanel != null && _propertiesPanel.Project.SelectedVideoFormatIndex == 3;
 
             if (isPngSequence)
             {
@@ -665,7 +661,8 @@ public class Dialog
             else
             {
                 // Set filter and default name based on selected video format
-                switch (_propertiesPanel.project._selectedVideoFormatIndex)
+                Debug.Assert(_propertiesPanel != null, nameof(_propertiesPanel) + " != null");
+                switch (_propertiesPanel.Project.SelectedVideoFormatIndex)
                 {
                     case 0: // MP4
                         filter = "MP4 Files (*.mp4)|*.mp4";
@@ -688,30 +685,31 @@ public class Dialog
 
             var selectedPath = await FileDialog.ShowSaveDialogAsync(defaultName, filter);
 
-            if (!string.IsNullOrEmpty(selectedPath))
+            if (string.IsNullOrEmpty(selectedPath)) return;
+            var selectedFormat = _propertiesPanel?.Project.VideoFormatOptions[_propertiesPanel.Project.SelectedVideoFormatIndex];
+
+            // Get actual resolution values
+            int width, height;
+            if (_propertiesPanel != null && _propertiesPanel.Project.SelectedResolutionIndex == 12) // Custom
             {
-                var selectedFormat = _propertiesPanel.project._videoFormatOptions[_propertiesPanel.project._selectedVideoFormatIndex];
-
-                // Get actual resolution values
-                int width, height;
-                if (_propertiesPanel.project._selectedResolutionIndex == 12) // Custom
-                {
-                    width = _propertiesPanel.project._projectRenderWidth;
-                    height = _propertiesPanel.project._projectRenderHeight;
-                }
-                else
-                {
-                    // Parse resolution from preset options
-                    (width, height) = _propertiesPanel.ParseResolution(_propertiesPanel.project.ResolutionOptions[_propertiesPanel.project._selectedResolutionIndex]);
-                }
-
-                // Trigger the animation render operation
-                // Convert Mbps to kbps for FFmpeg (1 Mbps = 1000 kbps)
-                int bitrateKbps = (int)(_propertiesPanel.project._bitrate * 1000);
-                _onAnimationRenderComplete?.Invoke(width, height, _propertiesPanel.project.FrameRate, bitrateKbps, selectedFormat,
-                    selectedPath);
-                _onYes?.Invoke();
+                width = _propertiesPanel.Project.ProjectRenderWidth;
+                height = _propertiesPanel.Project.ProjectRenderHeight;
             }
+            else
+            {
+                // Parse resolution from preset options
+                Debug.Assert(_propertiesPanel != null, nameof(_propertiesPanel) + " != null");
+                (width, height) = PropertiesPanel.ParseResolution(_propertiesPanel.Project.ResolutionOptions[_propertiesPanel.Project.SelectedResolutionIndex]);
+            }
+
+            // Trigger the animation render operation
+            // Convert Mbps to kbps for FFmpeg (1 Mbps = 1000 kbps)
+            int bitrateKbps = (int)(_propertiesPanel.Project.Bitrate * 1000);
+            if (selectedFormat != null)
+                _onAnimationRenderComplete?.Invoke(width, height, _propertiesPanel.Project.FrameRate, bitrateKbps,
+                    selectedFormat,
+                    selectedPath);
+            _onYes?.Invoke();
         }
         catch (Exception ex)
         {

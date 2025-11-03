@@ -9,28 +9,21 @@ using SimplyRemadeMI.core;
 
 namespace SimplyRemadeMI.renderer;
 
-public class ViewportObject
+public class ViewportObject(SubViewport viewport)
 {
-    private SubViewport Viewport;
-
-    public ViewportObject(SubViewport viewport)
-    {
-        Viewport = viewport;
-    }
-    
     public void Render(Vector2I position)
     {
         if (ImGui.Begin("Viewport", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoScrollbar |  ImGuiWindowFlags.NoScrollWithMouse))
         {
             var size = ImGui.GetContentRegionAvail();
-            if (size.X > 5 && size.Y > 5)
+            if (size is { X: > 5, Y: > 5 })
             {
-                Viewport.CallDeferred(SubViewport.MethodName.SetSize,
+                viewport.CallDeferred(SubViewport.MethodName.SetSize,
                     new Vector2I((int)size.X - 5, (int)size.Y - 5));
 
                 // Render bench button first to ensure it's clickable
                 var main = Main.GetInstance();
-                if (main != null && main.Icons != null && main.Icons.TryGetValue("Bench", out var benchTexture))
+                if (main is { Icons: not null } && main.Icons.TryGetValue("Bench", out var benchTexture))
                 {
                     var benchPos = new Vector2(position.X + 20, position.Y + 15);
                     var benchSize = new Vector2(64, 64);
@@ -40,17 +33,13 @@ public class ViewportObject
                         Main.GetInstance().UI.ShowSpawnMenu = true;
                     }
                     
-                    var windowPos = Main.GetInstance().GetWindow().Position;
-                    
                     ImGui.SetCursorPos(new Vector2(position.X + 10, position.Y + 10));
                 
-                    ImGuiGD.SubViewport(Viewport);
+                    ImGuiGD.SubViewport(viewport);
                     
                     ImGui.SetCursorPos(benchPos);
                     ImGuiGD.Image(benchTexture, benchSize);
                 }
-                
-                
                 
                 // Gizmo mode text rendering
                 string gizmoModeText;
@@ -77,20 +66,39 @@ public class ViewportObject
             
                 var bgRectMin = gizmoModePos - new Vector2(2, 2);
                 var bgRectMax = gizmoModePos + gizmoModeSize + new Vector2(2, 2);
-                uint bgColor = 0x80000000; // Semi-transparent black
+                const uint bgColor = 0x80000000; // Semi-transparent black
                 
                 var drawList = ImGui.GetWindowDrawList();
                 
                 drawList.AddRectFilled(bgRectMin, bgRectMax, bgColor);
                 drawList.AddText(gizmoModePos, textColor, gizmoModeText);
+
+                var eyePos = new Vector2(position.X + ImGui.GetWindowSize().X - 40, position.Y + 15);
+                ImGui.SetCursorPos(eyePos);
                 
+                if (main is { Icons: not null } && main.Icons.TryGetValue("eye", out var eyeTexture))
+                {
+                    ImGui.BeginChild("EyeButton");
+
+                    if (!Main.GetInstance().UI.ShowPreviewWindow)
+                    {
+                        eyeTexture = main.Icons["eyeSlash"];
+                    }
+
+                    if (ImGuiGD.ImageButton("##Eye", eyeTexture, new Vector2(16,  16)))
+                    {
+                        Main.GetInstance().UI.ShowPreviewWindow = !Main.GetInstance().UI.ShowPreviewWindow;
+                    }
+                    
+                }
+                ImGui.EndChild();
             }
         }
         
         ImGui.End();
     }
     
-    public Vector2 GetBenchPosition()
+    public static Vector2 GetBenchPosition()
     {
         var windowPos = Main.GetInstance().GetWindow().Position;
         return new Vector2(windowPos.X + 20, windowPos.Y + 15);

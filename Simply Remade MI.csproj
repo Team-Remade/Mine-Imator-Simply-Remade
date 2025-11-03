@@ -13,6 +13,7 @@
     
   <ItemGroup>
     <Folder Include="src\core\block\blocks\" />
+    <Folder Include="src\texture\" />
   </ItemGroup>
   <Target Name="DownloadFFmpeg" BeforeTargets="Publish">
     <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\download-ffmpeg.ps1&quot;" />

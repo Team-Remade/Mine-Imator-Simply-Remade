@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ImGuiGodot;
 using ImGuiNET;
@@ -13,12 +14,12 @@ namespace SimplyRemadeMI.renderer;
 
 public class UIRenderer
 {
-    public SceneTreePanel sceneTreePanel { get; private set; } = new();
-    public PropertiesPanel propertiesPanel = new();
-    public Timeline timeline = new();
-    public SpawnObjectsMenu spawnObjectsMenu = new();
-    private ViewportObject ViewportObject;
-    private MenuBar menuBar = new();
+    public SceneTreePanel SceneTreePanel { get; } = new();
+    public readonly PropertiesPanel PropertiesPanel = new();
+    public readonly Timeline Timeline = new();
+    private readonly SpawnObjectsMenu SpawnObjectsMenu = new();
+    private readonly ViewportObject _viewportObject;
+    private readonly MenuBar menuBar = new();
     
     private Camera3D? ActiveCamera;
     
@@ -29,100 +30,94 @@ public class UIRenderer
 
     public UIRenderer(ViewportObject viewportObject)
     {
-        ViewportObject = viewportObject;
-        sceneTreePanel.World = Main.GetInstance().MainViewport.World;
+        _viewportObject = viewportObject;
+        SceneTreePanel.World = Main.GetInstance().MainViewport.World;
         
         ImGuiGD.Connect(Render);
     }
 
     public void Update(float delta)
     {
-        timeline.Update(delta);
+        Timeline.Update(delta);
 
         ActiveCamera ??= Main.GetInstance().MainViewport.Camera;
-        
-        if (timeline.IsPlaying || timeline.IsScrubbing || timeline.IsDraggingKeyframe)
+
+        if (!Timeline.IsPlaying && !Timeline.IsScrubbing && !Timeline.IsDraggingKeyframe) return;
+        foreach (var obj in SceneTreePanel.SceneObjects)
         {
-            foreach (var obj in sceneTreePanel.SceneObjects)
+            if (!Timeline.HasKeyframes(obj)) continue;
+            var animatedPosition = Timeline.GetAnimatedPosition(obj);
+            var animatedRotation = Timeline.GetAnimatedRotation(obj);
+            var animatedScale = Timeline.GetAnimatedScale(obj);
+            var animatedAlpha = Timeline.GetAnimatedAlpha(obj);
+                    
+            var pos = obj.TargetPosition;
+
+            if (obj.PosXKeyframes.Count > 0)
             {
-                if (timeline.HasKeyframes(obj))
-                {
-                    var animatedPosition = timeline.GetAnimatedPosition(obj);
-                    var animatedRotation = timeline.GetAnimatedRotation(obj);
-                    var animatedScale = timeline.GetAnimatedScale(obj);
-                    var animatedAlpha = timeline.GetAnimatedAlpha(obj);
-                    
-                    var pos = obj.TargetPosition;
-
-                    if (obj.PosXKeyframes.Count > 0)
-                    {
-                        pos.X = animatedPosition.X;
-                    }
-
-                    if (obj.PosYKeyframes.Count > 0)
-                    {
-                        pos.Y = animatedPosition.Y;
-                    }
-
-                    if (obj.PosZKeyframes.Count > 0)
-                    {
-                        pos.Z = animatedPosition.Z;
-                    }
-
-                    obj.TargetPosition = pos;
-                    
-                    var rot = obj.GetRotationDegrees();
-
-                    if (obj.RotXKeyframes.Count > 0)
-                    {
-                        rot.X = animatedRotation.X;
-                    }
-
-                    if (obj.RotYKeyframes.Count > 0)
-                    {
-                        rot.Y = animatedRotation.Y;
-                    }
-
-                    if (obj.RotZKeyframes.Count > 0)
-                    {
-                        rot.Z = animatedRotation.Z;
-                    }
-                    
-                    obj.RotationDegrees = rot;
-                    
-                    var scale = obj.GetScale();
-
-                    if (obj.ScaleXKeyframes.Count > 0)
-                    {
-                        scale.X = animatedScale.X;
-                    }
-
-                    if (obj.ScaleYKeyframes.Count > 0)
-                    {
-                        scale.Y = animatedScale.Y;
-                    }
-
-                    if (obj.ScaleZKeyframes.Count > 0)
-                    {
-                        scale.Z = animatedScale.Z;
-                    }
-                    
-                    obj.Scale = scale;
-                    obj.Alpha = animatedAlpha;
-                }
+                pos.X = animatedPosition.X;
             }
+
+            if (obj.PosYKeyframes.Count > 0)
+            {
+                pos.Y = animatedPosition.Y;
+            }
+
+            if (obj.PosZKeyframes.Count > 0)
+            {
+                pos.Z = animatedPosition.Z;
+            }
+
+            obj.TargetPosition = pos;
+                    
+            var rot = obj.GetRotationDegrees();
+
+            if (obj.RotXKeyframes.Count > 0)
+            {
+                rot.X = animatedRotation.X;
+            }
+
+            if (obj.RotYKeyframes.Count > 0)
+            {
+                rot.Y = animatedRotation.Y;
+            }
+
+            if (obj.RotZKeyframes.Count > 0)
+            {
+                rot.Z = animatedRotation.Z;
+            }
+                    
+            obj.RotationDegrees = rot;
+                    
+            var scale = obj.GetScale();
+
+            if (obj.ScaleXKeyframes.Count > 0)
+            {
+                scale.X = animatedScale.X;
+            }
+
+            if (obj.ScaleYKeyframes.Count > 0)
+            {
+                scale.Y = animatedScale.Y;
+            }
+
+            if (obj.ScaleZKeyframes.Count > 0)
+            {
+                scale.Z = animatedScale.Z;
+            }
+                    
+            obj.Scale = scale;
+            obj.Alpha = animatedAlpha;
         }
     }
-    
-    public void Render()
+
+    private void Render()
     {
         DrawUI();
     }
 
     private void DrawUI()
     {
-        //ImGuiGD.SetMainViewport(Main.GetInstance().GetWindow());
-
         ImGui.DockSpaceOverViewport();
 
         if (ActiveCamera != null) Main.GetInstance().Output.MainCamera.GlobalTransform = ActiveCamera.GlobalTransform;
@@ -131,15 +126,15 @@ public class UIRenderer
         
         var menuBarHeight = ImGui.GetFrameHeight();
         
-        sceneTreePanel.Render();
-        propertiesPanel.Render();
-        timeline.Render(new Vector2I(0, size.Y - 200), new Vector2I(size.X - 280, 200));
-        ViewportObject.Render(new Vector2I(0, (int)menuBarHeight));
+        SceneTreePanel.Render();
+        PropertiesPanel.Render();
+        Timeline.Render(new Vector2I(size.X - 280, 200));
+        _viewportObject.Render(new Vector2I(0, (int)menuBarHeight));
         menuBar.Render();
         
         if (menuBar.ShouldShowRenderSettings)
         {
-            RenderDialogInputBlocker(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Size.X, Main.GetInstance().GetWindow().Size.Y));
+            RenderDialogInputBlocker(new Vector2(Main.GetInstance().GetWindow().Size.X, Main.GetInstance().GetWindow().Size.Y));
             ShowRenderSettingsDialog();
         }
         
@@ -157,10 +152,10 @@ public class UIRenderer
         if (dialog != null)
         {
             // Render overlay first
-            RenderDialogOverlay(new System.Numerics.Vector2(Main.GetInstance().WindowSize.X, Main.GetInstance().WindowSize.Y));
+            RenderDialogOverlay(new Vector2(Main.GetInstance().WindowSize.X, Main.GetInstance().WindowSize.Y));
 
             // Finally render the dialog on top
-            dialog.Render(new System.Numerics.Vector2(Main.GetInstance().WindowSize.X, Main.GetInstance().WindowSize.Y));
+            dialog.Render(new Vector2(Main.GetInstance().WindowSize.X, Main.GetInstance().WindowSize.Y));
 
             // Check for outside clicks and close dialog if needed
             if (dialog.CheckOutsideClick())
@@ -183,33 +178,28 @@ public class UIRenderer
     
     private void ShowRenderAnimationDialog()
     {
-        if (dialog == null)
-        {
-            var io = ImGui.GetIO();
-            var centerPos = new Vector2(io.DisplaySize.X * 0.5f - 200, io.DisplaySize.Y * 0.5f - 150);
+        if (dialog != null) return;
+        var io = ImGui.GetIO();
+        var centerPos = new Vector2(io.DisplaySize.X * 0.5f - 200, io.DisplaySize.Y * 0.5f - 150);
 
-            dialog = new Dialog(
-                DialogType.RenderAnimation,
-                "RENDER ANIMATION",
-                "",
-                centerPos,
-                () => {  },
-                () =>
-                {
-                    RemoveDialog();
-                },
-                null, // No single frame render callback for animation dialog
-                (width, height, framerate, bitrate, format, filePath) =>
-                {
-                    Main.GetInstance().RenderAnimation(filePath, width, height, framerate, bitrate, format);
-                },
-                propertiesPanel // Pass the properties panel reference
-            );
-        }
+        dialog = new Dialog(
+            DialogType.RenderAnimation,
+            "RENDER ANIMATION",
+            "",
+            centerPos,
+            () => {  },
+            RemoveDialog,
+            null, // No single frame render callback for animation dialog
+            (width, height, framerate, bitrate, format, filePath) =>
+            {
+                Main.GetInstance().RenderAnimation(filePath, width, height, framerate, bitrate, format);
+            },
+            PropertiesPanel // Pass the properties panel reference
+        );
     }
 
     private int _selectedCameraIndex = 0;
-    private List<Camera3D> _availableCameras = new List<Camera3D>();
+    private readonly List<Camera3D> _availableCameras = [];
 
     public void UpdateAvailableCameras()
     {
@@ -219,16 +209,9 @@ public class UIRenderer
         _availableCameras.Add(Main.GetInstance().Output.MainCamera);
         
         // Find all SceneObjects of type Camera that have a valid camera component
-        foreach (var sceneObject in sceneTreePanel.SceneObjects)
+        foreach (var camera in (from sceneObject in SceneTreePanel.SceneObjects where sceneObject.ObjectType == SceneObject.Type.Camera select sceneObject.GetCamera()).OfType<Camera3D>())
         {
-            if (sceneObject.ObjectType == SceneObject.Type.Camera)
-            {
-                var camera = sceneObject.GetCamera();
-                if (camera != null)
-                {
-                    _availableCameras.Add(camera);
-                }
-            }
+            _availableCameras.Add(camera);
         }
     }
 
@@ -279,7 +262,7 @@ public class UIRenderer
             if (size.X > 5 && size.Y > 5)
             {
                 Main.GetInstance().Output.CallDeferred(SubViewport.MethodName.SetSize,
-                    new Vector2I((int)(size.Y * Main.GetInstance().UI.propertiesPanel.project._aspectRatio), (int)size.Y));
+                    new Vector2I((int)(size.Y * Main.GetInstance().UI.PropertiesPanel.Project.AspectRatio), (int)size.Y));
 
                 ImGuiGD.SubViewport(Main.GetInstance().Output);
             }
@@ -310,10 +293,10 @@ public class UIRenderer
         return names;
     }
     
-    private void RenderDialogOverlay(System.Numerics.Vector2 windowSize)
+    private static void RenderDialogOverlay(Vector2 windowSize)
     {
         // Create a fullscreen overlay - just provides the dark visual background
-        ImGui.SetNextWindowPos(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Position.X, Main.GetInstance().GetWindow().Position.Y));
+        ImGui.SetNextWindowPos(new Vector2(Main.GetInstance().GetWindow().Position.X, Main.GetInstance().GetWindow().Position.Y));
         ImGui.SetNextWindowSize(windowSize);
         ImGui.PushStyleColor(ImGuiCol.WindowBg, new System.Numerics.Vector4(0.0f, 0.0f, 0.0f, 0.5f)); // Semi-transparent black overlay
 
@@ -328,10 +311,10 @@ public class UIRenderer
         ImGui.PopStyleColor();
     }
     
-    private void RenderDialogInputBlocker(System.Numerics.Vector2 windowSize)
+    private void RenderDialogInputBlocker(Vector2 windowSize)
     {
         // Create a fullscreen invisible input blocker
-        ImGui.SetNextWindowPos(new System.Numerics.Vector2(Main.GetInstance().GetWindow().Position.X, Main.GetInstance().GetWindow().Position.Y));
+        ImGui.SetNextWindowPos(new Vector2(Main.GetInstance().GetWindow().Position.X, Main.GetInstance().GetWindow().Position.Y));
         ImGui.SetNextWindowSize(windowSize);
         if (ImGui.Begin("##DialogInputBlocker", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove |
                                                 ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar |
@@ -346,33 +329,31 @@ public class UIRenderer
 
     private void ShowRenderSettingsDialog()
     {
-        if (dialog == null)
-        {
-            var io = ImGui.GetIO();
-            var center = new Vector2(io.DisplaySize.X * 0.5f - 150, io.DisplaySize.Y * 0.5f - 100);
+        if (dialog != null) return;
+        var io = ImGui.GetIO();
+        var center = new Vector2(io.DisplaySize.X * 0.5f - 150, io.DisplaySize.Y * 0.5f - 100);
             
-            dialog = new Dialog(
-                DialogType.RenderSettings,
-                "RENDER SETTINGS",
-                "",
-                center,
-                () => {  },
-                RemoveDialog,
-                (width, height, filePath) =>
-                {
-                    Main.GetInstance().MainViewport._shouldRenderToFile = true;
-                    Main.GetInstance().MainViewport._renderWidth = width;
-                    Main.GetInstance().MainViewport._renderHeight = height;
-                    Main.GetInstance().MainViewport._renderFilePath = filePath;
-                },
-                propertiesPanel: propertiesPanel
-            );
-        }
+        dialog = new Dialog(
+            DialogType.RenderSettings,
+            "RENDER SETTINGS",
+            "",
+            center,
+            () => {  },
+            RemoveDialog,
+            (width, height, filePath) =>
+            {
+                Main.GetInstance().MainViewport.ShouldRenderToFile = true;
+                Main.GetInstance().MainViewport.RenderWidth = width;
+                Main.GetInstance().MainViewport.RenderHeight = height;
+                Main.GetInstance().MainViewport.RenderFilePath = filePath;
+            },
+            propertiesPanel: PropertiesPanel
+        );
     }
 
     public void ShowDeleteConfirmationDialog()
     {
-        if (sceneTreePanel.SelectedObject == null)
+        if (SceneTreePanel.SelectedObject == null)
             return;
 
         var io = ImGui.GetIO();
@@ -381,12 +362,12 @@ public class UIRenderer
         dialog = new Dialog(
             DialogType.DeleteConfirmation,
             "DELETE OBJECT",
-            $"Are you sure you want to delete '{sceneTreePanel.SelectedObject.Name}'?",
+            $"Are you sure you want to delete '{SceneTreePanel.SelectedObject.Name}'?",
             centerPos,
             () =>
             {
                 // Delete the object
-                sceneTreePanel.DeleteSelectedObject();
+                SceneTreePanel.DeleteSelectedObject();
             },
             () =>
             {
@@ -412,12 +393,6 @@ public class UIRenderer
         ImGui.SetNextWindowPos(menuPos);
         
         // Render the spawn menu
-        spawnObjectsMenu.Render();
-        
-        // Check for outside clicks to close the menu
-        if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !ImGui.IsWindowHovered(ImGuiHoveredFlags.AnyWindow))
-        {
-            //ShowSpawnMenu = false;
-        }
+        SpawnObjectsMenu.Render();
     }
 }

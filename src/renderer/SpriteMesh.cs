@@ -20,13 +20,11 @@ public partial class SpriteMesh : MeshInstance3D
     public override void _Process(double delta)
     {
         var mat = (StandardMaterial3D)MeshInstance.GetSurfaceOverrideMaterial(0);
-        if (Mesh != null)
+        if (Mesh == null) return;
+        var mat2 = (StandardMaterial3D)Mesh.SurfaceGetMaterial(0);
+        if (mat != null && mat2 != null)
         {
-            var mat2 = (StandardMaterial3D)Mesh.SurfaceGetMaterial(0);
-            if (mat != null && mat2 != null)
-            {
-                mat.AlbedoColor = new Color(mat.AlbedoColor.R,  mat.AlbedoColor.G, mat.AlbedoColor.B, mat2.AlbedoColor.A);
-            }
+            mat.AlbedoColor = new Color(mat.AlbedoColor.R,  mat.AlbedoColor.G, mat.AlbedoColor.B, mat2.AlbedoColor.A);
         }
     }
 

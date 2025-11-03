@@ -5,9 +5,9 @@ namespace SimplyRemadeMI.core;
 
 public static class SelectionManager
 {
-    public static List<SceneObject> Selection = new List<SceneObject>();
+    public static readonly List<SceneObject> Selection = [];
     
-    public static Gizmo3D TransformGizmo = new Gizmo3D();
+    public static readonly Gizmo3D TransformGizmo = new();
 
     public static void QuerySelection(bool multiSelect = false)
     {

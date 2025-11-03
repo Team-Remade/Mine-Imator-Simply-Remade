@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://cykt8uneb4j0m"]
+[gd_scene load_steps=18 format=3 uid="uid://cykt8uneb4j0m"]
 
 [ext_resource type="Script" uid="uid://cyrjeycv58rk1" path="res://Main.cs" id="1_glv2v"]
 [ext_resource type="Texture2D" uid="uid://gmuqnx7f4hic" path="res://assets/sprite/bench.png" id="2_r0du0"]
@@ -13,6 +13,10 @@
 [ext_resource type="Texture2D" uid="uid://bcjkxc20nb42u" path="res://assets/sprite/icons/stop.svg" id="6_lgr22"]
 [ext_resource type="Texture2D" uid="uid://c2uxt166o4q8e" path="res://assets/sprite/previewTextures/Steve.tres" id="8_wkp8b"]
 [ext_resource type="PackedScene" uid="uid://bb7cs5tvtg72p" path="res://scenes/RenderOutput.tscn" id="10_wkp8b"]
+[ext_resource type="Texture2D" uid="uid://boqchlrpkjnpv" path="res://assets/sprite/icons/eye.svg" id="11_sc1dx"]
+[ext_resource type="Script" uid="uid://bo0u681bhulo0" path="res://App.cpp" id="12_c2ibq"]
+[ext_resource type="PackedScene" uid="uid://b15tmrxma75og" path="res://scenes/objects/PointLightSceneObject.tscn" id="12_j4qnp"]
+[ext_resource type="Texture2D" uid="uid://dsyqkbbxfd6ah" path="res://assets/sprite/icons/eye-slash.svg" id="12_kjvhd"]
 
 [node name="Main" type="Control" node_paths=PackedStringArray("MainViewport", "Output", "Second")]
 layout_mode = 3
@@ -31,6 +35,8 @@ SpriteMesh = ExtResource("4_5vvyt")
 Second = NodePath("SubViewportContainer")
 Icons = Dictionary[String, Texture2D]({
 "Bench": ExtResource("2_r0du0"),
+"eye": ExtResource("11_sc1dx"),
+"eyeSlash": ExtResource("12_kjvhd"),
 "pause": ExtResource("4_3dxm6"),
 "play": ExtResource("5_lgr22"),
 "reset": ExtResource("3_cm0pq"),
@@ -39,6 +45,12 @@ Icons = Dictionary[String, Texture2D]({
 PreviewTextures = Dictionary[String, Texture2D]({
 "Steve": ExtResource("8_wkp8b")
 })
+SceneObjects = Dictionary[String, PackedScene]({
+"pointLight": ExtResource("12_j4qnp")
+})
+
+[node name="App" type="Node" parent="."]
+script = ExtResource("12_c2ibq")
 
 [node name="RenderOutpu" parent="." instance=ExtResource("10_wkp8b")]
 

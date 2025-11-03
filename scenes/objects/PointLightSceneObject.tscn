@@ -1,0 +1,37 @@
+[gd_scene load_steps=7 format=3 uid="uid://b15tmrxma75og"]
+
+[ext_resource type="PackedScene" uid="uid://c6lnmdhv4dha5" path="res://scenes/objects/SceneObject.tscn" id="1_pjtii"]
+[ext_resource type="Script" uid="uid://cfsttrxff7ipe" path="res://src/core/LightSceneObject.cs" id="2_gaaos"]
+[ext_resource type="Texture2D" uid="uid://cjh00n7imx43c" path="res://assets/sprite/icons/circle.svg" id="3_uefhh"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_pjtii"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_uefhh"]
+render_priority = 3
+transparency = 1
+no_depth_test = true
+shading_mode = 0
+albedo_texture = ExtResource("3_uefhh")
+texture_repeat = false
+billboard_mode = 1
+
+[sub_resource type="QuadMesh" id="QuadMesh_fpgyx"]
+
+[node name="PointLightSceneObject" node_paths=PackedStringArray("Light") instance=ExtResource("1_pjtii")]
+script = ExtResource("2_gaaos")
+Light = NodePath("Visual/Light")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Visual" index="0"]
+layers = 524288
+mesh = SubResource("SphereMesh_pjtii")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Visual/MeshInstance3D" index="0"]
+layers = 2
+material_override = SubResource("StandardMaterial3D_uefhh")
+cast_shadow = 0
+gi_mode = 0
+mesh = SubResource("QuadMesh_fpgyx")
+
+[node name="Light" type="OmniLight3D" parent="Visual" index="1"]
+light_energy = 5.0
+distance_fade_enabled = true

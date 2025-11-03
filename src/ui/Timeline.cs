@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,18 +15,8 @@ public class Timeline
 {
     // Timeline state
     public float TimelineZoom { get; set; } = 1.0f;
-    private int _timelineStart;
-    public int TimelineStart
-    {
-        get => _timelineStart;
-        set
-        {
-            if (_timelineStart != value)
-            {
-                _timelineStart = value;
-            }
-        }
-    }
+    public int TimelineStart { get; set; }
+
     public int TotalFrames { get; set; } = 5000;
     public int CurrentFrame { get; set; }
     public float CurrentFrameFloat { get; private set; }
@@ -62,16 +52,16 @@ public class Timeline
     // Manual scroll control
     private bool _isManuallyScrolling = false;
     private float _manualScrollTimer = 0.0f;
-    private const float ManualScrollCooldown = 0.3f;
+    private const float MANUAL_SCROLL_COOLDOWN = 0.3f;
 
     // Arrow key navigation
     private float _arrowKeyHoldTime = 0.0f;
-    private const float ArrowKeyInitialDelay = 0.3f;
-    private const float ArrowKeyRepeatRate = 0.05f;
+    private const float ARROW_KEY_INITIAL_DELAY = 0.3f;
+    private const float ARROW_KEY_REPEAT_RATE = 0.05f;
     private float _arrowKeyRepeatTimer = 0.0f;
 
     // Copy/Cut/Paste
-    private List<(SelectedKeyframe keyframe, float value)> _copiedKeyframes = new();
+    private readonly List<(SelectedKeyframe keyframe, float value)> _copiedKeyframes = new();
     private int _copiedKeyframesBaseFrame = 0;
     private bool _isCutOperation = false;
 
@@ -118,9 +108,9 @@ public class Timeline
     // Keyframe selection
     public class SelectedKeyframe
     {
-        public string Property { get; set; } = "";
-        public int Frame { get; set; } = -1;
-        public int ObjectIndex { get; set; } = -1;
+        public string Property { get; init; } = "";
+        public int Frame { get; init; } = -1;
+        public int ObjectIndex { get; init; } = -1;
 
         public override bool Equals(object? obj)
         {
@@ -137,17 +127,16 @@ public class Timeline
     }
 
     private int _previousSelectedObjectIndex = -1;
-    public HashSet<SelectedKeyframe> SelectedKeyframes { get; private set; } = new();
+    public HashSet<SelectedKeyframe> SelectedKeyframes { get; private set; } = [];
 
     // Dragging state
-    private bool _isDraggingKeyframes = false;
-    public bool IsDraggingKeyframe => _isDraggingKeyframes;
+    public bool IsDraggingKeyframe { get; private set; } = false;
 
-    private Dictionary<SelectedKeyframe, (int originalFrame, float value)> _draggedKeyframesData = new();
+    private readonly Dictionary<SelectedKeyframe, (int originalFrame, float value)> _draggedKeyframesData = new();
     private Vector2 _dragStartMousePos = Vector2.Zero;
     private int _dragStartTimelineStart = 0;
     private int _currentDragOffset = 0;
-    private Dictionary<SelectedKeyframe, int> _previewFrames = new();
+    private readonly Dictionary<SelectedKeyframe, int> _previewFrames = new();
     private SelectedKeyframe? _dragAnchorKeyframe = null;
 
     private float _dragStartScrubberWidth = 0f;
@@ -174,7 +163,7 @@ public class Timeline
 
     // Relative keyframe editing
     private bool _isEditingSelectedKeyframes = false;
-    private Dictionary<SelectedKeyframe, float> _keyframeEditStartValues = new();
+    private readonly Dictionary<SelectedKeyframe, float> _keyframeEditStartValues = new();
     private Vector3 _objectEditStartPosition = Vector3.Zero;
     private Vector3 _objectEditStartRotation = Vector3.Zero;
     private Vector3 _objectEditStartScale = Vector3.One;
@@ -182,7 +171,7 @@ public class Timeline
 
     // cached property arrays
     private static readonly (string, Func<SceneObject, Dictionary<int, float>>)[] PropertyAccessors =
-    {
+    [
         ("position.x", obj => obj.PosXKeyframes),
         ("position.y", obj => obj.PosYKeyframes),
         ("position.z", obj => obj.PosZKeyframes),
@@ -193,15 +182,15 @@ public class Timeline
         ("scale.y", obj => obj.ScaleYKeyframes),
         ("scale.z", obj => obj.ScaleZKeyframes),
         ("alpha", obj => obj.AlphaKeyframes)
-    };
+    ];
 
     // cache for sorted keyframe lists
-    private Dictionary<string, List<int>> _sortedKeyframeCache = new();
+    private readonly Dictionary<string, List<int>> _sortedKeyframeCache = new();
     private int _lastCacheObjectHash = -1;
 
     // Reusable lists
-    private List<SelectedKeyframe> _tempKeyframeList = new();
-    private List<int> _tempFrameList = new();
+    private readonly List<SelectedKeyframe> _tempKeyframeList = [];
+    private List<int> _tempFrameList = [];
 
     // Ruler step calculation cache
     private int _cachedMinorStep = 1;
@@ -211,27 +200,27 @@ public class Timeline
     private int _lastCalculatedVisibleFrames = -1;
 
     // Scroll tuning constants
-    private const float MaxScrollDistance = 250f;
-    private const float MinScrollSpeed = 0.5f;
-    private const float MaxScrollSpeed = 2.5f;
-    private const float ScrollMargin = 40.0f;
-    private const float DragScrollMaxDistance = 200f;
-    private const float DragScrollMinSpeed = 1.0f;
-    private const float DragScrollMaxSpeed = 3.0f;
-    private const float ScrubberScrollSpeed = 0.25f;
-    private const int MaxFramesPerTick = 2;
-    private const float NudgeMargin = 24.0f;
+    private const float MAX_SCROLL_DISTANCE = 250f;
+    private const float MIN_SCROLL_SPEED = 0.5f;
+    private const float MAX_SCROLL_SPEED = 2.5f;
+    private const float SCROLL_MARGIN = 40.0f;
+    private const float DRAG_SCROLL_MAX_DISTANCE = 200f;
+    private const float DRAG_SCROLL_MIN_SPEED = 1.0f;
+    private const float DRAG_SCROLL_MAX_SPEED = 3.0f;
+    private const float SCRUBBER_SCROLL_SPEED = 0.25f;
+    private const int MAX_FRAMES_PER_TICK = 2;
+    private const float NUDGE_MARGIN = 24.0f;
 
-    public SceneObject? CurrentObject
+    public static SceneObject? CurrentObject
     {
         get
         {
             var instance = Main.GetInstance();
-            if (instance?.UI?.sceneTreePanel?.SceneObjects == null)
+            if (instance?.UI?.SceneTreePanel.SceneObjects == null)
                 return null;
 
-            var objects = instance.UI.sceneTreePanel.SceneObjects;
-            var index = instance.UI.sceneTreePanel.SelectedObjectIndex;
+            var objects = instance.UI.SceneTreePanel.SceneObjects;
+            var index = instance.UI.SceneTreePanel.SelectedObjectIndex;
 
             return index >= 0 && index < objects.Count ? objects[index] : null;
         }
@@ -253,36 +242,30 @@ public class Timeline
 
     private void UpdateManualScrollTimer(float delta)
     {
-        if (_isManuallyScrolling)
+        if (!_isManuallyScrolling) return;
+        _manualScrollTimer -= delta;
+        if (_manualScrollTimer <= 0.0f)
         {
-            _manualScrollTimer -= delta;
-            if (_manualScrollTimer <= 0.0f)
-            {
-                _isManuallyScrolling = false;
-            }
+            _isManuallyScrolling = false;
         }
     }
 
     private void HandleObjectSelectionChange()
     {
-        var currentIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
-        if (_previousSelectedObjectIndex != currentIndex)
-        {
-            SelectedKeyframes.Clear();
-            _isDraggingKeyframes = false;
-            _draggedKeyframesData.Clear();
-            _dragAnchorKeyframe = null;
-            _previousSelectedObjectIndex = currentIndex;
-            _selectedTrackProperty = null;
+        var currentIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        if (_previousSelectedObjectIndex == currentIndex) return;
+        SelectedKeyframes.Clear();
+        IsDraggingKeyframe = false;
+        _draggedKeyframesData.Clear();
+        _dragAnchorKeyframe = null;
+        _previousSelectedObjectIndex = currentIndex;
+        _selectedTrackProperty = null;
 
-            // Clear cache when object changes
-            int newObjectHash = CurrentObject?.GetHashCode() ?? 0;
-            if (newObjectHash != _lastCacheObjectHash)
-            {
-                _sortedKeyframeCache.Clear();
-                _lastCacheObjectHash = newObjectHash;
-            }
-        }
+        // Clear cache when object changes
+        var newObjectHash = CurrentObject?.GetHashCode() ?? 0;
+        if (newObjectHash == _lastCacheObjectHash) return;
+        _sortedKeyframeCache.Clear();
+        _lastCacheObjectHash = newObjectHash;
     }
 
     private void UpdateDashAnimation(float delta)
@@ -296,10 +279,10 @@ public class Timeline
 
     private void HandleDragRelease()
     {
-        if (_isDraggingKeyframes && !ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        if (IsDraggingKeyframe && !ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
             ApplyDraggedKeyframes();
-            _isDraggingKeyframes = false;
+            IsDraggingKeyframe = false;
             _draggedKeyframesData.Clear();
             _previewFrames.Clear();
             _currentDragOffset = 0;
@@ -315,19 +298,17 @@ public class Timeline
 
     private void HandleBoxSelectionRelease()
     {
-        if (_isDragSelecting && !ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        if (!_isDragSelecting || ImGui.IsMouseDown(ImGuiMouseButton.Left)) return;
+        var io = ImGui.GetIO();
+        if (!io.KeyCtrl)
         {
-            var io = ImGui.GetIO();
-            if (!io.KeyCtrl)
-            {
-                SelectedKeyframes.Clear();
-            }
-
-            _finalSelectionMax = _dragSelectionEnd;
-            _shouldApplyBoxSelection = true;
-            _isDragSelecting = false;
-            _isPendingScrubberMove = false;
+            SelectedKeyframes.Clear();
         }
+
+        _finalSelectionMax = _dragSelectionEnd;
+        _shouldApplyBoxSelection = true;
+        _isDragSelecting = false;
+        _isPendingScrubberMove = false;
     }
 
     private void DrawBoxSelectionWithAnimatedDashes(float ceilingY)
@@ -452,7 +433,7 @@ public class Timeline
             borderColor, thickness, dashLength, gapLength, offset);
     }
 
-    private void DrawDashedLine(ImDrawListPtr drawList, Vector2 start, Vector2 end,
+    private static void DrawDashedLine(ImDrawListPtr drawList, Vector2 start, Vector2 end,
         uint color, float thickness, float dashLength, float gapLength, float offset)
     {
         float totalLength = Vector2.Distance(start, end);
@@ -480,29 +461,27 @@ public class Timeline
 
     private void HandleScrubberRelease()
     {
-        if (_isPendingScrubberMove && !ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        if (!_isPendingScrubberMove || ImGui.IsMouseDown(ImGuiMouseButton.Left)) return;
+        if (!_isDragSelecting)
         {
-            if (!_isDragSelecting)
+            float relativeX = (_pendingScrubberPosition.X - _scrubberPosition.X) / _pendingScrubberTrackWidth;
+            relativeX = Math.Clamp(relativeX, 0.0f, 1.0f);
+
+            int visibleFrames = Math.Max(1, (int)(95 / TimelineZoom));
+            float frameFloat = relativeX * visibleFrames;
+            int targetFrame = TimelineStart + (int)Math.Round(frameFloat);
+
+            CurrentFrame = Math.Clamp(targetFrame, 0, TotalFrames);
+            CurrentFrameFloat = CurrentFrame;
+            ApplyKeyframesToObjects();
+
+            var io = ImGui.GetIO();
+            if (!io.KeyCtrl)
             {
-                float relativeX = (_pendingScrubberPosition.X - _scrubberPosition.X) / _pendingScrubberTrackWidth;
-                relativeX = Math.Clamp(relativeX, 0.0f, 1.0f);
-
-                int visibleFrames = Math.Max(1, (int)(95 / TimelineZoom));
-                float frameFloat = relativeX * visibleFrames;
-                int targetFrame = TimelineStart + (int)Math.Round(frameFloat);
-
-                CurrentFrame = Math.Clamp(targetFrame, 0, TotalFrames);
-                CurrentFrameFloat = CurrentFrame;
-                ApplyKeyframesToObjects();
-
-                var io = ImGui.GetIO();
-                if (!io.KeyCtrl)
-                {
-                    SelectedKeyframes.Clear();
-                }
+                SelectedKeyframes.Clear();
             }
-            _isPendingScrubberMove = false;
         }
+        _isPendingScrubberMove = false;
     }
 
     private (bool isOverHandle, bool isOverBody, RegionHandleType handleType) DrawRegionWithHandles(
@@ -641,15 +620,21 @@ public class Timeline
         // Start drag/resize (only if over Scrubber)
         if (isScrubberHovered && (isOverHandle || isOverBody) && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
         {
-            if (handleType == RegionHandleType.Body)
+            switch (handleType)
             {
-                _isDraggingRegion = true;
-                _isResizingRegion = false;
-            }
-            else if (handleType == RegionHandleType.Left || handleType == RegionHandleType.Right)
-            {
-                _isResizingRegion = true;
-                _isDraggingRegion = false;
+                case RegionHandleType.Body:
+                    _isDraggingRegion = true;
+                    _isResizingRegion = false;
+                    break;
+                case RegionHandleType.Left:
+                case RegionHandleType.Right:
+                    _isResizingRegion = true;
+                    _isDraggingRegion = false;
+                    break;
+                case RegionHandleType.None:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(handleType), handleType, null);
             }
 
             _activeRegionHandle = handleType;
@@ -688,33 +673,41 @@ public class Timeline
             }
             else if (_isResizingRegion)
             {
-                // Resize region
-                if (_activeRegionHandle == RegionHandleType.Left)
+                switch (_activeRegionHandle)
                 {
-                    int newLeft = _regionDragStartFrameLeft + deltaFrames;
-                    newLeft = Math.Clamp(newLeft, 0, _regionDragStartFrameRight - 1);
+                    // Resize region
+                    case RegionHandleType.Left:
+                    {
+                        int newLeft = _regionDragStartFrameLeft + deltaFrames;
+                        newLeft = Math.Clamp(newLeft, 0, _regionDragStartFrameRight - 1);
 
-                    _regionStartFrame = newLeft;
-                    _regionEndFrame = _regionDragStartFrameRight;
-                }
-                else if (_activeRegionHandle == RegionHandleType.Right)
-                {
-                    int newRight = _regionDragStartFrameRight + deltaFrames;
-                    newRight = Math.Clamp(newRight, _regionDragStartFrameLeft + 1, TotalFrames);
+                        _regionStartFrame = newLeft;
+                        _regionEndFrame = _regionDragStartFrameRight;
+                        break;
+                    }
+                    case RegionHandleType.Right:
+                    {
+                        int newRight = _regionDragStartFrameRight + deltaFrames;
+                        newRight = Math.Clamp(newRight, _regionDragStartFrameLeft + 1, TotalFrames);
 
-                    _regionStartFrame = _regionDragStartFrameLeft;
-                    _regionEndFrame = newRight;
+                        _regionStartFrame = _regionDragStartFrameLeft;
+                        _regionEndFrame = newRight;
+                        break;
+                    }
+                    case RegionHandleType.None:
+                    case RegionHandleType.Body:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
                 }
             }
         }
 
         // End drag/resize
-        if (!ImGui.IsMouseDown(ImGuiMouseButton.Left))
-        {
-            _isDraggingRegion = false;
-            _isResizingRegion = false;
-            _activeRegionHandle = RegionHandleType.None;
-        }
+        if (ImGui.IsMouseDown(ImGuiMouseButton.Left)) return;
+        _isDraggingRegion = false;
+        _isResizingRegion = false;
+        _activeRegionHandle = RegionHandleType.None;
     }
 
     private void HandleSpacebarPlayback()
@@ -743,17 +736,13 @@ public class Timeline
         if (IsPlaying)
         {
             var instance = Main.GetInstance();
-            float frameRate = instance?.UI?.propertiesPanel?.project?.FrameRate ?? 30f;
+            float frameRate = instance?.UI?.PropertiesPanel?.Project?.FrameRate ?? 30f;
             CurrentFrameFloat += frameRate * delta;
 
             // Region loop logic
             if (_loopInRegion && _regionActive)
             {
-                if (CurrentFrameFloat > _regionEndFrame)
-                {
-                    CurrentFrameFloat = _regionStartFrame;
-                }
-                else if (CurrentFrameFloat < _regionStartFrame)
+                if (CurrentFrameFloat > _regionEndFrame || CurrentFrameFloat < _regionStartFrame)
                 {
                     CurrentFrameFloat = _regionStartFrame;
                 }
@@ -770,9 +759,9 @@ public class Timeline
 
             ApplyKeyframesToObjects();
         }
-        else if (IsScrubbing || _isDraggingKeyframes)
+        else if (IsScrubbing || IsDraggingKeyframe)
         {
-            if (_isDraggingKeyframes && _dragAnchorKeyframe != null)
+            if (IsDraggingKeyframe && _dragAnchorKeyframe != null)
             {
                 if (_previewFrames.TryGetValue(_dragAnchorKeyframe, out int anchorPreviewFrame))
                 {
@@ -807,22 +796,22 @@ public class Timeline
             DeleteSelectedKeyframes();
         }
 
-        if (Input.IsKeyPressed(Key.C) && Input.IsKeyPressed(Key.Ctrl) && _timelineHasFocus && HasSelectedKeyframe() && !_isDraggingKeyframes)
+        if (Input.IsKeyPressed(Key.C) && Input.IsKeyPressed(Key.Ctrl) && _timelineHasFocus && HasSelectedKeyframe() && !IsDraggingKeyframe)
         {
             CopySelectedKeyframes();
         }
 
-        if (Input.IsKeyPressed(Key.X) && Input.IsKeyPressed(Key.Ctrl) && _timelineHasFocus && HasSelectedKeyframe() && !_isDraggingKeyframes)
+        if (Input.IsKeyPressed(Key.X) && Input.IsKeyPressed(Key.Ctrl) && _timelineHasFocus && HasSelectedKeyframe() && !IsDraggingKeyframe)
         {
             CutSelectedKeyframes();
         }
 
-        if (Input.IsKeyPressed(Key.V) && Input.IsKeyPressed(Key.Ctrl) && _timelineHasFocus && _copiedKeyframes.Count > 0 && !_isDraggingKeyframes)
+        if (Input.IsKeyPressed(Key.V) && Input.IsKeyPressed(Key.Ctrl) && _timelineHasFocus && _copiedKeyframes.Count > 0 && !IsDraggingKeyframe)
         {
             PasteKeyframes(CurrentFrame);
         }
 
-        if (Input.IsKeyPressed(Key.I) && _timelineHasFocus && CurrentObject != null && !_isDraggingKeyframes)
+        if (Input.IsKeyPressed(Key.I) && _timelineHasFocus && CurrentObject != null && !IsDraggingKeyframe)
         {
             CreateKeyframesAtCurrentFrame();
         }
@@ -831,9 +820,9 @@ public class Timeline
     public void ApplyKeyframesToObjects()
     {
         var instance = Main.GetInstance();
-        if (instance?.UI?.sceneTreePanel?.SceneObjects == null) return;
+        if (instance?.UI?.SceneTreePanel?.SceneObjects == null) return;
 
-        foreach (var obj in instance.UI.sceneTreePanel.SceneObjects)
+        foreach (var obj in instance.UI.SceneTreePanel.SceneObjects)
         {
             if (obj.PosXKeyframes.Count > 0 || obj.PosYKeyframes.Count > 0 || obj.PosZKeyframes.Count > 0)
             {
@@ -869,7 +858,7 @@ public class Timeline
 
     public float EvaluateKeyframesWithDefault(Dictionary<int, float> keyframes, float frame, float defaultValue)
     {
-        if (keyframes == null || keyframes.Count == 0)
+        if (keyframes.Count == 0)
             return defaultValue;
 
         int frameInt = (int)Math.Round(frame);
@@ -937,46 +926,7 @@ public class Timeline
 
         if (shiftPressed)
         {
-            if (_arrowKeyHoldTime == 0.0f)
-            {
-                if (rightPressed)
-                {
-                    MoveToFrame(CurrentFrame + 1);
-                }
-                else if (leftPressed)
-                {
-                    MoveToFrame(CurrentFrame - 1);
-                }
-
-                _arrowKeyHoldTime = 0.01f;
-            }
-            return;
-        }
-
-        _arrowKeyHoldTime += delta;
-
-        if (_arrowKeyHoldTime < ArrowKeyInitialDelay)
-        {
-            if (_arrowKeyHoldTime - delta <= 0)
-            {
-                if (rightPressed)
-                {
-                    MoveToFrame(CurrentFrame + 1);
-                }
-                else if (leftPressed)
-                {
-                    MoveToFrame(CurrentFrame - 1);
-                }
-            }
-            return;
-        }
-
-        _arrowKeyRepeatTimer += delta;
-
-        if (_arrowKeyRepeatTimer >= ArrowKeyRepeatRate)
-        {
-            _arrowKeyRepeatTimer = 0.0f;
-
+            if (_arrowKeyHoldTime != 0.0f) return;
             if (rightPressed)
             {
                 MoveToFrame(CurrentFrame + 1);
@@ -985,6 +935,39 @@ public class Timeline
             {
                 MoveToFrame(CurrentFrame - 1);
             }
+
+            _arrowKeyHoldTime = 0.01f;
+            return;
+        }
+
+        _arrowKeyHoldTime += delta;
+
+        if (_arrowKeyHoldTime < ARROW_KEY_INITIAL_DELAY)
+        {
+            if (!(_arrowKeyHoldTime - delta <= 0)) return;
+            if (rightPressed)
+            {
+                MoveToFrame(CurrentFrame + 1);
+            }
+            else if (leftPressed)
+            {
+                MoveToFrame(CurrentFrame - 1);
+            }
+            return;
+        }
+
+        _arrowKeyRepeatTimer += delta;
+
+        if (!(_arrowKeyRepeatTimer >= ARROW_KEY_REPEAT_RATE)) return;
+        _arrowKeyRepeatTimer = 0.0f;
+
+        if (rightPressed)
+        {
+            MoveToFrame(CurrentFrame + 1);
+        }
+        else if (leftPressed)
+        {
+            MoveToFrame(CurrentFrame - 1);
         }
     }
 
@@ -994,19 +977,17 @@ public class Timeline
         CurrentFrameFloat = CurrentFrame;
         ApplyKeyframesToObjects();
 
-        if (IsPlaying)
-        {
-            int visibleFrames = Math.Max(1, (int)(95 / TimelineZoom));
+        if (!IsPlaying) return;
+        int visibleFrames = Math.Max(1, (int)(95 / TimelineZoom));
 
-            if (CurrentFrame > TimelineStart + visibleFrames - 10)
-            {
-                TimelineStart = Math.Min(CurrentFrame - visibleFrames + 10, TotalFrames - visibleFrames);
-                TimelineStart = Math.Max(0, TimelineStart);
-            }
-            else if (CurrentFrame < TimelineStart + 10)
-            {
-                TimelineStart = Math.Max(CurrentFrame - 10, 0);
-            }
+        if (CurrentFrame > TimelineStart + visibleFrames - 10)
+        {
+            TimelineStart = Math.Min(CurrentFrame - visibleFrames + 10, TotalFrames - visibleFrames);
+            TimelineStart = Math.Max(0, TimelineStart);
+        }
+        else if (CurrentFrame < TimelineStart + 10)
+        {
+            TimelineStart = Math.Max(CurrentFrame - 10, 0);
         }
     }
 
@@ -1029,15 +1010,11 @@ public class Timeline
         }
 
         // If looping in region, ensure region is visible
-        if (_loopInRegion && _regionActive)
-        {
-            if (CurrentFrame < TimelineStart || CurrentFrame > TimelineStart + visibleFrames)
-            {
-                // Center region in viewport
-                int regionCenter = (_regionStartFrame + _regionEndFrame) / 2;
-                TimelineStart = Math.Max(0, Math.Min(TotalFrames - visibleFrames, regionCenter - visibleFrames / 2));
-            }
-        }
+        if (!_loopInRegion || !_regionActive) return;
+        if (CurrentFrame >= TimelineStart && CurrentFrame <= TimelineStart + visibleFrames) return;
+        // Center region in viewport
+        int regionCenter = (_regionStartFrame + _regionEndFrame) / 2;
+        TimelineStart = Math.Max(0, Math.Min(TotalFrames - visibleFrames, regionCenter - visibleFrames / 2));
     }
 
     private void HandleRegionDragAutoScroll(Vector2 trackRect, Vector2 trackSize, int visibleFrames)
@@ -1062,52 +1039,48 @@ public class Timeline
 
         if (isMouseBeyondRight)
         {
-            float intensity = Math.Clamp(deltaPixelsRight / DragScrollMaxDistance, 0.0f, 1.0f);
-            float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixelsRight / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+            float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
             int frames = (int)Math.Ceiling(speed);
             TimelineStart = Math.Min(maxStart, TimelineStart + frames);
 
             _isManuallyScrolling = true;
-            _manualScrollTimer = ManualScrollCooldown;
+            _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
         }
         else if (isMouseBeyondLeft)
         {
-            float intensity = Math.Clamp(deltaPixelsLeft / DragScrollMaxDistance, 0.0f, 1.0f);
-            float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixelsLeft / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+            float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
             int frames = (int)Math.Ceiling(speed);
             TimelineStart = Math.Max(0, TimelineStart - frames);
 
             _isManuallyScrolling = true;
-            _manualScrollTimer = ManualScrollCooldown;
+            _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
         }
         else
         {
             // Nudge at edges
-            if (mouseX > rightEdge - ScrollMargin)
+            if (mouseX > rightEdge - SCROLL_MARGIN)
             {
-                float t = (mouseX - (rightEdge - ScrollMargin)) / ScrollMargin;
+                float t = (mouseX - (rightEdge - SCROLL_MARGIN)) / SCROLL_MARGIN;
                 float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
-                if (nudgeSpeed >= 0.3f)
-                {
-                    int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
-                    TimelineStart = Math.Min(maxStart, TimelineStart + frames);
-                    _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
-                }
+                if (!(nudgeSpeed >= 0.3f)) return;
+                int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
+                TimelineStart = Math.Min(maxStart, TimelineStart + frames);
+                _isManuallyScrolling = true;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
-            else if (mouseX < leftEdge + ScrollMargin)
+            else if (mouseX < leftEdge + SCROLL_MARGIN)
             {
-                float t = ((leftEdge + ScrollMargin) - mouseX) / ScrollMargin;
+                float t = ((leftEdge + SCROLL_MARGIN) - mouseX) / SCROLL_MARGIN;
                 float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
-                if (nudgeSpeed >= 0.3f)
-                {
-                    int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
-                    TimelineStart = Math.Max(0, TimelineStart - frames);
-                    _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
-                }
+                if (!(nudgeSpeed >= 0.3f)) return;
+                int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
+                TimelineStart = Math.Max(0, TimelineStart - frames);
+                _isManuallyScrolling = true;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
         }
     }
@@ -1154,14 +1127,14 @@ public class Timeline
         }
     }
 
-    public void Render(Vector2I pos, Vector2I size)
+    public void Render(Vector2I size)
     {
         if (ImGui.Begin("Timeline", ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
         {
             IsHovered = ImGui.IsWindowHovered(ImGuiHoveredFlags.ChildWindows);
 
             // CRITICAL: Move cursor (4 arrows) ONLY when dragging keyframes
-            if (_isDraggingKeyframes)
+            if (IsDraggingKeyframe)
             {
                 ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeAll);
             }
@@ -1177,7 +1150,7 @@ public class Timeline
             int timelineEnd = Math.Min(TimelineStart + visibleFrames, TotalFrames);
 
             RenderControls(visibleFrames, timelineEnd);
-            RenderContent(size, visibleFrames);
+            RenderContent(visibleFrames);
         }
         else
         {
@@ -1231,11 +1204,8 @@ public class Timeline
                 int visibleFramesBefore = Math.Max(1, (int)(95 / TimelineZoom));
                 frameAtFocus = CurrentFrame;
 
-                if (visibleFramesBefore > 0)
-                {
-                    focusRelativePosition = (float)(CurrentFrame - TimelineStart) / visibleFramesBefore;
-                    focusRelativePosition = Math.Clamp(focusRelativePosition, 0.0f, 1.0f);
-                }
+                focusRelativePosition = (float)(CurrentFrame - TimelineStart) / visibleFramesBefore;
+                focusRelativePosition = Math.Clamp(focusRelativePosition, 0.0f, 1.0f);
             }
             else
             {
@@ -1263,7 +1233,7 @@ public class Timeline
             if (!IsPlaying)
             {
                 _isManuallyScrolling = true;
-                _manualScrollTimer = ManualScrollCooldown;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
 
             io.MouseWheel = 0;
@@ -1274,45 +1244,39 @@ public class Timeline
             bool zoomIn = Input.IsKeyPressed(Key.Equal) || Input.IsKeyPressed(Key.KpAdd);
             bool zoomOut = Input.IsKeyPressed(Key.Minus) || Input.IsKeyPressed(Key.KpSubtract);
 
-            if (zoomIn || zoomOut)
+            if (!zoomIn && !zoomOut) return;
+            int visibleFramesBefore = Math.Max(1, (int)(95 / TimelineZoom));
+
+            float focusRelativePos;
+            int frameAtFocus;
+
+            if (IsPlaying)
             {
-                int visibleFramesBefore = Math.Max(1, (int)(95 / TimelineZoom));
-
-                float focusRelativePos;
-                int frameAtFocus;
-
-                if (IsPlaying)
-                {
-                    frameAtFocus = CurrentFrame;
-                    focusRelativePos = visibleFramesBefore > 0
-                        ? (float)(CurrentFrame - TimelineStart) / visibleFramesBefore
-                        : 0.5f;
-                    focusRelativePos = Math.Clamp(focusRelativePos, 0.0f, 1.0f);
-                }
-                else
-                {
-                    frameAtFocus = CurrentFrame;
-                    focusRelativePos = (float)(CurrentFrame - TimelineStart) / visibleFramesBefore;
-                    focusRelativePos = Math.Clamp(focusRelativePos, 0.0f, 1.0f);
-                }
-
-                float zoomFactor = zoomIn ? 1.2f : 0.833f;
-                TimelineZoom *= zoomFactor;
-                TimelineZoom = Math.Max(minZoom, Math.Min(maxZoom, TimelineZoom));
-
-                int visibleFramesAfter = Math.Max(1, (int)(95 / TimelineZoom));
-
-                int newStart = frameAtFocus - (int)(focusRelativePos * visibleFramesAfter);
-                newStart = Math.Max(0, Math.Min(TotalFrames - visibleFramesAfter, newStart));
-
-                TimelineStart = newStart;
-
-                if (!IsPlaying)
-                {
-                    _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
-                }
+                frameAtFocus = CurrentFrame;
+                focusRelativePos = (float)(CurrentFrame - TimelineStart) / visibleFramesBefore;
+                focusRelativePos = Math.Clamp(focusRelativePos, 0.0f, 1.0f);
             }
+            else
+            {
+                frameAtFocus = CurrentFrame;
+                focusRelativePos = (float)(CurrentFrame - TimelineStart) / visibleFramesBefore;
+                focusRelativePos = Math.Clamp(focusRelativePos, 0.0f, 1.0f);
+            }
+
+            float zoomFactor = zoomIn ? 1.2f : 0.833f;
+            TimelineZoom *= zoomFactor;
+            TimelineZoom = Math.Max(minZoom, Math.Min(maxZoom, TimelineZoom));
+
+            int visibleFramesAfter = Math.Max(1, (int)(95 / TimelineZoom));
+
+            int newStart = frameAtFocus - (int)(focusRelativePos * visibleFramesAfter);
+            newStart = Math.Max(0, Math.Min(TotalFrames - visibleFramesAfter, newStart));
+
+            TimelineStart = newStart;
+
+            if (IsPlaying) return;
+            _isManuallyScrolling = true;
+            _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
         }
     }
 
@@ -1476,7 +1440,7 @@ public class Timeline
         ImGui.Spacing();
     }
 
-    private void RenderContent(Vector2I size, int visibleFrames)
+    private void RenderContent(int visibleFrames)
     {
         var availableWidth = ImGui.GetContentRegionAvail().X;
         var labelWidth = 150.0f;
@@ -1487,7 +1451,6 @@ public class Timeline
         var contentStartPos = ImGui.GetCursorScreenPos();
 
         // Calculate available height
-        var windowPos = ImGui.GetWindowPos();
         var windowSize = ImGui.GetWindowSize();
         float scrollbarHeight = ImGui.GetStyle().ScrollbarSize;
         float markerBarHeight = _markers.Count > 0 ? 26.0f : 0.0f;
@@ -1529,7 +1492,7 @@ public class Timeline
         DrawPlayheadComplete(visibleFrames);
 
         // ===== 4. BOX SELECTION =====
-        HandleBoxSelectionInContentArea(contentStartPos, availableWidth);
+        HandleBoxSelectionInContentArea();
 
         if (_isDragSelecting)
         {
@@ -1538,7 +1501,7 @@ public class Timeline
         }
 
         // ===== 5. CONTEXT MENU =====
-        HandleTimelineAreaContextMenu(contentStartPos, availableWidth);
+        HandleTimelineAreaContextMenu();
 
         if (ImGui.BeginPopup("KeyframeContextMenu"))
         {
@@ -1585,6 +1548,7 @@ public class Timeline
         DrawMarkersInFooterBar(visibleFrames, markerBarMin, markerBarMax);
     }
 
+    // NOTE: This is never used - Forest
     private void RenderMarkersArea(float trackWidth, int visibleFrames)
     {
         // Store current cursor position (right after Scrubber)
@@ -1651,10 +1615,10 @@ public class Timeline
 
             var trapezoidPoints = new Vector2[]
             {
-            new Vector2(markerX - topWidth, trapezoidTopY),
-            new Vector2(markerX + topWidth, trapezoidTopY),
-            new Vector2(markerX + bottomWidth, trapezoidBottomY),
-            new Vector2(markerX - bottomWidth, trapezoidBottomY)
+            new(markerX - topWidth, trapezoidTopY),
+            new(markerX + topWidth, trapezoidTopY),
+            new(markerX + bottomWidth, trapezoidBottomY),
+            new(markerX - bottomWidth, trapezoidBottomY)
             };
 
             drawList.AddQuadFilled(
@@ -1737,50 +1701,46 @@ public class Timeline
             bool isHoveringLabel = mousePos.X >= textBgMin.X && mousePos.X <= textBgMax.X &&
                                    mousePos.Y >= textBgMin.Y && mousePos.Y <= textBgMax.Y;
 
-            if (isHoveringLabel)
+            if (!isHoveringLabel) continue;
+            _hoveredMarker = marker;
+            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+
+            // Create invisible clickable area
+            ImGui.SetCursorScreenPos(textBgMin);
+            ImGui.InvisibleButton($"##MarkerLabel_{marker.Id}", new Vector2(textBgMax.X - textBgMin.X, textBgMax.Y - textBgMin.Y));
+
+            // Show tooltip with full label if truncated
+            if (wasTruncated)
             {
-                _hoveredMarker = marker;
-                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-                // Create invisible clickable area
-                ImGui.SetCursorScreenPos(textBgMin);
-                ImGui.InvisibleButton($"##MarkerLabel_{marker.Id}", new Vector2(textBgMax.X - textBgMin.X, textBgMax.Y - textBgMin.Y));
-
-                // Show tooltip with full label if truncated
-                if (wasTruncated)
-                {
-                    ImGui.SetTooltip(marker.Label);
-                }
-
-                // Start drag with left mouse button
-                if (ImGui.IsItemActive() && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && _draggedMarker == null)
-                {
-                    _draggedMarker = marker;
-                    _markerDragStartMouse = mousePos;
-                    _markerDragStartFrame = marker.Frame;
-                    _markerDragStartTimelineStart = TimelineStart;
-                }
-
-                // Open edit menu with right mouse button
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && _editingMarker == null)
-                {
-                    _editingMarker = marker;
-
-                    float popupWidth = 220f;
-                    float popupHeight = 150f;
-
-                    // Center popup horizontally on marker
-                    float popupX = markerX - (popupWidth * 0.5f);
-                    popupX = Math.Max(windowPos.X + 10, popupX);
-                    popupX = Math.Min(windowPos.X + windowSize.X - popupWidth - 10, popupX);
-
-                    // Popup ALWAYS above the marker bar
-                    float popupY = markerBarMin.Y - popupHeight - 10;
-
-                    ImGui.SetNextWindowPos(new Vector2(popupX, popupY), ImGuiCond.Always);
-                    ImGui.OpenPopup($"MarkerEdit_{marker.Id}");
-                }
+                ImGui.SetTooltip(marker.Label);
             }
+
+            // Start drag with left mouse button
+            if (ImGui.IsItemActive() && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && _draggedMarker == null)
+            {
+                _draggedMarker = marker;
+                _markerDragStartMouse = mousePos;
+                _markerDragStartFrame = marker.Frame;
+                _markerDragStartTimelineStart = TimelineStart;
+            }
+
+            // Open edit menu with right mouse button
+            if (!ImGui.IsItemClicked(ImGuiMouseButton.Right) || _editingMarker != null) continue;
+            _editingMarker = marker;
+
+            float popupWidth = 220f;
+            float popupHeight = 150f;
+
+            // Center popup horizontally on marker
+            float popupX = markerX - (popupWidth * 0.5f);
+            popupX = Math.Max(windowPos.X + 10, popupX);
+            popupX = Math.Min(windowPos.X + windowSize.X - popupWidth - 10, popupX);
+
+            // Popup ALWAYS above the marker bar
+            float popupY = markerBarMin.Y - popupHeight - 10;
+
+            ImGui.SetNextWindowPos(new Vector2(popupX, popupY), ImGuiCond.Always);
+            ImGui.OpenPopup($"MarkerEdit_{marker.Id}");
         }
 
         // ===== PROCESS MARKER drag WITH AUTO-SCROLL =====
@@ -1805,30 +1765,30 @@ public class Timeline
 
             if (isMouseBeyondRight)
             {
-                float intensity = Math.Clamp(deltaPixelsRight / DragScrollMaxDistance, 0.0f, 1.0f);
-                float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+                float intensity = Math.Clamp(deltaPixelsRight / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+                float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
                 int frames = (int)Math.Ceiling(speed);
                 TimelineStart = Math.Min(maxStart, TimelineStart + frames);
 
                 _isManuallyScrolling = true;
-                _manualScrollTimer = ManualScrollCooldown;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
             else if (isMouseBeyondLeft)
             {
-                float intensity = Math.Clamp(deltaPixelsLeft / DragScrollMaxDistance, 0.0f, 1.0f);
-                float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+                float intensity = Math.Clamp(deltaPixelsLeft / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+                float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
                 int frames = (int)Math.Ceiling(speed);
                 TimelineStart = Math.Max(0, TimelineStart - frames);
 
                 _isManuallyScrolling = true;
-                _manualScrollTimer = ManualScrollCooldown;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
             else
             {
                 // Nudge at edges
-                if (mouseX > rightEdge - ScrollMargin)
+                if (mouseX > rightEdge - SCROLL_MARGIN)
                 {
-                    float t = (mouseX - (rightEdge - ScrollMargin)) / ScrollMargin;
+                    float t = (mouseX - (rightEdge - SCROLL_MARGIN)) / SCROLL_MARGIN;
                     float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
                     if (nudgeSpeed >= 0.3f)
@@ -1836,12 +1796,12 @@ public class Timeline
                         int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
                         TimelineStart = Math.Min(maxStart, TimelineStart + frames);
                         _isManuallyScrolling = true;
-                        _manualScrollTimer = ManualScrollCooldown;
+                        _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
                     }
                 }
-                else if (mouseX < leftEdge + ScrollMargin)
+                else if (mouseX < leftEdge + SCROLL_MARGIN)
                 {
-                    float t = ((leftEdge + ScrollMargin) - mouseX) / ScrollMargin;
+                    float t = ((leftEdge + SCROLL_MARGIN) - mouseX) / SCROLL_MARGIN;
                     float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
                     if (nudgeSpeed >= 0.3f)
@@ -1849,7 +1809,7 @@ public class Timeline
                         int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
                         TimelineStart = Math.Max(0, TimelineStart - frames);
                         _isManuallyScrolling = true;
-                        _manualScrollTimer = ManualScrollCooldown;
+                        _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
                     }
                 }
             }
@@ -1909,10 +1869,10 @@ public class Timeline
 
             var trapezoidPoints = new Vector2[]
             {
-            new Vector2(markerX - topWidth, trapezoidTopY),
-            new Vector2(markerX + topWidth, trapezoidTopY),
-            new Vector2(markerX + bottomWidth, trapezoidBottomY),
-            new Vector2(markerX - bottomWidth, trapezoidBottomY)
+            new(markerX - topWidth, trapezoidTopY),
+            new(markerX + topWidth, trapezoidTopY),
+            new(markerX + bottomWidth, trapezoidBottomY),
+            new(markerX - bottomWidth, trapezoidBottomY)
             };
 
             drawList.AddQuadFilled(
@@ -1986,51 +1946,47 @@ public class Timeline
             bool isHoveringLabel = mousePos.X >= textBgMin.X && mousePos.X <= textBgMax.X &&
                                    mousePos.Y >= textBgMin.Y && mousePos.Y <= textBgMax.Y;
 
-            if (isHoveringLabel)
+            if (!isHoveringLabel) continue;
+            _hoveredMarker = marker;
+            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+
+            // Create invisible clickable area
+            ImGui.SetCursorScreenPos(textBgMin);
+            ImGui.InvisibleButton($"##MarkerLabel_{marker.Id}", new Vector2(textBgMax.X - textBgMin.X, textBgMax.Y - textBgMin.Y));
+
+            // Show tooltip with full label if truncated
+            if (displayLabel != marker.Label)
             {
-                _hoveredMarker = marker;
-                ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-
-                // Create invisible clickable area
-                ImGui.SetCursorScreenPos(textBgMin);
-                ImGui.InvisibleButton($"##MarkerLabel_{marker.Id}", new Vector2(textBgMax.X - textBgMin.X, textBgMax.Y - textBgMin.Y));
-
-                // Show tooltip with full label if truncated
-                if (displayLabel != marker.Label)
-                {
-                    ImGui.SetTooltip(marker.Label);
-                }
-
-                if (ImGui.IsItemActive() && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && _draggedMarker == null)
-                {
-                    _draggedMarker = marker;
-                    _markerDragStartMouse = mousePos;
-                    _markerDragStartFrame = marker.Frame;
-                    _markerDragStartTimelineStart = TimelineStart;
-                }
-
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && _editingMarker == null)
-                {
-                    _editingMarker = marker;
-
-                    float popupWidth = 220f;
-                    float popupHeight = 150f;
-
-                    float popupX = markerX - (popupWidth * 0.5f);
-                    popupX = Math.Max(windowPos.X + 10, popupX);
-                    popupX = Math.Min(windowPos.X + windowSize.X - popupWidth - 10, popupX);
-
-                    float popupY = markerAreaMin.Y - popupHeight - 10;
-
-                    if (popupY < windowPos.Y + 50)
-                    {
-                        popupY = markerAreaMax.Y + 10;
-                    }
-
-                    ImGui.SetNextWindowPos(new Vector2(popupX, popupY), ImGuiCond.Always);
-                    ImGui.OpenPopup($"MarkerEdit_{marker.Id}");
-                }
+                ImGui.SetTooltip(marker.Label);
             }
+
+            if (ImGui.IsItemActive() && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && _draggedMarker == null)
+            {
+                _draggedMarker = marker;
+                _markerDragStartMouse = mousePos;
+                _markerDragStartFrame = marker.Frame;
+                _markerDragStartTimelineStart = TimelineStart;
+            }
+
+            if (!ImGui.IsItemClicked(ImGuiMouseButton.Right) || _editingMarker != null) continue;
+            _editingMarker = marker;
+
+            float popupWidth = 220f;
+            float popupHeight = 150f;
+
+            float popupX = markerX - (popupWidth * 0.5f);
+            popupX = Math.Max(windowPos.X + 10, popupX);
+            popupX = Math.Min(windowPos.X + windowSize.X - popupWidth - 10, popupX);
+
+            float popupY = markerAreaMin.Y - popupHeight - 10;
+
+            if (popupY < windowPos.Y + 50)
+            {
+                popupY = markerAreaMax.Y + 10;
+            }
+
+            ImGui.SetNextWindowPos(new Vector2(popupX, popupY), ImGuiCond.Always);
+            ImGui.OpenPopup($"MarkerEdit_{marker.Id}");
         }
 
         // Process marker drag
@@ -2058,7 +2014,7 @@ public class Timeline
         }
     }
 
-    private void HandleTimelineAreaContextMenu(Vector2 contentStartPos, float contentWidth)
+    private void HandleTimelineAreaContextMenu()
     {
         // CRITICAL: Check if any popup is open
         bool isAnyPopupOpen = _editingMarker != null ||
@@ -2066,11 +2022,8 @@ public class Timeline
                               _markers.Any(m => ImGui.IsPopupOpen($"MarkerEdit_{m.Id}")) ||
                               ImGui.IsPopupOpen("MarkerColorPicker");
 
-        if (isAnyPopupOpen)
-        {
-            return;
-        }
-
+        if (isAnyPopupOpen) return;
+        
         // Calculate marker footer area
         var windowPos = ImGui.GetWindowPos();
         var windowSize = ImGui.GetWindowSize();
@@ -2085,7 +2038,7 @@ public class Timeline
         // FIX: If no markers, include footer area in timeline
         float bottomLimit = _markers.Count > 0 ? markerBarY : (windowPos.Y + windowSize.Y - scrollbarHeight);
 
-        var timelineAreaMin = new Vector2(_scrubberPosition.X, scrubberBottom);
+        var timelineAreaMin = _scrubberPosition with { Y = scrubberBottom };
         var timelineAreaMax = new Vector2(
             _scrubberPosition.X + _scrubberWidth - scrollbarWidth,
             bottomLimit  // CHANGE: dynamic limit based on markers
@@ -2102,21 +2055,19 @@ public class Timeline
 
         bool canOpenContextMenu = isMouseInTimelineArea &&
                                  ImGui.IsMouseClicked(ImGuiMouseButton.Right) &&
-                                 !_isDraggingKeyframes &&
+                                 !IsDraggingKeyframe &&
                                  !_isCreatingRegion &&
                                  !_isDraggingRegion &&
                                  !_isResizingRegion &&
                                  !isMouseOverMarkerLabel;
 
-        if (canOpenContextMenu)
-        {
-            IsScrubbing = false;
-            _isDraggingKeyframes = false;
-            _isDragSelecting = false;
-            _isPendingScrubberMove = false;
+        if (!canOpenContextMenu) return;
+        IsScrubbing = false;
+        IsDraggingKeyframe = false;
+        _isDragSelecting = false;
+        _isPendingScrubberMove = false;
 
-            ImGui.OpenPopup("KeyframeContextMenu");
-        }
+        ImGui.OpenPopup("KeyframeContextMenu");
     }
 
     // Helper method to check if mouse is over any marker label
@@ -2133,7 +2084,6 @@ public class Timeline
 
         // Marker footer area
         float markerBarMin = markerBarY;
-        float markerBarMax = markerBarY + markerBarHeight;
 
         int visibleFrames = Math.Max(1, (int)(95 / TimelineZoom));
 
@@ -2165,7 +2115,7 @@ public class Timeline
         return false;
     }
 
-    private void HandleBoxSelectionInContentArea(Vector2 contentStartPos, float contentWidth)
+    private void HandleBoxSelectionInContentArea()
     {
         // CRITICAL: Check if any popup is open
         bool isAnyPopupOpen = _editingMarker != null ||
@@ -2173,11 +2123,8 @@ public class Timeline
                               _markers.Any(m => ImGui.IsPopupOpen($"MarkerEdit_{m.Id}")) ||
                               ImGui.IsPopupOpen("MarkerColorPicker");
 
-        if (isAnyPopupOpen)
-        {
-            return;
-        }
-
+        if (isAnyPopupOpen) return;
+        
         // Calculate marker footer area
         var windowPos = ImGui.GetWindowPos();
         var windowSize = ImGui.GetWindowSize();
@@ -2192,7 +2139,7 @@ public class Timeline
         // FIX: If no markers, include footer area in selection
         float bottomLimit = _markers.Count > 0 ? markerBarY : (windowPos.Y + windowSize.Y - scrollbarHeight);
 
-        var selectableAreaMin = new Vector2(_scrubberPosition.X, scrubberBottom);
+        var selectableAreaMin = _scrubberPosition with { Y = scrubberBottom };
         var selectableAreaMax = new Vector2(
             _scrubberPosition.X + _scrubberWidth - scrollbarWidth,
             bottomLimit  // CHANGE: dynamic limit based on markers
@@ -2209,7 +2156,7 @@ public class Timeline
 
         bool canStartBoxSelection = isMouseInSelectableArea &&
                                    ImGui.IsMouseClicked(ImGuiMouseButton.Left) &&
-                                   !_isDraggingKeyframes &&
+                                   !IsDraggingKeyframe &&
                                    !_isDraggingRegion &&
                                    !_isResizingRegion &&
                                    !IsScrubbing &&
@@ -2228,18 +2175,14 @@ public class Timeline
 
             if (CurrentObject != null)
             {
-                foreach (var (property, accessor) in PropertyAccessors)
+                foreach (var (_, accessor) in PropertyAccessors)
                 {
                     var keyframes = accessor(CurrentObject);
-                    if (keyframes.Count > 0)
-                    {
-                        int visibleFrames = Math.Max(1, (int)(95 / TimelineZoom));
-                        if (IsMouseNearAnyKeyframe(mousePos, keyframes, visibleFrames))
-                        {
-                            clickedOnKeyframe = true;
-                            break;
-                        }
-                    }
+                    if (keyframes.Count <= 0) continue;
+                    int visibleFrames = Math.Max(1, (int)(95 / TimelineZoom));
+                    if (!IsMouseNearAnyKeyframe(mousePos, keyframes, visibleFrames)) continue;
+                    clickedOnKeyframe = true;
+                    break;
                 }
             }
 
@@ -2301,36 +2244,19 @@ public class Timeline
 
     private bool IsMouseNearAnyKeyframe(Vector2 mousePos, Dictionary<int, float> keyframes, int visibleFrames)
     {
-        if (keyframes == null || keyframes.Count == 0) return false;
+        if (keyframes.Count == 0) return false;
 
         float scrollbarWidth = ImGui.GetStyle().ScrollbarSize;
         // FIX: Use _scrubberWidth - scrollbarWidth
         float usableWidth = _scrubberWidth - scrollbarWidth;
 
-        foreach (var kvp in keyframes)
-        {
-            if (kvp.Key < TimelineStart || kvp.Key > TimelineStart + visibleFrames)
-                continue;
-
-            float normalizedPos = (kvp.Key - TimelineStart) / (float)visibleFrames;
-            float markerX = _scrubberPosition.X + (normalizedPos * usableWidth);
-
-            float deltaX = Math.Abs(mousePos.X - markerX);
-            if (deltaX <= 8.0f)
-            {
-                return true;
-            }
-        }
-        return false;
+        return (from kvp in keyframes where kvp.Key >= TimelineStart && kvp.Key <= TimelineStart + visibleFrames select (kvp.Key - TimelineStart) / (float)visibleFrames into normalizedPos select _scrubberPosition.X + (normalizedPos * usableWidth) into markerX select Math.Abs(mousePos.X - markerX)).Any(deltaX => deltaX <= 8.0f);
     }
 
     private void RenderTimelineHorizontalScrollbar(int visibleFrames)
     {
-        if (IsPlaying)
-        {
-            return;
-        }
-
+        if (IsPlaying) return;
+        
         var scrollbarHeight = ImGui.GetStyle().ScrollbarSize;
         var verticalScrollbarWidth = ImGui.GetStyle().ScrollbarSize;
         float scrollMax = Math.Max(0.0f, TotalFrames - visibleFrames);
@@ -2366,7 +2292,7 @@ public class Timeline
                     TimelineStart = Math.Max(0, Math.Min(TotalFrames - visibleFrames, newTimelineStart));
 
                     _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
+                    _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
                 }
             }
             else if (!_isManuallyScrolling)
@@ -2415,10 +2341,10 @@ public class Timeline
         // Four points of INVERTED TRAPEZOID
         var trapezoidPoints = new Vector2[]
         {
-        new Vector2(playheadX - topWidth, trapezoidTopY),
-        new Vector2(playheadX + topWidth, trapezoidTopY),
-        new Vector2(playheadX + bottomWidth, trapezoidBottomY),
-        new Vector2(playheadX - bottomWidth, trapezoidBottomY)
+        new(playheadX - topWidth, trapezoidTopY),
+        new(playheadX + topWidth, trapezoidTopY),
+        new(playheadX + bottomWidth, trapezoidBottomY),
+        new(playheadX - bottomWidth, trapezoidBottomY)
         };
 
         // Draw the filled trapezoid
@@ -2598,10 +2524,7 @@ public class Timeline
 
         // FIX BUG #1: Reset the flag AFTER processing ALL tracks
         // This ensures all tracks see the flag before it is reset
-        if (_shouldApplyBoxSelection)
-        {
-            _shouldApplyBoxSelection = false;
-        }
+        if (_shouldApplyBoxSelection) _shouldApplyBoxSelection = false;
 
         ImGui.EndChild();
         ImGui.PopStyleVar(2);
@@ -2630,7 +2553,7 @@ public class Timeline
         bool isTrackHovered = ImGui.IsItemHovered();
 
         // Detect click on track to select it
-        if (isTrackHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !_isDraggingKeyframes)
+        if (isTrackHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !IsDraggingKeyframe)
         {
             _selectedTrackProperty = property;
         }
@@ -2638,7 +2561,7 @@ public class Timeline
         HandleTrackDoubleClick(isTrackHovered, keyframes, property, visibleFrames, trackRect, trackSize);
 
         HandleBoxSelectionAutoScroll(trackRect, trackSize, visibleFrames);
-        HandleKeyframeDragAutoScroll(trackRect, trackSize, visibleFrames);
+        HandleKeyframeDragAutoScroll(visibleFrames);
         HandleRegionDragAutoScroll(trackRect, trackSize, visibleFrames);
 
         // Auto-scroll for markers is processed directly in DrawMarkersInFooterBar
@@ -2650,54 +2573,48 @@ public class Timeline
     private void HandleTrackDoubleClick(bool isTrackHovered, Dictionary<int, float> keyframes, string property,
      int visibleFrames, Vector2 trackRect, Vector2 trackSize)
     {
-        if (isTrackHovered && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) && !_isDraggingKeyframes && CurrentObject != null)
+        if (!isTrackHovered || !ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) || IsDraggingKeyframe ||
+            CurrentObject == null) return;
+        if (IsPlaying) IsPlaying = false;
+
+        var mousePos = ImGui.GetMousePos();
+
+        // USE THE EXACT SAME SCRUBBER CALCULATION
+        float relativeX = (mousePos.X - trackRect.X) / trackSize.X;
+        relativeX = Math.Clamp(relativeX, 0.0f, 1.0f);
+        float frameFloat = relativeX * visibleFrames;
+        int clickedFrame = TimelineStart + (int)Math.Round(frameFloat);
+        clickedFrame = Math.Clamp(clickedFrame, 0, TotalFrames);
+
+        bool clickedOnExistingKeyframe = IsMouseOnKeyframe(mousePos, keyframes, visibleFrames, trackRect, trackSize);
+
+        if (clickedOnExistingKeyframe) return;
+        float currentValue = GetCurrentPropertyValue(property);
+        keyframes[clickedFrame] = currentValue;
+
+        SelectedKeyframes.Clear();
+        SelectedKeyframes.Add(new SelectedKeyframe
         {
-            if (IsPlaying)
-            {
-                IsPlaying = false;
-            }
+            Property = property,
+            Frame = clickedFrame,
+            ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
+        });
 
-            var mousePos = ImGui.GetMousePos();
+        // Synchronize the marker with the created keyframe
+        CurrentFrame = clickedFrame;
+        CurrentFrameFloat = clickedFrame;
 
-            // USE THE EXACT SAME SCRUBBER CALCULATION
-            float relativeX = (mousePos.X - trackRect.X) / trackSize.X;
-            relativeX = Math.Clamp(relativeX, 0.0f, 1.0f);
-            float frameFloat = relativeX * visibleFrames;
-            int clickedFrame = TimelineStart + (int)Math.Round(frameFloat);
-            clickedFrame = Math.Clamp(clickedFrame, 0, TotalFrames);
+        // IMPORTANT: Cancel any pending scrubber move that may be active
+        _isPendingScrubberMove = false;
 
-            bool clickedOnExistingKeyframe = IsMouseOnKeyframe(mousePos, keyframes, visibleFrames, trackRect, trackSize);
-
-            if (!clickedOnExistingKeyframe)
-            {
-                float currentValue = GetCurrentPropertyValue(property);
-                keyframes[clickedFrame] = currentValue;
-
-                SelectedKeyframes.Clear();
-                SelectedKeyframes.Add(new SelectedKeyframe
-                {
-                    Property = property,
-                    Frame = clickedFrame,
-                    ObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1
-                });
-
-                // Synchronize the marker with the created keyframe
-                CurrentFrame = clickedFrame;
-                CurrentFrameFloat = clickedFrame;
-
-                // IMPORTANT: Cancel any pending scrubber move that may be active
-                _isPendingScrubberMove = false;
-
-                ApplyKeyframesToObjects();
-                CalculateTotalFrames();
-            }
-        }
+        ApplyKeyframesToObjects();
+        CalculateTotalFrames();
     }
 
     private bool IsMouseOnKeyframe(Vector2 mousePos, Dictionary<int, float> keyframes,
     int visibleFrames, Vector2 trackRect, Vector2 trackSize)
     {
-        if (keyframes == null || keyframes.Count == 0) return false;
+        if (keyframes.Count == 0) return false;
 
         float scrollbarWidth = ImGui.GetStyle().ScrollbarSize;
         // CRITICAL: Use _scrubberWidth
@@ -2707,28 +2624,7 @@ public class Timeline
         if (Math.Abs(mousePos.Y - trackCenterY) > 10.0f)
             return false;
 
-        foreach (var kvp in keyframes)
-        {
-            if (kvp.Key < TimelineStart || kvp.Key > TimelineStart + visibleFrames)
-                continue;
-
-            float normalizedPos = (kvp.Key - TimelineStart) / (float)visibleFrames;
-            // CRITICAL: Use _scrubberPosition.X
-            float markerX = _scrubberPosition.X + (normalizedPos * usableWidth);
-
-            float deltaX = Math.Abs(mousePos.X - markerX);
-            if (deltaX > 6.0f) continue;
-
-            float deltaY = Math.Abs(mousePos.Y - trackCenterY);
-            if (deltaY > 6.0f) continue;
-
-            float distanceSq = (deltaX * deltaX) + (deltaY * deltaY);
-            if (distanceSq <= 36.0f)
-            {
-                return true;
-            }
-        }
-        return false;
+        return (from kvp in keyframes where kvp.Key >= TimelineStart && kvp.Key <= TimelineStart + visibleFrames select (kvp.Key - TimelineStart) / (float)visibleFrames into normalizedPos select _scrubberPosition.X + (normalizedPos * usableWidth) into markerX select Math.Abs(mousePos.X - markerX) into deltaX where !(deltaX > 6.0f) let deltaY = Math.Abs(mousePos.Y - trackCenterY) where !(deltaY > 6.0f) select (deltaX * deltaX) + (deltaY * deltaY)).Any(distanceSq => distanceSq <= 36.0f);
     }
 
     private void HandleBoxSelectionAutoScroll(Vector2 trackRect, Vector2 trackSize, int visibleFrames)
@@ -2747,61 +2643,57 @@ public class Timeline
         if (mousePos.X > rightEdge)
         {
             float deltaPixels = mousePos.X - rightEdge;
-            float intensity = Math.Clamp(deltaPixels / MaxScrollDistance, 0.0f, 1.0f);
-            float speed = (MinScrollSpeed + (MaxScrollSpeed - MinScrollSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixels / MAX_SCROLL_DISTANCE, 0.0f, 1.0f);
+            float speed = (MIN_SCROLL_SPEED + (MAX_SCROLL_SPEED - MIN_SCROLL_SPEED) * intensity) * baseScrollSpeed;
             int frames = Math.Max(1, (int)Math.Ceiling(speed));
 
             TimelineStart = Math.Min(maxStart, TimelineStart + frames);
             _isManuallyScrolling = true;
-            _manualScrollTimer = ManualScrollCooldown;
+            _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             _dragSelectionEnd.X = rightEdge - 1;
         }
         else if (mousePos.X < leftEdge)
         {
             float deltaPixels = leftEdge - mousePos.X;
-            float intensity = Math.Clamp(deltaPixels / MaxScrollDistance, 0.0f, 1.0f);
-            float speed = (MinScrollSpeed + (MaxScrollSpeed - MinScrollSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixels / MAX_SCROLL_DISTANCE, 0.0f, 1.0f);
+            float speed = (MIN_SCROLL_SPEED + (MAX_SCROLL_SPEED - MIN_SCROLL_SPEED) * intensity) * baseScrollSpeed;
             int frames = Math.Max(1, (int)Math.Ceiling(speed));
 
             TimelineStart = Math.Max(0, TimelineStart - frames);
             _isManuallyScrolling = true;
-            _manualScrollTimer = ManualScrollCooldown;
+            _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             _dragSelectionEnd.X = leftEdge + 1;
         }
         else
         {
-            if (mousePos.X > rightEdge - ScrollMargin)
+            if (mousePos.X > rightEdge - SCROLL_MARGIN)
             {
-                float t = (mousePos.X - (rightEdge - ScrollMargin)) / ScrollMargin;
+                float t = (mousePos.X - (rightEdge - SCROLL_MARGIN)) / SCROLL_MARGIN;
                 float nudgeSpeed = t * t * 0.3f * baseScrollSpeed;
 
-                if (nudgeSpeed >= 0.5f)
-                {
-                    int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
-                    TimelineStart = Math.Min(maxStart, TimelineStart + frames);
-                    _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
-                }
+                if (!(nudgeSpeed >= 0.5f)) return;
+                int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
+                TimelineStart = Math.Min(maxStart, TimelineStart + frames);
+                _isManuallyScrolling = true;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
-            else if (mousePos.X < leftEdge + ScrollMargin)
+            else if (mousePos.X < leftEdge + SCROLL_MARGIN)
             {
-                float t = ((leftEdge + ScrollMargin) - mousePos.X) / ScrollMargin;
+                float t = ((leftEdge + SCROLL_MARGIN) - mousePos.X) / SCROLL_MARGIN;
                 float nudgeSpeed = t * t * 0.3f * baseScrollSpeed;
 
-                if (nudgeSpeed >= 0.5f)
-                {
-                    int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
-                    TimelineStart = Math.Max(0, TimelineStart - frames);
-                    _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
-                }
+                if (!(nudgeSpeed >= 0.5f)) return;
+                int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
+                TimelineStart = Math.Max(0, TimelineStart - frames);
+                _isManuallyScrolling = true;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
         }
     }
 
-    private void HandleKeyframeDragAutoScroll(Vector2 trackRect, Vector2 trackSize, int visibleFrames)
+    private void HandleKeyframeDragAutoScroll(int visibleFrames)
     {
-        if (!_isDraggingKeyframes || !ImGui.IsMouseDragging(ImGuiMouseButton.Left))
+        if (!IsDraggingKeyframe || !ImGui.IsMouseDragging(ImGuiMouseButton.Left))
             return;
 
         var currentMousePos = ImGui.GetMousePos();
@@ -2826,8 +2718,8 @@ public class Timeline
 
         if (isMouseBeyondRight && _dragAnchorKeyframe != null)
         {
-            float intensity = Math.Clamp(deltaPixelsRight / DragScrollMaxDistance, 0.0f, 1.0f);
-            float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixelsRight / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+            float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
             int frames = (int)Math.Ceiling(speed);
 
             int newTimelineStart = Math.Min(maxStart, timelineStartSnapshot + frames);
@@ -2857,15 +2749,15 @@ public class Timeline
                 _currentDragOffset = newOffset;
 
                 _isManuallyScrolling = true;
-                _manualScrollTimer = ManualScrollCooldown;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
 
                 UpdateDragPreviewWavePassThrough();
             }
         }
         else if (isMouseBeyondLeft && _dragAnchorKeyframe != null)
         {
-            float intensity = Math.Clamp(deltaPixelsLeft / DragScrollMaxDistance, 0.0f, 1.0f);
-            float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixelsLeft / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+            float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
             int frames = (int)Math.Ceiling(speed);
 
             int newTimelineStart = Math.Max(0, timelineStartSnapshot - frames);
@@ -2895,7 +2787,7 @@ public class Timeline
                 _currentDragOffset = newOffset;
 
                 _isManuallyScrolling = true;
-                _manualScrollTimer = ManualScrollCooldown;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
 
                 UpdateDragPreviewWavePassThrough();
             }
@@ -2922,12 +2814,12 @@ public class Timeline
                 currentAnchorFrame = _draggedKeyframesData[_dragAnchorKeyframe].originalFrame + rawOffset;
             }
 
-            float nudgeRightEdge = rightEdge - NudgeMargin;
-            float nudgeLeftEdge = leftEdge + NudgeMargin;
+            float nudgeRightEdge = rightEdge - NUDGE_MARGIN;
+            float nudgeLeftEdge = leftEdge + NUDGE_MARGIN;
 
             if (mouseX > nudgeRightEdge && mouseX <= rightEdge && currentAnchorFrame != -1)
             {
-                float t = (mouseX - nudgeRightEdge) / NudgeMargin;
+                float t = (mouseX - nudgeRightEdge) / NUDGE_MARGIN;
                 float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
                 if (nudgeSpeed >= 0.3f)
@@ -2940,14 +2832,14 @@ public class Timeline
                     _currentDragOffset += scrollChange;
 
                     _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
+                    _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
 
                     UpdateDragPreviewWavePassThrough();
                 }
             }
             else if (mouseX < nudgeLeftEdge && mouseX >= leftEdge && currentAnchorFrame != -1)
             {
-                float t = (nudgeLeftEdge - mouseX) / NudgeMargin;
+                float t = (nudgeLeftEdge - mouseX) / NUDGE_MARGIN;
                 float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
                 if (nudgeSpeed >= 0.3f)
@@ -2960,30 +2852,27 @@ public class Timeline
                     _currentDragOffset += scrollChange;
 
                     _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
+                    _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
 
                     UpdateDragPreviewWavePassThrough();
                 }
             }
         }
 
-        if (_dragAnchorKeyframe != null && _previewFrames.TryGetValue(_dragAnchorKeyframe, out int anchorPreviewFrame))
-        {
-            CurrentFrame = anchorPreviewFrame;
-            CurrentFrameFloat = CurrentFrame;
-        }
+        if (_dragAnchorKeyframe == null ||
+            !_previewFrames.TryGetValue(_dragAnchorKeyframe, out int anchorPreviewFrame)) return;
+        CurrentFrame = anchorPreviewFrame;
+        CurrentFrameFloat = CurrentFrame;
     }
 
     private void RenderKeyframesOnTrack(Dictionary<int, float> keyframes, string property,
     int visibleFrames, Vector2 trackRect, Vector2 trackSize, bool isTrackHovered, ImDrawListPtr drawList)
     {
-        if (keyframes == null) return;
-
         var keyframeList = keyframes.Keys.OrderBy(k => k).ToList();
 
         // CRITICAL: _scrubberWidth is already the usable width (without scrollbar)
-        float usableWidth = _isDraggingKeyframes ? _dragStartScrubberWidth : _scrubberWidth;
-        float scrubberX = _isDraggingKeyframes ? _dragStartScrubberX : _scrubberPosition.X;
+        float usableWidth = IsDraggingKeyframe ? _dragStartScrubberWidth : _scrubberWidth;
+        float scrubberX = IsDraggingKeyframe ? _dragStartScrubberX : _scrubberPosition.X;
 
         // FIRST PASS: Check box selection on ALL keyframes (even invisible ones)
         if (_shouldApplyBoxSelection)
@@ -2994,7 +2883,7 @@ public class Timeline
                 {
                     Property = property,
                     Frame = frame,
-                    ObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1
+                    ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
                 };
 
                 float normalizedPos = (frame - TimelineStart) / (float)visibleFrames;
@@ -3011,20 +2900,20 @@ public class Timeline
         // SECOND PASS: Draw and interact only with visible keyframes
         foreach (var frame in keyframeList)
         {
-            if (!_isDraggingKeyframes && (frame < currentTimelineStart || frame > currentTimelineStart + visibleFrames))
+            if (!IsDraggingKeyframe && (frame < currentTimelineStart || frame > currentTimelineStart + visibleFrames))
                 continue;
 
             var keyframeId = new SelectedKeyframe
             {
                 Property = property,
                 Frame = frame,
-                ObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1
+                ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
             };
 
             bool isSelected = SelectedKeyframes.Contains(keyframeId);
 
             int displayFrame = frame;
-            if (isSelected && _isDraggingKeyframes && _previewFrames.TryGetValue(keyframeId, out int previewFrame))
+            if (isSelected && IsDraggingKeyframe && _previewFrames.TryGetValue(keyframeId, out int previewFrame))
             {
                 displayFrame = previewFrame;
             }
@@ -3072,7 +2961,7 @@ public class Timeline
 
     private void HandleKeyframeInteraction(bool isHovered, SelectedKeyframe keyframeId, bool isSelected, Vector2 mousePos)
     {
-        if (isHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !_isDraggingKeyframes)
+        if (isHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !IsDraggingKeyframe)
         {
             if (IsPlaying)
             {
@@ -3096,7 +2985,7 @@ public class Timeline
                     SelectedKeyframes.Add(keyframeId);
                 }
 
-                _isDraggingKeyframes = true;
+                IsDraggingKeyframe = true;
                 _dragStartMousePos = mousePos;
                 _dragStartTimelineStart = TimelineStart;
                 _currentDragOffset = 0;
@@ -3122,19 +3011,12 @@ public class Timeline
         }
 
         // right mouse button on keyframe only selects - menu is opened by HandleTimelineAreaContextMenu
-        if (isHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !_isDraggingKeyframes)
-        {
-            if (IsPlaying)
-            {
-                IsPlaying = false;
-            }
+        if (!isHovered || !ImGui.IsMouseClicked(ImGuiMouseButton.Right) || IsDraggingKeyframe) return;
+        if (IsPlaying) IsPlaying = false;
 
-            if (!isSelected)
-            {
-                SelectedKeyframes.Clear();
-                SelectedKeyframes.Add(keyframeId);
-            }
-        }
+        if (isSelected) return;
+        SelectedKeyframes.Clear();
+        SelectedKeyframes.Add(keyframeId);
     }
 
     private void HandleKeyframeBoxSelection(SelectedKeyframe keyframeId, float markerX, float markerY)
@@ -3177,10 +3059,7 @@ public class Timeline
                            keyframeMaxY < selectionMinY ||
                            keyframeMinY > selectionMaxY);
 
-        if (intersects)
-        {
-            SelectedKeyframes.Add(keyframeId);
-        }
+        if (intersects) SelectedKeyframes.Add(keyframeId);
     }
 
     private void UpdateDragPreviewWavePassThrough()
@@ -3295,12 +3174,10 @@ public class Timeline
 
             // Try opposite direction
             testPos = startPos - (offset * direction);
-            if (testPos >= 0 && testPos <= TotalFrames)
+            if (testPos < 0 || testPos > TotalFrames) continue;
+            if (!walls.Contains(testPos) && !usedPositions.Contains(testPos))
             {
-                if (!walls.Contains(testPos) && !usedPositions.Contains(testPos))
-                {
-                    return testPos;
-                }
+                return testPos;
             }
         }
 
@@ -3315,14 +3192,11 @@ public class Timeline
 
         var keyframesToMove = new List<(SelectedKeyframe keyframe, int originalFrame, int newFrame, float value)>();
 
-        foreach (var data in _draggedKeyframesData)
+        foreach (var (keyframe, valueTuple) in _draggedKeyframesData)
         {
-            var keyframe = data.Key;
-            var (originalFrame, value) = data.Value;
+            var (originalFrame, value) = valueTuple;
 
-            int newFrame = _previewFrames.TryGetValue(keyframe, out int previewFrame)
-                ? previewFrame
-                : originalFrame;
+            int newFrame = _previewFrames.GetValueOrDefault(keyframe, originalFrame);
 
             keyframesToMove.Add((keyframe, originalFrame, newFrame, value));
         }
@@ -3334,17 +3208,12 @@ public class Timeline
         foreach (var move in keyframesToMove)
         {
             var keyframes = GetKeyframeDictionary(move.keyframe.Property);
-            if (keyframes != null && keyframes.ContainsKey(move.originalFrame))
-            {
-                keyframes.Remove(move.originalFrame);
-            }
+            keyframes?.Remove(move.originalFrame);
         }
 
         var newSelection = new HashSet<SelectedKeyframe>();
-        foreach (var propertyGroup in groupedByProperty)
+        foreach (var (property, moves) in groupedByProperty)
         {
-            var property = propertyGroup.Key;
-            var moves = propertyGroup.Value;
             var keyframes = GetKeyframeDictionary(property);
 
             // Protection BUG #6: Check null before using
@@ -3463,7 +3332,7 @@ public class Timeline
         bool isMouseOverMarkerLabel = IsMouseOverAnyMarkerLabel(mousePos);
 
         // Create new region with right mouse button
-        if (isScrubberHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !_isDraggingKeyframes && !isAnyPopupOpen)
+        if (isScrubberHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !IsDraggingKeyframe && !isAnyPopupOpen)
         {
             bool clickedOnExistingRegion = _regionActive && (isOverRegionHandle || isOverRegionBody);
 
@@ -3524,7 +3393,7 @@ public class Timeline
         if (!_isCreatingRegion && !_isDraggingRegion && !_isResizingRegion && !isMouseOverMarkerLabel && !isAnyPopupOpen)
         {
             // Only start scrubbing if NOT over marker label AND NO popup open
-            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !_isDraggingKeyframes)
+            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !IsDraggingKeyframe)
             {
                 IsScrubbing = true;
             }
@@ -3543,28 +3412,28 @@ public class Timeline
                     if (currentMousePos.X > rightEdge)
                     {
                         float deltaPixels = currentMousePos.X - rightEdge;
-                        int frames = (int)Math.Ceiling(deltaPixels / pixelsPerFrame * ScrubberScrollSpeed);
-                        frames = Math.Clamp(frames, 1, MaxFramesPerTick);
+                        int frames = (int)Math.Ceiling(deltaPixels / pixelsPerFrame * SCRUBBER_SCROLL_SPEED);
+                        frames = Math.Clamp(frames, 1, MAX_FRAMES_PER_TICK);
 
                         TimelineStart = Math.Min(maxStart, TimelineStart + frames);
                         CurrentFrame = TimelineStart + visibleFrames - 1;
                         CurrentFrameFloat = CurrentFrame;
 
                         _isManuallyScrolling = true;
-                        _manualScrollTimer = ManualScrollCooldown;
+                        _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
                     }
                     else if (currentMousePos.X < leftEdge)
                     {
                         float deltaPixels = leftEdge - currentMousePos.X;
-                        int frames = (int)Math.Ceiling(deltaPixels / pixelsPerFrame * ScrubberScrollSpeed);
-                        frames = Math.Clamp(frames, 1, MaxFramesPerTick);
+                        int frames = (int)Math.Ceiling(deltaPixels / pixelsPerFrame * SCRUBBER_SCROLL_SPEED);
+                        frames = Math.Clamp(frames, 1, MAX_FRAMES_PER_TICK);
 
                         TimelineStart = Math.Max(0, TimelineStart - frames);
                         CurrentFrame = TimelineStart;
                         CurrentFrameFloat = CurrentFrame;
 
                         _isManuallyScrolling = true;
-                        _manualScrollTimer = ManualScrollCooldown;
+                        _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
                     }
                     else
                     {
@@ -3575,26 +3444,26 @@ public class Timeline
                         CurrentFrame = Math.Clamp(targetFrame, 0, TotalFrames);
                         CurrentFrameFloat = CurrentFrame;
 
-                        if (currentMousePos.X > rightEdge - NudgeMargin)
+                        if (currentMousePos.X > rightEdge - NUDGE_MARGIN)
                         {
-                            float t = (currentMousePos.X - (rightEdge - NudgeMargin)) / NudgeMargin;
-                            int frames = Math.Clamp((int)Math.Ceiling(t * 0.6f * ScrubberScrollSpeed), 0, MaxFramesPerTick);
+                            float t = (currentMousePos.X - (rightEdge - NUDGE_MARGIN)) / NUDGE_MARGIN;
+                            int frames = Math.Clamp((int)Math.Ceiling(t * 0.6f * SCRUBBER_SCROLL_SPEED), 0, MAX_FRAMES_PER_TICK);
                             if (frames > 0)
                             {
                                 TimelineStart = Math.Min(maxStart, TimelineStart + frames);
                                 _isManuallyScrolling = true;
-                                _manualScrollTimer = ManualScrollCooldown;
+                                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
                             }
                         }
-                        else if (currentMousePos.X < leftEdge + NudgeMargin)
+                        else if (currentMousePos.X < leftEdge + NUDGE_MARGIN)
                         {
-                            float t = ((leftEdge + NudgeMargin) - currentMousePos.X) / NudgeMargin;
-                            int frames = Math.Clamp((int)Math.Ceiling(t * 0.6f * ScrubberScrollSpeed), 0, MaxFramesPerTick);
+                            float t = ((leftEdge + NUDGE_MARGIN) - currentMousePos.X) / NUDGE_MARGIN;
+                            int frames = Math.Clamp((int)Math.Ceiling(t * 0.6f * SCRUBBER_SCROLL_SPEED), 0, MAX_FRAMES_PER_TICK);
                             if (frames > 0)
                             {
                                 TimelineStart = Math.Max(0, TimelineStart - frames);
                                 _isManuallyScrolling = true;
-                                _manualScrollTimer = ManualScrollCooldown;
+                                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
                             }
                         }
                     }
@@ -3644,52 +3513,48 @@ public class Timeline
 
         if (isMouseBeyondRight)
         {
-            float intensity = Math.Clamp(deltaPixelsRight / DragScrollMaxDistance, 0.0f, 1.0f);
-            float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixelsRight / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+            float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
             int frames = (int)Math.Ceiling(speed);
             TimelineStart = Math.Min(maxStart, TimelineStart + frames);
 
             _isManuallyScrolling = true;
-            _manualScrollTimer = ManualScrollCooldown;
+            _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
         }
         else if (isMouseBeyondLeft)
         {
-            float intensity = Math.Clamp(deltaPixelsLeft / DragScrollMaxDistance, 0.0f, 1.0f);
-            float speed = (DragScrollMinSpeed + (DragScrollMaxSpeed - DragScrollMinSpeed) * intensity) * baseScrollSpeed;
+            float intensity = Math.Clamp(deltaPixelsLeft / DRAG_SCROLL_MAX_DISTANCE, 0.0f, 1.0f);
+            float speed = (DRAG_SCROLL_MIN_SPEED + (DRAG_SCROLL_MAX_SPEED - DRAG_SCROLL_MIN_SPEED) * intensity) * baseScrollSpeed;
             int frames = (int)Math.Ceiling(speed);
             TimelineStart = Math.Max(0, TimelineStart - frames);
 
             _isManuallyScrolling = true;
-            _manualScrollTimer = ManualScrollCooldown;
+            _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
         }
         else
         {
             // Nudge at edges
-            if (mouseX > rightEdge - ScrollMargin)
+            if (mouseX > rightEdge - SCROLL_MARGIN)
             {
-                float t = (mouseX - (rightEdge - ScrollMargin)) / ScrollMargin;
+                float t = (mouseX - (rightEdge - SCROLL_MARGIN)) / SCROLL_MARGIN;
                 float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
-                if (nudgeSpeed >= 0.3f)
-                {
-                    int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
-                    TimelineStart = Math.Min(maxStart, TimelineStart + frames);
-                    _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
-                }
+                if (!(nudgeSpeed >= 0.3f)) return;
+                int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
+                TimelineStart = Math.Min(maxStart, TimelineStart + frames);
+                _isManuallyScrolling = true;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
-            else if (mouseX < leftEdge + ScrollMargin)
+            else if (mouseX < leftEdge + SCROLL_MARGIN)
             {
-                float t = ((leftEdge + ScrollMargin) - mouseX) / ScrollMargin;
+                float t = ((leftEdge + SCROLL_MARGIN) - mouseX) / SCROLL_MARGIN;
                 float nudgeSpeed = t * t * 0.5f * baseScrollSpeed;
 
-                if (nudgeSpeed >= 0.3f)
-                {
-                    int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
-                    TimelineStart = Math.Max(0, TimelineStart - frames);
-                    _isManuallyScrolling = true;
-                    _manualScrollTimer = ManualScrollCooldown;
-                }
+                if (!(nudgeSpeed >= 0.3f)) return;
+                int frames = Math.Max(1, (int)Math.Ceiling(nudgeSpeed));
+                TimelineStart = Math.Max(0, TimelineStart - frames);
+                _isManuallyScrolling = true;
+                _manualScrollTimer = MANUAL_SCROLL_COOLDOWN;
             }
         }
     }
@@ -3698,9 +3563,9 @@ public class Timeline
     {
         var drawList = ImGui.GetWindowDrawList();
 
-        const float MIN_MINOR_PX = 8f;
-        const float MIN_MEDIUM_PX = 24f;
-        const float MIN_MAJOR_PX = 80f;
+        const float minMinorPx = 8f;
+        const float minMediumPx = 24f;
+        const float minMajorPx = 80f;
 
         int[] possibleSteps = { 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000 };
 
@@ -3716,31 +3581,25 @@ public class Timeline
             _cachedMinorStep = 5;
             foreach (var step in possibleSteps)
             {
-                if (pxPerFrame * step >= MIN_MINOR_PX)
-                {
-                    _cachedMinorStep = step;
-                    break;
-                }
+                if (!(pxPerFrame * step >= minMinorPx)) continue;
+                _cachedMinorStep = step;
+                break;
             }
 
             _cachedMediumStep = _cachedMinorStep;
             foreach (var step in possibleSteps)
             {
-                if (step >= _cachedMinorStep && pxPerFrame * step >= MIN_MEDIUM_PX)
-                {
-                    _cachedMediumStep = step;
-                    break;
-                }
+                if (step < _cachedMinorStep || !(pxPerFrame * step >= minMediumPx)) continue;
+                _cachedMediumStep = step;
+                break;
             }
 
             _cachedMajorStep = _cachedMediumStep;
             foreach (var step in possibleSteps)
             {
-                if (step >= _cachedMediumStep && pxPerFrame * step >= MIN_MAJOR_PX)
-                {
-                    _cachedMajorStep = step;
-                    break;
-                }
+                if (step < _cachedMediumStep || !(pxPerFrame * step >= minMajorPx)) continue;
+                _cachedMajorStep = step;
+                break;
             }
 
             if (_cachedMajorStep < _cachedMediumStep)
@@ -3837,7 +3696,7 @@ public class Timeline
 
         var selectedForProperty = SelectedKeyframes.FirstOrDefault(k =>
             k.Property == property &&
-            k.ObjectIndex == (Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1));
+            k.ObjectIndex == (Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1));
 
         if (selectedForProperty != null)
         {
@@ -3869,9 +3728,9 @@ public class Timeline
     {
         int maxFrame = 5000;
         var instance = Main.GetInstance();
-        if (instance?.UI?.sceneTreePanel?.SceneObjects != null)
+        if (instance?.UI?.SceneTreePanel?.SceneObjects != null)
         {
-            foreach (var obj in instance.UI.sceneTreePanel.SceneObjects)
+            foreach (var obj in instance.UI.SceneTreePanel.SceneObjects)
             {
                 maxFrame = Math.Max(maxFrame, GetMaxFrameFromKeyframes(obj.PosXKeyframes));
                 maxFrame = Math.Max(maxFrame, GetMaxFrameFromKeyframes(obj.PosYKeyframes));
@@ -3893,6 +3752,7 @@ public class Timeline
         return keyframes.Count > 0 ? keyframes.Keys.Max() : 0;
     }
 
+    // NOTE: Also unused - Forest
     public void OnObjectManipulationStart()
     {
         if (CurrentObject == null) return;
@@ -3943,6 +3803,7 @@ public class Timeline
         }
     }
 
+    // NOTE: Unused - Forest
     public void OnObjectManipulationEnd()
     {
         if (CurrentObject == null)
@@ -4066,7 +3927,7 @@ public class Timeline
 
         int targetFrame = CurrentFrame;
         int keyframesCreated = 0;
-        int selectedObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
+        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
 
         SelectedKeyframes.Clear();
 
@@ -4154,6 +4015,7 @@ public class Timeline
         };
     }
 
+    // NOTE: Unused - Forest
     public float EvaluateKeyframes(string property, int frame)
     {
         var keyframes = GetKeyframeDictionary(property);
@@ -4207,24 +4069,28 @@ public class Timeline
         return EvaluateKeyframesWithDefault(obj.AlphaKeyframes, frameToUse, obj.Alpha);
     }
 
+    // NOTE: Unused - Forest
     public Vector3 GetAnimatedPosition()
     {
         if (CurrentObject == null) return Vector3.Zero;
         return GetAnimatedPosition(CurrentObject);
     }
 
+    // NOTE: Unused - Forest
     public Vector3 GetAnimatedRotation()
     {
         if (CurrentObject == null) return Vector3.Zero;
         return GetAnimatedRotation(CurrentObject);
     }
 
+    // NOTE: Unused - Forest
     public Vector3 GetAnimatedScale()
     {
         if (CurrentObject == null) return Vector3.One;
         return GetAnimatedScale(CurrentObject);
     }
 
+    // NOTE: Unused - Forest
     public float GetAnimatedAlpha()
     {
         if (CurrentObject == null) return 1.0f;
@@ -4267,7 +4133,7 @@ public class Timeline
     private void RenderContextMenuItems()
     {
         IsScrubbing = false;
-        _isDraggingKeyframes = false;
+        IsDraggingKeyframe = false;
         _isDragSelecting = false;
         _isPendingScrubberMove = false;
 
@@ -4389,22 +4255,19 @@ public class Timeline
         }
 
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
+        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
             var keyframes = accessor(CurrentObject);
-            foreach (var frame in keyframes.Keys)
+            foreach (var frame in keyframes.Keys.Where(frame => frame < CurrentFrame))
             {
-                if (frame < CurrentFrame)
+                SelectedKeyframes.Add(new SelectedKeyframe
                 {
-                    SelectedKeyframes.Add(new SelectedKeyframe
-                    {
-                        Property = property,
-                        Frame = frame,
-                        ObjectIndex = selectedObjectIndex
-                    });
-                }
+                    Property = property,
+                    Frame = frame,
+                    ObjectIndex = selectedObjectIndex
+                });
             }
         }
     }
@@ -4413,28 +4276,22 @@ public class Timeline
     {
         if (CurrentObject == null) return;
 
-        if (IsPlaying)
-        {
-            IsPlaying = false;
-        }
-
+        if (IsPlaying) IsPlaying = false;
+        
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
+        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
             var keyframes = accessor(CurrentObject);
-            foreach (var frame in keyframes.Keys)
+            foreach (var frame in keyframes.Keys.Where(frame => frame > CurrentFrame))
             {
-                if (frame > CurrentFrame)
+                SelectedKeyframes.Add(new SelectedKeyframe
                 {
-                    SelectedKeyframes.Add(new SelectedKeyframe
-                    {
-                        Property = property,
-                        Frame = frame,
-                        ObjectIndex = selectedObjectIndex
-                    });
-                }
+                    Property = property,
+                    Frame = frame,
+                    ObjectIndex = selectedObjectIndex
+                });
             }
         }
     }
@@ -4449,21 +4306,19 @@ public class Timeline
         }
 
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
+        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
             var keyframes = accessor(CurrentObject);
-            if (keyframes.Count > 0)
+            if (keyframes.Count <= 0) continue;
+            int firstFrame = keyframes.Keys.Min();
+            SelectedKeyframes.Add(new SelectedKeyframe
             {
-                int firstFrame = keyframes.Keys.Min();
-                SelectedKeyframes.Add(new SelectedKeyframe
-                {
-                    Property = property,
-                    Frame = firstFrame,
-                    ObjectIndex = selectedObjectIndex
-                });
-            }
+                Property = property,
+                Frame = firstFrame,
+                ObjectIndex = selectedObjectIndex
+            });
         }
     }
 
@@ -4477,21 +4332,19 @@ public class Timeline
         }
 
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
+        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
             var keyframes = accessor(CurrentObject);
-            if (keyframes.Count > 0)
+            if (keyframes.Count <= 0) continue;
+            int lastFrame = keyframes.Keys.Max();
+            SelectedKeyframes.Add(new SelectedKeyframe
             {
-                int lastFrame = keyframes.Keys.Max();
-                SelectedKeyframes.Add(new SelectedKeyframe
-                {
-                    Property = property,
-                    Frame = lastFrame,
-                    ObjectIndex = selectedObjectIndex
-                });
-            }
+                Property = property,
+                Frame = lastFrame,
+                ObjectIndex = selectedObjectIndex
+            });
         }
     }
 
@@ -4501,14 +4354,11 @@ public class Timeline
 
         if (!_regionActive) return;
 
-        if (IsPlaying)
-        {
-            IsPlaying = false;
-        }
-
+        if (IsPlaying) IsPlaying = false;
+        
         SelectedKeyframes.Clear();
 
-        int selectedObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
+        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
 
         int minFrame = Math.Min(_regionStartFrame, _regionEndFrame);
         int maxFrame = Math.Max(_regionStartFrame, _regionEndFrame);
@@ -4516,17 +4366,14 @@ public class Timeline
         foreach (var (property, accessor) in PropertyAccessors)
         {
             var keyframes = accessor(CurrentObject);
-            foreach (var frame in keyframes.Keys)
+            foreach (var frame in keyframes.Keys.Where(frame => frame >= minFrame && frame <= maxFrame))
             {
-                if (frame >= minFrame && frame <= maxFrame)
+                SelectedKeyframes.Add(new SelectedKeyframe
                 {
-                    SelectedKeyframes.Add(new SelectedKeyframe
-                    {
-                        Property = property,
-                        Frame = frame,
-                        ObjectIndex = selectedObjectIndex
-                    });
-                }
+                    Property = property,
+                    Frame = frame,
+                    ObjectIndex = selectedObjectIndex
+                });
             }
         }
     }
@@ -4603,31 +4450,27 @@ public class Timeline
 
             var keyframes = GetKeyframeDictionary(copiedKf.Property);
 
-            if (keyframes != null)
-            {
-                keyframes[newFrame] = value;
+            if (keyframes == null) continue;
+            keyframes[newFrame] = value;
 
-                SelectedKeyframes.Add(new SelectedKeyframe
-                {
-                    Property = copiedKf.Property,
-                    Frame = newFrame,
-                    ObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1
-                });
-            }
+            SelectedKeyframes.Add(new SelectedKeyframe
+            {
+                Property = copiedKf.Property,
+                Frame = newFrame,
+                ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
+            });
         }
 
         _sortedKeyframeCache.Clear();
         CalculateTotalFrames();
         ApplyKeyframesToObjects();
 
-        if (_isCutOperation)
-        {
-            _copiedKeyframes.Clear();
-            _isCutOperation = false;
-        }
+        if (!_isCutOperation) return;
+        _copiedKeyframes.Clear();
+        _isCutOperation = false;
     }
 
-    private float GetCurrentPropertyValue(string property)
+    private static float GetCurrentPropertyValue(string property)
     {
         if (CurrentObject == null)
             return 0f;
@@ -4657,7 +4500,7 @@ public class Timeline
 
         int targetFrame = CurrentFrame;
         int keyframesCreated = 0;
-        int selectedObjectIndex = Main.GetInstance()?.UI?.sceneTreePanel?.SelectedObjectIndex ?? -1;
+        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
 
         SelectedKeyframes.Clear();
 
@@ -4676,10 +4519,11 @@ public class Timeline
         foreach (var (propertyName, accessor) in PropertyAccessors)
         {
             // PROTECTION: Check object on each iteration
-            if (CurrentObject == null)
-            {
-                break;
-            }
+            // NOTE: Null checking at the beginning of the function is enough - Forest
+            //if (CurrentObject == null)
+            //{
+            //    break;
+            //}
 
             Dictionary<int, float>? keyframeDict = null;
             try
@@ -4697,27 +4541,23 @@ public class Timeline
                 continue;
             }
 
-            if (keyframeDict.Count > 0 || !hasAnyKeyframes)
+            if (keyframeDict.Count <= 0 && hasAnyKeyframes) continue;
+            float currentValue = GetCurrentPropertyValue(propertyName);
+            keyframeDict[targetFrame] = currentValue;
+            keyframesCreated++;
+
+            SelectedKeyframes.Add(new SelectedKeyframe
             {
-                float currentValue = GetCurrentPropertyValue(propertyName);
-                keyframeDict[targetFrame] = currentValue;
-                keyframesCreated++;
-
-                SelectedKeyframes.Add(new SelectedKeyframe
-                {
-                    Property = propertyName,
-                    Frame = targetFrame,
-                    ObjectIndex = selectedObjectIndex
-                });
-            }
+                Property = propertyName,
+                Frame = targetFrame,
+                ObjectIndex = selectedObjectIndex
+            });
         }
 
-        if (keyframesCreated > 0)
-        {
-            _sortedKeyframeCache.Clear();
-            CalculateTotalFrames();
-            ApplyKeyframesToObjects();
-        }
+        if (keyframesCreated <= 0) return;
+        _sortedKeyframeCache.Clear();
+        CalculateTotalFrames();
+        ApplyKeyframesToObjects();
     }
 
     // Methods for loop region control
@@ -4728,6 +4568,7 @@ public class Timeline
         _loopInRegion = false;
     }
 
+    // NOTE: Unused - Forest
     public (int startFrame, int endFrame, bool isActive, bool isLooping) GetActiveRegion()
     {
         return (_regionStartFrame, _regionEndFrame, _regionActive, _loopInRegion);
@@ -4802,7 +4643,6 @@ public class Timeline
     {
         float dashLength = 3.0f;
         float gapLength = 3.0f;
-        float totalLength = endY - startY;
         float currentY = startY;
 
         while (currentY < endY)
@@ -4875,8 +4715,7 @@ public class Timeline
             {
                 // Calculate popup position (open upwards, OVER main menu)
                 var currentButtonPos = ImGui.GetItemRectMin();
-
-                float popupWidth = 200f;
+                
                 float popupHeight = 9 * 22f + 16f; // 9 colors * height + padding
 
                 // position X: align with button
@@ -5010,7 +4849,7 @@ public class Timeline
         ImGui.PopStyleColor(2);
     }
 
-    private uint GetMarkerColorUInt(MarkerColor color)
+    private static uint GetMarkerColorUInt(MarkerColor color)
     {
         return color switch
         {
@@ -5027,7 +4866,7 @@ public class Timeline
         };
     }
 
-    private Vector4 GetMarkerColorVector(MarkerColor color)
+    private static Vector4 GetMarkerColorVector(MarkerColor color)
     {
         return color switch
         {

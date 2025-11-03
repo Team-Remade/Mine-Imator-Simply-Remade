@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using ImGuiNET;
 using SimplyRemadeMI.core;
@@ -11,14 +12,16 @@ public class SceneTreePanel
 {
     public SceneWorld World { get; set; }
     
-    public List<SceneObject> SceneObjects = new List<SceneObject>();
+    public readonly List<SceneObject> SceneObjects = [];
     public int SelectedObjectIndex = -1;
 
-    private const string PayloadType = "SCENE_OBJECT_INDEX";
-
+    private const string PAYLOAD_TYPE = "SCENE_OBJECT_INDEX";
+    
+    #nullable enable
     public SceneObject? SelectedObject => SelectedObjectIndex >= 0 && SelectedObjectIndex < SceneObjects.Count
         ? SceneObjects[SelectedObjectIndex]
         : null;
+    #nullable disable
 
     public void Render()
     {
@@ -38,10 +41,8 @@ public class SceneTreePanel
 
             // Build and render hierarchy: top-level nodes are objects with no parent
             int renderedCount = 0;
-            for (int i = 0; i < SceneObjects.Count; i++)
+            foreach (var obj in SceneObjects.Where(obj => obj.GetParent() is SceneWorld))
             {
-                var obj = SceneObjects[i];
-                if (obj.GetParent() is not SceneWorld) continue; // only roots here
                 RenderObjectNode(obj);
                 renderedCount++;
             }
@@ -59,23 +60,21 @@ public class SceneTreePanel
     
     private unsafe void HandleRootDropTarget()
     {
-        if (ImGui.BeginDragDropTarget())
+        if (!ImGui.BeginDragDropTarget()) return;
+        var payload = ImGui.AcceptDragDropPayload(PAYLOAD_TYPE);
+        if (payload.NativePtr != null && payload.Data != System.IntPtr.Zero && payload.DataSize == sizeof(int))
         {
-            var payload = ImGui.AcceptDragDropPayload(PayloadType);
-            if (payload.NativePtr != null && payload.Data != System.IntPtr.Zero && payload.DataSize == sizeof(int))
+            int index = *(int*)payload.Data;
+            if (index >= 0 && index < SceneObjects.Count)
             {
-                int index = *(int*)payload.Data;
-                if (index >= 0 && index < SceneObjects.Count)
-                {
-                    var obj = SceneObjects[index];
-                    // Unparent
-                    obj.GetParent().RemoveChild(obj);
-                    World.AddChild(obj);
-                }
+                var obj = SceneObjects[index];
+                // Unparent
+                obj.GetParent().RemoveChild(obj);
+                World.AddChild(obj);
             }
-
-            ImGui.EndDragDropTarget();
         }
+
+        ImGui.EndDragDropTarget();
     }
 
     private unsafe void RenderObjectNode(SceneObject obj)
@@ -109,7 +108,7 @@ public class SceneTreePanel
         if (ImGui.BeginDragDropSource())
         {
             // Payload: index of the dragged object
-            ImGui.SetDragDropPayload(PayloadType, (System.IntPtr)(&index), (uint)sizeof(int));
+            ImGui.SetDragDropPayload(PAYLOAD_TYPE, (System.IntPtr)(&index), (uint)sizeof(int));
             ImGui.Text($"Move '{obj.Name}'");
             ImGui.EndDragDropSource();
         }
@@ -117,7 +116,7 @@ public class SceneTreePanel
         // Accept drop to reparent here
         if (ImGui.BeginDragDropTarget())
         {
-            var payload = ImGui.AcceptDragDropPayload(PayloadType);
+            var payload = ImGui.AcceptDragDropPayload(PAYLOAD_TYPE);
             if (payload.NativePtr != null && payload.Data != System.IntPtr.Zero && payload.DataSize == sizeof(int))
             {
                 int draggedIndex = *(int*)payload.Data;
@@ -157,8 +156,11 @@ public class SceneTreePanel
             case SceneObject.Type.Camera:
                 ImGui.TextColored(new Vector4(0.7f, 0.9f, 0.7f, 1.0f), "[Camera]");
                 break;
+            case SceneObject.Type.PointLight:
+                ImGui.TextColored(new Vector4(0.7f, 0.9f, 0.7f, 1.0f), "[PointLight]");
+                break;
             default:
-                Main.GetInstance().ShowErrorDialog("Invalid object type: " + obj.ObjectType, "Object type not supported");
+                Main.ShowErrorDialog("Invalid object type: " + obj.ObjectType, "Object type not supported");
                 System.Environment.Exit(1);
                 return;
         }
@@ -185,17 +187,58 @@ public class SceneTreePanel
 
         var selectedObject = SceneObjects[SelectedObjectIndex];
         
-        // Remove from the scene tree
-        selectedObject.QueueFree();
+        // Recursively collect all SceneObject children to delete
+        var objectsToDelete = new List<SceneObject>();
+        CollectChildrenRecursive(selectedObject, objectsToDelete);
         
-        // Remove from the list
-        SceneObjects.RemoveAt(SelectedObjectIndex);
+        // Add the selected object itself to the deletion list
+        objectsToDelete.Add(selectedObject);
         
-        // Clear selection
-        SelectedObjectIndex = -1;
-        SelectionManager.ClearSelection();
+        // Delete all collected objects in reverse order (children first)
+        for (int i = objectsToDelete.Count - 1; i >= 0; i--)
+        {
+            var objToDelete = objectsToDelete[i];
+            
+            // Remove from the SceneObjects list if it's there
+            int indexInList = SceneObjects.IndexOf(objToDelete);
+            if (indexInList != -1)
+            {
+                SceneObjects.RemoveAt(indexInList);
+                
+                // Adjust selected index if necessary
+                if (indexInList < SelectedObjectIndex)
+                {
+                    SelectedObjectIndex--;
+                }
+            }
+            
+            // Remove from the scene tree
+            objToDelete.QueueFree();
+            
+            // Remove the picking node for this object and update the viewport picking system
+            Main.GetInstance().MainViewport.RemovePickingNode(objToDelete.ID);
+        }
         
-        // Remove the picking node for this object and update the viewport picking system
-        Main.GetInstance().MainViewport.RemovePickingNode(selectedObject.ID);
+        // Clear selection if the selected object was deleted
+        if (objectsToDelete.Contains(selectedObject))
+        {
+            SelectedObjectIndex = -1;
+            SelectionManager.ClearSelection();
+        }
+    }
+    
+    private static void CollectChildrenRecursive(SceneObject parent, List<SceneObject> children)
+    {
+        foreach (var child in parent.GetChildren())
+        {
+            if (child is SceneObject sceneObject)
+            {
+                // Add this child to the list
+                children.Add(sceneObject);
+                
+                // Recursively collect its children
+                CollectChildrenRecursive(sceneObject, children);
+            }
+        }
     }
 }

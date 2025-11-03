@@ -18,19 +18,19 @@ public partial class MainViewport : SubViewport
 
     private bool Initialized;
     
-    private Dictionary<int, SceneObject> Objects =  new Dictionary<int, SceneObject>();
+    private Dictionary<int, SceneObject> Objects =  new();
     
-    public SubViewport ObjectPicking = new SubViewport();
-    private Camera3D ObjectPickingCam = new Camera3D();
+    public SubViewport ObjectPicking = new();
+    private Camera3D ObjectPickingCam = new();
     private Node3D ObjectPickingObject = new();
 
     public bool Controlled;
     private bool _debugView;
     
-    public bool _shouldRenderToFile = false;
-    public int _renderWidth = 0;
-    public int _renderHeight = 0;
-    public string _renderFilePath = "";
+    public bool ShouldRenderToFile = false;
+    public int RenderWidth = 0;
+    public int RenderHeight = 0;
+    public string RenderFilePath = "";
 
     public override void _Ready()
     {
@@ -70,7 +70,7 @@ public partial class MainViewport : SubViewport
         ObjectPicking.SetUpdateMode(UpdateMode.Once);
     }
 
-    private IEnumerable<SceneObject> GetAllSceneObjects(Node node)
+    private static IEnumerable<SceneObject> GetAllSceneObjects(Node node)
     {
         var sceneObjects = new List<SceneObject>();
         
@@ -129,7 +129,7 @@ public partial class MainViewport : SubViewport
                         var colorId = new Color(id / 255f, 1.0f, 1.0f, 0);
                         
                         var mat = (ShaderMaterial)meshCopy.MaterialOverride;
-                        mat.SetShaderParameter("object_id", colorId);
+                        mat?.SetShaderParameter("object_id", colorId);
                         
                         pickingNode.AddChild(meshCopy);
                     }
@@ -148,15 +148,11 @@ public partial class MainViewport : SubViewport
         // Find and remove the picking node with the matching object_id meta
         foreach (var child in ObjectPickingObject.GetChildren())
         {
-            if (child is Node3D pickingNode && pickingNode.HasMeta("object_id"))
-            {
-                int id = (int)pickingNode.GetMeta("object_id");
-                if (id == objectId)
-                {
-                    pickingNode.QueueFree();
-                    break;
-                }
-            }
+            if (child is not Node3D pickingNode || !pickingNode.HasMeta("object_id")) continue;
+            int id = (int)pickingNode.GetMeta("object_id");
+            if (id != objectId) continue;
+            pickingNode.QueueFree();
+            break;
         }
     }
 
@@ -186,8 +182,14 @@ public partial class MainViewport : SubViewport
             sceneObject.OriginalOriginOffset = Vector3.Zero;
             sceneObject.ObjectOriginOffset = Vector3.Zero;
         }
+        else if (objectType == SceneObject.Type.PointLight)
+        {
+            sceneObject = Main.GetInstance().SceneObjects["pointLight"].Instantiate<SceneObject>();
+            sceneObject.OriginalOriginOffset = Vector3.Zero;
+            sceneObject.ObjectOriginOffset = Vector3.Zero;
+        }
         
-        Main.GetInstance().UI.sceneTreePanel.SceneObjects.Add(sceneObject);
+        Main.GetInstance().UI.SceneTreePanel.SceneObjects.Add(sceneObject);
         
         sceneObject.ObjectType = objectType;
         
@@ -201,16 +203,11 @@ public partial class MainViewport : SubViewport
             World.AddChild(sceneObject);
         }
         
-        if (string.IsNullOrEmpty(name))
-        {
-            sceneObject.Name = $"{objectType}{Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(sceneObject)}";
-        }
-        else
-        {
-            sceneObject.Name = name;
-        }
+        sceneObject.Name = string.IsNullOrEmpty(name) ? $"{objectType}{Main.GetInstance().UI.SceneTreePanel.SceneObjects.IndexOf(sceneObject)}" : name;
         
-        sceneObject.ID = Main.GetInstance().UI.sceneTreePanel.SceneObjects.IndexOf(sceneObject) + 1;
+        sceneObject.ID = Main.GetInstance().UI.SceneTreePanel.SceneObjects.IndexOf(sceneObject) + 1;
+        
+        UpdatePicking();
         return sceneObject;
     }
 
@@ -219,19 +216,19 @@ public partial class MainViewport : SubViewport
         switch (mode)
         {
             case 2:
-                Main.GetInstance().UI.timeline.AddKeyframe("position.x", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Position.X);
-                Main.GetInstance().UI.timeline.AddKeyframe("position.y", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Position.Y);
-                Main.GetInstance().UI.timeline.AddKeyframe("position.z", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Position.Z);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.x", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Position.X);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.y", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Position.Y);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.z", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Position.Z);
                 break;
             case (int)Gizmo3D.ToolMode.Rotate - 1:
-                Main.GetInstance().UI.timeline.AddKeyframe("rotation.x", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].RotationDegrees.X);
-                Main.GetInstance().UI.timeline.AddKeyframe("rotation.y", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].RotationDegrees.Y);
-                Main.GetInstance().UI.timeline.AddKeyframe("rotation.z", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].RotationDegrees.Z);
+                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.x", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].RotationDegrees.X);
+                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.y", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].RotationDegrees.Y);
+                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.z", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].RotationDegrees.Z);
                 break;
             case (int)Gizmo3D.ToolMode.Scale - 1:
-                Main.GetInstance().UI.timeline.AddKeyframe("scale.x", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Scale.X);
-                Main.GetInstance().UI.timeline.AddKeyframe("scale.y", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Scale.Y);
-                Main.GetInstance().UI.timeline.AddKeyframe("scale.z", Main.GetInstance().UI.timeline.CurrentFrame, Main.GetInstance().UI.sceneTreePanel.SceneObjects[Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex].Scale.Z);
+                Main.GetInstance().UI.Timeline.AddKeyframe("scale.x", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Scale.X);
+                Main.GetInstance().UI.Timeline.AddKeyframe("scale.y", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Scale.Y);
+                Main.GetInstance().UI.Timeline.AddKeyframe("scale.z", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Scale.Z);
                 break;
         }
     }
@@ -241,20 +238,14 @@ public partial class MainViewport : SubViewport
         Init();
         
         ImGui.SetNextWindowSize(new System.Numerics.Vector2(Size.X, Size.Y));
-        
         ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new System.Numerics.Vector2(0, 0));
-
-        
 
         if (_debugView)
         {
             var flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.AlwaysAutoResize |
                         ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoCollapse;
 
-            if (Controlled)
-            {
-                flags |=  ImGuiWindowFlags.NoInputs;
-            }
+            if (Controlled) flags |=  ImGuiWindowFlags.NoInputs;
             
             if (ImGui.Begin("Debug Viewport", flags))
             {
@@ -263,10 +254,10 @@ public partial class MainViewport : SubViewport
             }
         }
 
-        BackgroundObject.BackgroundColor.Color = new Color(Main.GetInstance().UI.propertiesPanel.project._clearColor.X, Main.GetInstance().UI.propertiesPanel.project._clearColor.Y, Main.GetInstance().UI.propertiesPanel.project._clearColor.Z);
-        Main.GetInstance().Output.BackgroundObject.BackgroundColor.Color = new Color(Main.GetInstance().UI.propertiesPanel.project._clearColor.X, Main.GetInstance().UI.propertiesPanel.project._clearColor.Y, Main.GetInstance().UI.propertiesPanel.project._clearColor.Z);
+        BackgroundObject.BackgroundColor.Color = new Color(Main.GetInstance().UI.PropertiesPanel.Project.ClearColor.X, Main.GetInstance().UI.PropertiesPanel.Project.ClearColor.Y, Main.GetInstance().UI.PropertiesPanel.Project.ClearColor.Z);
+        Main.GetInstance().Output.BackgroundObject.BackgroundColor.Color = new Color(Main.GetInstance().UI.PropertiesPanel.Project.ClearColor.X, Main.GetInstance().UI.PropertiesPanel.Project.ClearColor.Y, Main.GetInstance().UI.PropertiesPanel.Project.ClearColor.Z);
 
-        if (Main.GetInstance().UI.propertiesPanel.project._stretchBackgroundToFit)
+        if (Main.GetInstance().UI.PropertiesPanel.Project.StretchBackgroundToFit)
         {
             BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Scale;
             Main.GetInstance().Output.BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Scale;
@@ -277,7 +268,7 @@ public partial class MainViewport : SubViewport
             Main.GetInstance().Output.BackgroundObject.BackgroundTexture.StretchMode = TextureRect.StretchModeEnum.Keep;
         }
         
-        World.Floor.Visible = Main.GetInstance().UI.propertiesPanel.project._floorVisible;
+        World.Floor.Visible = Main.GetInstance().UI.PropertiesPanel.Project.FloorVisible;
         
         ImGui.PopStyleVar();
         
@@ -310,57 +301,68 @@ public partial class MainViewport : SubViewport
 
     public override void _Input(InputEvent @event)
     {
-        if (@event is InputEventMouseButton mouseEvent)
+        switch (@event)
         {
-            if (mouseEvent.ButtonIndex == MouseButton.Left && mouseEvent.Pressed)
-            {
-                PerformDepthTest(mouseEvent.Position);
-            }
-
-            if (mouseEvent.ButtonIndex == MouseButton.Right && mouseEvent.Pressed)
-            {
-                Controlled = true;
-            }
-            else if (mouseEvent.ButtonIndex == MouseButton.Right && !mouseEvent.Pressed)
-            {
-                Controlled = false;
-            }
-        }
-
-        if (@event is InputEventKey eventKey && eventKey.Pressed)
-        {
-            if (Controlled) return;
-            if (eventKey.Keycode == Key.R)
-            {
-                SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Rotate;
-            } else if (eventKey.Keycode == Key.T)
-            {
-                SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Move;
-            } else if (eventKey.Keycode == Key.S)
-            {
-                SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Scale;
-            }
-            else if (eventKey.Keycode == Key.G)
-            {
-                SelectionManager.TransformGizmo.UseLocalSpace = !SelectionManager.TransformGizmo.UseLocalSpace;
-            }
-            else if (eventKey.Keycode == Key.X)
-            {
-                // Delete selected object with X key
-                if (SelectionManager.Selection.Count > 0)
+            case InputEventMouseButton mouseEvent:
+                switch (mouseEvent.ButtonIndex)
                 {
-                    Main.GetInstance().UI.ShowDeleteConfirmationDialog();
+                    case MouseButton.Left when mouseEvent.Pressed:
+                        PerformDepthTest(mouseEvent.Position);
+                        break;
+                    case MouseButton.Right when mouseEvent.Pressed:
+                        Controlled = true;
+                        break;
+                    case MouseButton.Right when !mouseEvent.Pressed:
+                        Controlled = false;
+                        break;
                 }
+
+                break;
+            case InputEventKey { Pressed: true } eventKey:
+            {
+                if (Controlled) return;
+                switch (eventKey.Keycode)
+                {
+                    case Key.R:
+                        // Check if selected object can be rotated
+                        if (SelectionManager.Selection.Count > 0 && SelectionManager.Selection[0] is SceneObject rotatableObj && rotatableObj.Rotatable)
+                        {
+                            SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Rotate;
+                        }
+                        break;
+                    case Key.T:
+                        SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Move;
+                        break;
+                    case Key.S:
+                        // Only allow scale mode if selected object is scalable (not a camera)
+                        if (SelectionManager.Selection.Count > 0 && SelectionManager.Selection[0] is SceneObject scalableObj && scalableObj.Scalable)
+                        {
+                            SelectionManager.TransformGizmo.Mode = Gizmo3D.ToolMode.Scale;
+                        }
+                        break;
+                    case Key.G:
+                        SelectionManager.TransformGizmo.UseLocalSpace = !SelectionManager.TransformGizmo.UseLocalSpace;
+                        break;
+                    case Key.X:
+                    {
+                        // Delete selected object with X key
+                        if (SelectionManager.Selection.Count > 0)
+                        {
+                            Main.GetInstance().UI.ShowDeleteConfirmationDialog();
+                        }
+
+                        break;
+                    }
+                }
+
+                break;
             }
         }
     }
 
     private void PerformDepthTest(Vector2 mousePosition)
     {
-        if (SelectionManager.TransformGizmo.Hovering)
-        {
-            return;
-        }
+        if (SelectionManager.TransformGizmo.Hovering) return;
 
         // Get the image from the object picking viewport
         var image = ObjectPicking.GetTexture().GetImage();
@@ -390,42 +392,34 @@ public partial class MainViewport : SubViewport
         if (pixelColor.R > 0)
         {
             int objectId = Mathf.RoundToInt(pixelColor.R * 255f);
-            
-            if (Objects.TryGetValue(objectId, out var sceneObject))
-            {
-                SceneObject objectToSelect;
+
+            if (!Objects.TryGetValue(objectId, out var sceneObject)) return;
+            SceneObject objectToSelect;
                 
-                // If no other scene objects are selected, follow the parent chain and select the first scene object
-                if (SelectionManager.Selection.Count == 0)
-                {
-                    objectToSelect = FindFirstSceneObjectInChain(sceneObject);
-                }
-                else
-                {
-                    // If other objects are selected, select the clicked object directly
-                    objectToSelect = sceneObject;
-                }
+            // If no other scene objects are selected, follow the parent chain and select the first scene object
+            objectToSelect = SelectionManager.Selection.Count == 0 ? FindFirstSceneObjectInChain(sceneObject) :
+                // If other objects are selected, select the clicked object directly
+                sceneObject;
                 
-                // Select the object - convert from 1-based objectId to 0-based index
-                Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = objectToSelect.ID - 1;
+            // Select the object - convert from 1-based objectId to 0-based index
+            Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex = objectToSelect.ID - 1;
                 
-                // Update SelectionManager
-                SelectionManager.ClearSelection();
-                SelectionManager.Selection.Add(objectToSelect);
-                SelectionManager.TransformGizmo.Visible = true;
-                SelectionManager.TransformGizmo.Position = objectToSelect.Position;
-                SelectionManager.TransformGizmo.Select(objectToSelect);
-            }
+            // Update SelectionManager
+            SelectionManager.ClearSelection();
+            SelectionManager.Selection.Add(objectToSelect);
+            SelectionManager.TransformGizmo.Visible = true;
+            SelectionManager.TransformGizmo.Position = objectToSelect.Position;
+            SelectionManager.TransformGizmo.Select(objectToSelect);
         }
         else
         {
             // No object selected (clicked on background)
-            Main.GetInstance().UI.sceneTreePanel.SelectedObjectIndex = -1;
+            Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex = -1;
             SelectionManager.ClearSelection();
         }
     }
 
-    private SceneObject FindSceneObject(Node3D node)
+    private static SceneObject FindSceneObject(Node3D node)
     {
         // Traverse up the hierarchy to find a SceneObject
         var current = node;
@@ -440,7 +434,7 @@ public partial class MainViewport : SubViewport
         return null;
     }
 
-    private SceneObject FindFirstSceneObjectInChain(SceneObject sceneObject)
+    private static SceneObject FindFirstSceneObjectInChain(SceneObject sceneObject)
     {
         // Follow the parent chain upwards to find the first SceneObject (root of the hierarchy)
         var current = sceneObject;

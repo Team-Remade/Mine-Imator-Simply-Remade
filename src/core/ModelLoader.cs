@@ -39,21 +39,14 @@ public partial class ModelLoader : Node
         return rootBoneObject;
     }
 
-    private Skeleton3D FindSkeleton(Node node)
+    private static Skeleton3D FindSkeleton(Node node)
     {
         if (node is Skeleton3D skeleton)
         {
             return skeleton;
         }
 
-        foreach (Node child in node.GetChildren())
-        {
-            var foundSkeleton = FindSkeleton(child);
-            if (foundSkeleton != null)
-                return foundSkeleton;
-        }
-
-        return null;
+        return node.GetChildren().Select(FindSkeleton).FirstOrDefault(foundSkeleton => foundSkeleton != null);
     }
 
     private SceneObject ProcessBones(Skeleton3D skeleton, Node parent, string baseName)
@@ -107,17 +100,9 @@ public partial class ModelLoader : Node
             Node parentNode = parent;
 
             // If bone has a parent, use the parent's SceneObject
-            if (parentBoneId >= 0 && boneObjects.ContainsKey(parentBoneId))
+            if (parentBoneId >= 0 && boneObjects.TryGetValue(parentBoneId, out var o))
             {
-                parentNode = boneObjects[parentBoneId];
-            }
-
-            // Find meshes for this bone
-            var meshes = FindMeshesForBone(skeleton, boneId);
-            MeshInstance3D firstMesh = null;
-            if (meshes.Count > 0)
-            {
-                firstMesh = meshes[0];
+                parentNode = o;
             }
 
             // Create SceneObject for this bone using MainViewport's method
@@ -241,7 +226,7 @@ public partial class ModelLoader : Node
                 duplicatedMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
                 duplicatedMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
                 //duplicatedMat.Uv1Scale = new Vector3(1.01f, 1.01f, 1.01f);
-                newMeshInstance.Mesh.SurfaceSetMaterial(i, duplicatedMat);
+                newMeshInstance.Mesh?.SurfaceSetMaterial(i, duplicatedMat);
             }
 
             // Add to the bone object using AddVisuals
@@ -266,25 +251,12 @@ public partial class ModelLoader : Node
         FindAllMeshes(modelInstance, meshes);
 
         // First try: filter meshes that are influenced by this bone using skin data
-        var influencedMeshes = new List<MeshInstance3D>();
-        foreach (var mesh in meshes)
-        {
-            if (IsMeshInfluencedByBone(mesh, skeleton, boneId))
-            {
-                influencedMeshes.Add(mesh);
-            }
-        }
+        var influencedMeshes = meshes.Where(mesh => IsMeshInfluencedByBone(mesh, skeleton, boneId)).ToList();
 
         // Second try: if no skin-based matches, try name-based matching as fallback
         if (influencedMeshes.Count == 0)
         {
-            foreach (var mesh in meshes)
-            {
-                if (DoesMeshNameMatchBone(mesh.Name, boneName))
-                {
-                    influencedMeshes.Add(mesh);
-                }
-            }
+            influencedMeshes.AddRange(meshes.Where(mesh => DoesMeshNameMatchBone(mesh.Name, boneName)));
         }
 
         // Third try: if still no matches, attach all meshes to root bone
@@ -298,31 +270,17 @@ public partial class ModelLoader : Node
 
     private bool IsMeshInfluencedByBone(MeshInstance3D mesh, Skeleton3D skeleton, int boneId)
     {
-        var boneName = skeleton.GetBoneName(boneId);
-        
         // Check if the mesh has a skin
-        if (mesh.Skin == null)
-        {
-            return false;
-        }
+        if (mesh.Skin == null) return false;
 
         // Check if the mesh is using the correct skeleton
         var meshSkeletonPath = mesh.Skeleton;
-        if (meshSkeletonPath.IsEmpty)
-        {
-            return false;
-        }
+        if (meshSkeletonPath.IsEmpty) return false;
 
         var meshSkeleton = mesh.GetNodeOrNull<Skeleton3D>(meshSkeletonPath);
-        if (meshSkeleton == null)
-        {
-            return false;
-        }
+        if (meshSkeleton == null) return false;
 
-        if (meshSkeleton != skeleton)
-        {
-            return false;
-        }
+        if (meshSkeleton != skeleton) return false;
 
         // Get the skin resource
         var skin = mesh.Skin;
@@ -331,7 +289,6 @@ public partial class ModelLoader : Node
         for (int i = 0; i < skin.GetBindCount(); i++)
         {
             int skinBoneId = skin.GetBindBone(i);
-            string skinBoneName = skeleton.GetBoneName(skinBoneId);
             
             if (skinBoneId == boneId)
             {
@@ -364,16 +321,7 @@ public partial class ModelLoader : Node
             return meshInstance;
         }
 
-        foreach (Node child in attachment.GetChildren())
-        {
-            var foundMesh = FindMeshInAttachment(child, boneName);
-            if (foundMesh != null)
-            {
-                return foundMesh;
-            }
-        }
-
-        return null;
+        return attachment.GetChildren().Select(child => FindMeshInAttachment(child, boneName)).FirstOrDefault(foundMesh => foundMesh != null);
     }
 
     private void AttachMeshToBoneObject(MeshInstance3D mesh, SceneObject boneObject, Vector3 rotation)
@@ -404,7 +352,7 @@ public partial class ModelLoader : Node
             var duplicatedMat = (StandardMaterial3D)originalMat.Duplicate();
             duplicatedMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
             duplicatedMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
-            newMeshInstance.Mesh.SurfaceSetMaterial(i, duplicatedMat);
+            newMeshInstance.Mesh?.SurfaceSetMaterial(i, duplicatedMat);
         }
 
         // Add to the bone object
@@ -431,33 +379,28 @@ public partial class ModelLoader : Node
         foreach (var mesh in meshes)
         {
             // Try to find a bone with a matching name
-            bool attached = false;
             for (int boneId = 0; boneId < skeleton.GetBoneCount(); boneId++)
             {
                 var boneName = skeleton.GetBoneName(boneId);
-                if (DoesMeshNameMatchBone(mesh.Name, boneName) && boneObjects.ContainsKey(boneId))
+                if (!DoesMeshNameMatchBone(mesh.Name, boneName) || !boneObjects.TryGetValue(boneId, out var boneObject)) continue;
+                var newMeshInstance = new MeshInstance3D
                 {
-                    var boneObject = boneObjects[boneId];
-                    var newMeshInstance = new MeshInstance3D
-                    {
-                        Mesh = mesh.Mesh.Duplicate() as Mesh,
-                        Name = mesh.Name
-                    };
+                    Mesh = mesh.Mesh.Duplicate() as Mesh,
+                    Name = mesh.Name
+                };
 
-                    if (mesh.MaterialOverride != null)
-                    {
-                        // Create a duplicate of the material to avoid modifying the original
-                        var overrideMat = (StandardMaterial3D)mesh.MaterialOverride.Duplicate();
-                        overrideMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
-                        overrideMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
-                        newMeshInstance.MaterialOverride = overrideMat;
-                    }
-
-                    // Use zero rotation for meshes attached without specific attachment rotation
-                    AttachMeshToBoneObject(mesh, boneObject, Vector3.Zero);
-                    attached = true;
-                    break;
+                if (mesh.MaterialOverride != null)
+                {
+                    // Create a duplicate of the material to avoid modifying the original
+                    var overrideMat = (StandardMaterial3D)mesh.MaterialOverride.Duplicate();
+                    overrideMat.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                    overrideMat.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                    newMeshInstance.MaterialOverride = overrideMat;
                 }
+
+                // Use zero rotation for meshes attached without specific attachment rotation
+                AttachMeshToBoneObject(mesh, boneObject, Vector3.Zero);
+                break;
             }
         }
     }

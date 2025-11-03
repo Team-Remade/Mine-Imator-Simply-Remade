@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using ImGuiNET;
 using Godot;
 using ImGuiGodot;
@@ -19,18 +20,25 @@ public class SpawnObjectsMenu
     private int _selectedItemIndex = -1;
     private bool _use3DMode = true;
     private int _selectedTextureSheet = 0; // 0 = Item, 1 = Terrain
-    private string[] _textureSheets = { "Item Sheet", "Terrain Sheet" };
-    private string[] _categories = { "Character", "Item", "Block", "Camera" };
-    private string[] _allCharacters = { "Steve", "Balloonicorn", "PyroBaby" };
-    private ModelLoader _modelLoader = new ModelLoader();
+    private string[] _textureSheets = ["Item Sheet", "Terrain Sheet"];
+    private string[] _categories = ["Character", "Item", "Block", "Light Source", "Camera"];
+    private string[] _allCharacters = ["Steve", "Balloonicorn", "PyroBaby"];
+    private ModelLoader _modelLoader = new();
+    
+    // Steve skin options
+    private int _selectedSteveSkinIndex = 0;
+    private readonly string[] _steveSkinOptions = ["Default Steve", "Herobrine", "Jack Black Steve", "Custom Skin"];
+    private string _customSkinFilePath = "";
+    private Texture2D _customSkinTexture;
+    private string _pendingCustomSkinPath = null;
     
     // Available blocks with their texture definitions
-    private Dictionary<string, object> _availableBlocks = new Dictionary<string, object>()
+    private Dictionary<string, object> _availableBlocks = new()
     {
         { "Stone Block", "tile001" },
         { "Dirt Block", "tile002" },
         { "Cobblestone Block", "tile016" },
-        { "Grass Block", new Dictionary<string, string>() {
+        { "Grass Block", new Dictionary<string, string> {
             { "top", "tile040" },
             { "bottom", "tile002" },
             { "front", "tile003" },
@@ -39,10 +47,10 @@ public class SpawnObjectsMenu
             { "right", "tile003" }
         }},
         { "Wood Planks", "tile004" },
-        { "Sapling", new Dictionary<string, object>() {
+        { "Sapling", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cross.obj" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Oak", "tile015" },
                 { "Spruce", "tile0063" },
                 { "Birch", "tile079" },
@@ -57,10 +65,10 @@ public class SpawnObjectsMenu
         { "Gold Ore", "tile032" },
         { "Iron Ore", "tile033" },
         { "Coal Ore", "tile034" },
-        { "Log", new Dictionary<string, object>() {
+        { "Log", new Dictionary<string, object> {
             { "type", "multi_texture" },
-            { "variants", new Dictionary<string, Dictionary<string, string>>() {
-                { "Oak", new Dictionary<string, string>() {
+            { "variants", new Dictionary<string, Dictionary<string, string>> {
+                { "Oak", new Dictionary<string, string> {
                     { "top", "tile021" },
                     { "bottom", "tile021" },
                     { "front", "tile020" },
@@ -68,7 +76,7 @@ public class SpawnObjectsMenu
                     { "left", "tile020" },
                     { "right", "tile020" }
                 }},
-                { "Spruce", new Dictionary<string, string>() {
+                { "Spruce", new Dictionary<string, string> {
                     { "top", "tile021" },
                     { "bottom", "tile021" },
                     { "front", "tile116" },
@@ -76,7 +84,7 @@ public class SpawnObjectsMenu
                     { "left", "tile116" },
                     { "right", "tile116" }
                 }},
-                { "Birch", new Dictionary<string, string>() {
+                { "Birch", new Dictionary<string, string> {
                     { "top", "tile021" },
                     { "bottom", "tile021" },
                     { "front", "tile117" },
@@ -84,7 +92,7 @@ public class SpawnObjectsMenu
                     { "left", "tile117" },
                     { "right", "tile117" }
                 }},
-                { "Jungle", new Dictionary<string, string>() {
+                { "Jungle", new Dictionary<string, string> {
                     { "top", "tile021" },
                     { "bottom", "tile021" },
                     { "front", "tile153" },
@@ -99,7 +107,7 @@ public class SpawnObjectsMenu
         { "Glass", "tile049" },
         { "Lapis Ore", "tile160" },
         { "Lapis Block", "tile144" },
-        { "Dispenser", new Dictionary<string, string>() {
+        { "Dispenser", new Dictionary<string, string> {
             { "top", "tile062" },
             { "bottom", "tile062" },
             { "front", "tile046" },
@@ -107,7 +115,7 @@ public class SpawnObjectsMenu
             { "left", "tile045" },
             { "right", "tile045" }
         }},
-        { "Sandstone", new Dictionary<string, string>() {
+        { "Sandstone", new Dictionary<string, string> {
             { "top", "tile176" },
             { "bottom", "tile208" },
             { "front", "tile192" },
@@ -116,21 +124,21 @@ public class SpawnObjectsMenu
             { "right", "tile192" }
         }},
         { "Note Block", "tile074" },
-        { "Bed", new Dictionary<string, object>() {
+        { "Bed", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Bed.glb" }
         }},
-        { "Powered Rail", new Dictionary<string, object>() {
+        { "Powered Rail", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Flat.obj" },
             { "texture", "tile163" }
         }},
-        { "Detector Rail", new Dictionary<string, object>() {
+        { "Detector Rail", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Flat.obj" },
             { "texture", "tile195" }
         }},
-        { "Sticky Piston", new Dictionary<string, string>() {
+        { "Sticky Piston", new Dictionary<string, string> {
             { "top", "tile062" },
             { "bottom", "tile188" },
             { "front", "tile170" },
@@ -138,7 +146,7 @@ public class SpawnObjectsMenu
             { "left", "tile170" },
             { "right", "tile170" }
         }},
-        { "Piston", new Dictionary<string, string>() {
+        { "Piston", new Dictionary<string, string> {
             { "top", "tile062" },
             { "bottom", "tile172" },
             { "front", "tile170" },
@@ -146,23 +154,23 @@ public class SpawnObjectsMenu
             { "left", "tile170" },
             { "right", "tile170" }
         }},
-        { "Cobweb", new Dictionary<string, object>() {
+        { "Cobweb", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cross.obj" },
             { "texture", "tile011" }
         }},
-        { "Tall Grass", new Dictionary<string, object>() {
+        { "Tall Grass", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cross.obj" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Dead Bush", "tile055" },
                 { "Grass", "tile039" },
                 { "Fern", "tile056" }
             }}
         }},
-        { "Wool", new Dictionary<string, object>() {
+        { "Wool", new Dictionary<string, object> {
             { "type", "textured_block" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "White", "tile064" },
                 { "Orange", "tile210" },
                 { "Magenta", "tile194" },
@@ -181,35 +189,35 @@ public class SpawnObjectsMenu
                 { "Black", "tile113" }
             }}
         }},
-        { "Small Flower", new Dictionary<string, object>() {
+        { "Small Flower", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cross.obj" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Dandelion", "tile013" },
                 { "Rose", "tile012" }
             }}
         }},
-        { "Small Mushroom", new Dictionary<string, object>() {
+        { "Small Mushroom", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cross.obj" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Red", "tile028" },
                 { "Brown", "tile029" }
             }}
         }},
-        { "Large Mushroom", new Dictionary<string, object>() {
+        { "Large Mushroom", new Dictionary<string, object> {
             { "type", "textured_block" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Red", "tile125" },
                 { "Brown", "tile126" }
             }}
         }},
         { "Gold Block", "tile023" },
         { "Iron Block", "tile022" },
-        { "Double slab", new Dictionary<string, object>() {
+        { "Double slab", new Dictionary<string, object> {
             { "type", "multi_texture" },
-            { "variants", new Dictionary<string, Dictionary<string, string>>() {
-                { "Smooth Stone", new Dictionary<string, string>() {
+            { "variants", new Dictionary<string, Dictionary<string, string>> {
+                { "Smooth Stone", new Dictionary<string, string> {
                     { "top", "tile006" },
                     { "bottom", "tile006" },
                     { "front", "tile005" },
@@ -217,7 +225,7 @@ public class SpawnObjectsMenu
                     { "left", "tile005" },
                     { "right", "tile005" }
                 }},
-                { "Sandstone", new Dictionary<string, string>() {
+                { "Sandstone", new Dictionary<string, string> {
                     { "top", "tile176" },
                     { "bottom", "tile208" },
                     { "front", "tile240" },
@@ -225,7 +233,7 @@ public class SpawnObjectsMenu
                     { "left", "tile240" },
                     { "right", "tile240" }
                 }},
-                { "Planks", new Dictionary<string, string>() {
+                { "Planks", new Dictionary<string, string> {
                     { "top", "tile004" },
                     { "bottom", "tile004" },
                     { "front", "tile004" },
@@ -233,7 +241,7 @@ public class SpawnObjectsMenu
                     { "left", "tile004" },
                     { "right", "tile004" }
                 }},
-                { "Cobblestone", new Dictionary<string, string>() {
+                { "Cobblestone", new Dictionary<string, string> {
                     { "top", "tile016" },
                     { "bottom", "tile016" },
                     { "front", "tile016" },
@@ -241,7 +249,7 @@ public class SpawnObjectsMenu
                     { "left", "tile016" },
                     { "right", "tile016" }
                 }},
-                { "Bricks", new Dictionary<string, string>() {
+                { "Bricks", new Dictionary<string, string> {
                     { "top", "tile007" },
                     { "bottom", "tile007" },
                     { "front", "tile007" },
@@ -253,7 +261,7 @@ public class SpawnObjectsMenu
             { "half_slab", true }
         }},
         { "Bricks", "tile007" },
-        { "TNT", new Dictionary<string, string>() {
+        { "TNT", new Dictionary<string, string> {
             { "top", "tile009" },
             { "bottom", "tile010" },
             { "front", "tile008" },
@@ -261,7 +269,7 @@ public class SpawnObjectsMenu
             { "left", "tile008" },
             { "right", "tile008" }
         }},
-        { "Bookshelf", new Dictionary<string, string>() {
+        { "Bookshelf", new Dictionary<string, string> {
             { "top", "tile004" },
             { "bottom", "tile004" },
             { "front", "tile035" },
@@ -271,12 +279,12 @@ public class SpawnObjectsMenu
         }},
         { "Moss Stone", "tile036" },
         { "Obsidian", "tile037" },
-        { "Torch", new Dictionary<string, object>() {
+        { "Torch", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "TorchMesh.glb" },
             { "wall_mesh", "TorchWallMesh.glb" }
         }},
-        { "Redstone Torch", new Dictionary<string, object>() {
+        { "Redstone Torch", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "TorchMesh.glb" },
             { "wall_mesh", "TorchWallMesh.glb" },
@@ -284,10 +292,10 @@ public class SpawnObjectsMenu
             { "unpowered_texture", "tile115" }
         }},
         { "Spawner", "tile065" },
-        { "Stair", new Dictionary<string, object>() {
+        { "Stair", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Stair.glb" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Wooden", "tile004" },
                 { "Cobblestone", "tile016" },
                 { "Brick", "tile007" },
@@ -297,7 +305,7 @@ public class SpawnObjectsMenu
         }},
         { "Diamond Ore", "tile050" },
         { "Diamond Block", "tile024" },
-        { "Crafting Table", new Dictionary<string, string>() {
+        { "Crafting Table", new Dictionary<string, string> {
             { "top", "tile043" },
             { "bottom", "tile004" },
             { "front", "tile059" },
@@ -305,7 +313,7 @@ public class SpawnObjectsMenu
             { "left", "tile059" },
             { "right", "tile060" }
         }},
-        { "Farmland", new Dictionary<string, string>() {
+        { "Farmland", new Dictionary<string, string> {
             { "top", "tile087" },
             { "bottom", "tile002" },
             { "front", "tile002" },
@@ -313,9 +321,9 @@ public class SpawnObjectsMenu
             { "left", "tile002" },
             { "right", "tile002" }
         }},
-        { "Furnace", new Dictionary<string, object>() {
+        { "Furnace", new Dictionary<string, object> {
             { "type", "multi_texture" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "top", "tile062" },
                 { "bottom", "tile062" },
                 { "front", "tile044" },
@@ -323,29 +331,29 @@ public class SpawnObjectsMenu
                 { "left", "tile045" },
                 { "right", "tile045" }
             }},
-            { "burning_textures", new Dictionary<string, string>() {
+            { "burning_textures", new Dictionary<string, string> {
                 { "front", "tile061" }
             }},
             { "burning", false }
         }},
-        { "Door", new Dictionary<string, object>() {
+        { "Door", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "OakDoor.glb" },
-            { "variants", new Dictionary<string, string>() {
+            { "variants", new Dictionary<string, string> {
                 { "Oak", "OakDoor.glb" },
                 { "Iron", "IronDoor.glb" },
                 { "Trapdoor", "Trapdoor.glb" },
             }}
         }},
-        { "Rail", new Dictionary<string, object>() {
+        { "Rail", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Flat.obj" },
             { "texture", "tile216" }
         }},
-        { "Pressure Plate", new Dictionary<string, object>() {
+        { "Pressure Plate", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Plate.obj" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Stone", "tile001" },
                 { "Wood", "tile004" }
             }}
@@ -353,17 +361,17 @@ public class SpawnObjectsMenu
         { "Redstone Ore", "tile051" },
         { "Ice", "tile067" },
         { "Snow Block", "tile066" },
-        { "Cactus", new Dictionary<string, object>() {
+        { "Cactus", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cactus.glb" }
         }},
         { "Clay", "tile072" },
-        { "Sugar Cane", new Dictionary<string, object>() {
+        { "Sugar Cane", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cross.obj" },
             { "texture", "tile073" }
         }},
-        { "Jukebox", new Dictionary<string, string>() {
+        { "Jukebox", new Dictionary<string, string> {
             { "top", "tile075" },
             { "bottom", "tile074" },
             { "front", "tile074" },
@@ -371,15 +379,15 @@ public class SpawnObjectsMenu
             { "left", "tile074" },
             { "right", "tile074" }
         }},
-        { "Fence", new Dictionary<string, object>() {
+        { "Fence", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Post.obj" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Wood", "tile004" },
                 { "Netherbrick", "tile226" }
             }}
         }},
-        { "Pumpkin", new Dictionary<string, string>() {
+        { "Pumpkin", new Dictionary<string, string> {
             { "top", "tile102" },
             { "bottom", "tile102" },
             { "front", "tile119" },
@@ -387,7 +395,7 @@ public class SpawnObjectsMenu
             { "left", "tile118" },
             { "right", "tile118" }
         }},
-        { "Jack-O-Lantern", new Dictionary<string, string>() {
+        { "Jack-O-Lantern", new Dictionary<string, string> {
             { "top", "tile102" },
             { "bottom", "tile102" },
             { "front", "tile120" },
@@ -398,12 +406,12 @@ public class SpawnObjectsMenu
         { "Netherrack", "tile103" },
         { "Soul Sand", "tile104" },
         { "Glowstone", "tile105" },
-        { "Cake", new Dictionary<string, object>() {
+        { "Cake", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Cake.glb" }
         }},
         { "Stone Bricks", "tile054" },
-        { "Melon", new Dictionary<string, string>() {
+        { "Melon", new Dictionary<string, string> {
             { "top", "tile137" },
             { "bottom", "tile137" },
             { "front", "tile136" },
@@ -411,7 +419,7 @@ public class SpawnObjectsMenu
             { "left", "tile136" },
             { "right", "tile136" }
         }},
-        { "Mycelium", new Dictionary<string, string>() {
+        { "Mycelium", new Dictionary<string, string> {
             { "top", "tile078" },
             { "bottom", "tile002" },
             { "front", "tile077" },
@@ -419,16 +427,16 @@ public class SpawnObjectsMenu
             { "left", "tile077" },
             { "right", "tile077" }
         }},
-        { "Lily Pad", new Dictionary<string, object>() {
+        { "Lily Pad", new Dictionary<string, object> {
             { "type", "model" },
             { "mesh", "Flat.obj" },
             { "texture", "tile076" }
         }},
         { "Nether Bricks", "tile226" },
         { "End Stone", "tile175" },
-        { "Redstone Lamp", new Dictionary<string, object>() {
+        { "Redstone Lamp", new Dictionary<string, object> {
             { "type", "textured_block" },
-            { "textures", new Dictionary<string, string>() {
+            { "textures", new Dictionary<string, string> {
                 { "Unpowered", "tile242" },
                 { "Powered", "tile241" }
             }},
@@ -437,35 +445,36 @@ public class SpawnObjectsMenu
     };
     private int _selectedBlockIndex = -1;
     private int _selectedSaplingTypeIndex = 0;
-    private string[] _saplingTypes = { "Oak", "Spruce", "Birch", "Jungle" };
+    private string[] _saplingTypes = ["Oak", "Spruce", "Birch", "Jungle"];
     private int _selectedLogTypeIndex = 0;
-    private string[] _logTypes = { "Oak", "Spruce", "Birch", "Jungle" };
+    private string[] _logTypes = ["Oak", "Spruce", "Birch", "Jungle"];
     private int _selectedSlabTypeIndex = 0;
-    private string[] _slabTypes = { "Smooth Stone", "Sandstone", "Planks", "Cobblestone", "Bricks" };
+    private string[] _slabTypes = ["Smooth Stone", "Sandstone", "Planks", "Cobblestone", "Bricks"];
     private bool _halfSlab = true;
     private bool _useWallTorch = false;
     private bool _redstoneTorchPowered = true;
     private bool _redstoneLampPowered = false;
     private int _selectedGrassTypeIndex = 0;
-    private string[] _grassTypes = { "Dead Bush", "Grass", "Fern" };
+    private string[] _grassTypes = ["Dead Bush", "Grass", "Fern"];
     private int _selectedWoolColorIndex = 0;
-    private string[] _woolColors = { "White", "Orange", "Magenta", "Light Blue", "Yellow", "Lime", "Pink", "Gray", "Light Gray", "Cyan", "Purple", "Blue", "Brown", "Green", "Red", "Black" };
+    private string[] _woolColors = ["White", "Orange", "Magenta", "Light Blue", "Yellow", "Lime", "Pink", "Gray", "Light Gray", "Cyan", "Purple", "Blue", "Brown", "Green", "Red", "Black"
+    ];
     private int _selectedFlowerTypeIndex = 0;
-    private string[] _flowerTypes = { "Dandelion", "Rose" };
+    private string[] _flowerTypes = ["Dandelion", "Rose"];
     private int _selectedMushroomTypeIndex = 0;
-    private string[] _mushroomTypes = { "Red", "Brown" };
+    private string[] _mushroomTypes = ["Red", "Brown"];
     private int _selectedLargeMushroomTypeIndex = 0;
-    private string[] _largeMushroomTypes = { "Red", "Brown" };
+    private string[] _largeMushroomTypes = ["Red", "Brown"];
     private int _selectedStairTypeIndex = 0;
-    private string[] _stairTypes = { "Wooden", "Cobblestone", "Brick", "Stone Brick", "Netherbrick" };
+    private string[] _stairTypes = ["Wooden", "Cobblestone", "Brick", "Stone Brick", "Netherbrick"];
     private bool _farmlandHydrated = false;
     private bool _furnaceBurning = false;
     private int _selectedDoorTypeIndex = 0;
-    private string[] _doorTypes = { "Oak", "Iron", "Trapdoor" };
+    private string[] _doorTypes = ["Oak", "Iron", "Trapdoor"];
     private int _selectedPressurePlateTypeIndex = 0;
-    private string[] _pressurePlateTypes = { "Stone", "Wood" };
+    private string[] _pressurePlateTypes = ["Stone", "Wood"];
     private int _selectedFenceTypeIndex = 0;
-    private string[] _fenceTypes = { "Wood", "Netherbrick" };
+    private string[] _fenceTypes = ["Wood", "Netherbrick"];
 
     public void Render()
     {
@@ -484,13 +493,13 @@ public class SpawnObjectsMenu
             var contentRegion = ImGui.GetContentRegionAvail();
             
             // Create two panels side by side
-            ImGui.BeginChild("##LeftPanel", new Vector2(contentRegion.X * 0.3f, contentRegion.Y), ImGuiChildFlags.None, ImGuiWindowFlags.None);
+            ImGui.BeginChild("##LeftPanel", contentRegion with { X = contentRegion.X * 0.3f }, ImGuiChildFlags.None, ImGuiWindowFlags.None);
             RenderCategoriesPanel();
             ImGui.EndChild();
 
             ImGui.SameLine();
 
-            ImGui.BeginChild("##RightPanel", new Vector2(contentRegion.X * 0.7f, contentRegion.Y), ImGuiChildFlags.None, ImGuiWindowFlags.None);
+            ImGui.BeginChild("##RightPanel", contentRegion with { X = contentRegion.X * 0.7f }, ImGuiChildFlags.None, ImGuiWindowFlags.None);
             RenderContentPanel();
             ImGui.EndChild();
         }
@@ -558,7 +567,10 @@ public class SpawnObjectsMenu
             case 2: // Block
                 RenderBlockContent();
                 break;
-            case 3: // Camera
+            case 3: // Light Source
+                RenderLightSourceContent();
+                break;
+            case 4: // Camera
                 RenderCameraContent();
                 break;
             default:
@@ -589,11 +601,11 @@ public class SpawnObjectsMenu
             ? _allCharacters
             : Array.FindAll(_allCharacters, c => c.ToLower().Contains(_searchText.ToLower()));
         
-        for (int i = 0; i < filteredCharacters.Length; i++)
+        foreach (var t in filteredCharacters)
         {
-            if (ImGui.Selectable(filteredCharacters[i], _selectedCharacterIndex == Array.IndexOf(_allCharacters, filteredCharacters[i])))
+            if (ImGui.Selectable(t, _selectedCharacterIndex == Array.IndexOf(_allCharacters, t)))
             {
-                _selectedCharacterIndex = Array.IndexOf(_allCharacters, filteredCharacters[i]);
+                _selectedCharacterIndex = Array.IndexOf(_allCharacters, t);
             }
         }
 
@@ -603,12 +615,87 @@ public class SpawnObjectsMenu
         ImGui.Separator();
         ImGui.Spacing();
 
-        // Texture dropdown (placeholder)
-        ImGui.Text("Texture");
-        int textureIndex = 0;
-        string[] textureOptions = { "Default Texture" };
-        ImGui.SetNextItemWidth(-1);
-        ImGui.Combo("##TextureSelect", ref textureIndex, textureOptions, textureOptions.Length);
+        // Handle pending custom skin loading
+        if (!string.IsNullOrEmpty(_pendingCustomSkinPath))
+        {
+            if (System.IO.File.Exists(_pendingCustomSkinPath))
+            {
+                _customSkinFilePath = _pendingCustomSkinPath;
+                
+                // Use Image.Load for custom skin files from the file system
+                var image = new Image();
+                var loadResult = image.Load(_pendingCustomSkinPath);
+                if (loadResult == Error.Ok)
+                {
+                    _customSkinTexture = ImageTexture.CreateFromImage(image);
+                }
+                else
+                {
+                    GD.PrintErr($"Failed to load custom skin image: {_pendingCustomSkinPath}");
+                    _customSkinTexture = null;
+                }
+            }
+            _pendingCustomSkinPath = null;
+        }
+
+        // Character texture selection
+        if (_selectedCharacterIndex == 0) // Steve selected
+        {
+            ImGui.Text("Steve Skin");
+            ImGui.SetNextItemWidth(-1);
+            if (ImGui.Combo("##SteveSkinSelect", ref _selectedSteveSkinIndex, _steveSkinOptions, _steveSkinOptions.Length))
+            {
+                // Reset custom skin when changing selection
+                if (_selectedSteveSkinIndex != 3) // Not Custom Skin
+                {
+                    _customSkinFilePath = "";
+                    _customSkinTexture = null;
+                }
+            }
+            
+            // Show file picker for custom skin
+            if (_selectedSteveSkinIndex == 3) // Custom Skin selected
+            {
+                ImGui.Spacing();
+                ImGui.Text("Custom Skin File:");
+                ImGui.SetNextItemWidth(-1);
+                ImGui.InputText("##CustomSkinPath", ref _customSkinFilePath, 512);
+                
+                //ImGui.SameLine();
+                if (ImGui.Button("Browse"))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        var imagePath = await util.FileDialog.ShowOpenDialogAsync("Select Skin Image", "PNG Images|*.png|JPG Images|*.jpg|All Files|*.*");
+                        if (!string.IsNullOrEmpty(imagePath) && System.IO.File.Exists(imagePath))
+                        {
+                            _pendingCustomSkinPath = imagePath;
+                        }
+                    });
+                }
+                
+                // Show preview of custom skin
+                if (_customSkinTexture != null)
+                {
+                    ImGui.Spacing();
+                    ImGui.Text("Preview:");
+                    var previewSize = new Vector2(64, 64);
+                    ImGuiGD.Image(_customSkinTexture, previewSize);
+                    if (ImGui.IsItemHovered())
+                    {
+                        ImGui.SetTooltip("Custom skin preview");
+                    }
+                }
+            }
+        }
+        else
+        {
+            ImGui.Text("Texture");
+            int textureIndex = 0;
+            string[] textureOptions = { "Default Texture" };
+            ImGui.SetNextItemWidth(-1);
+            ImGui.Combo("##TextureSelect", ref textureIndex, textureOptions, textureOptions.Length);
+        }
 
         ImGui.Spacing();
         ImGui.Separator();
@@ -634,7 +721,134 @@ public class SpawnObjectsMenu
 
         var characterName = _allCharacters[_selectedCharacterIndex];
         
-        SpawnModel(characterName);
+        if (characterName == "Steve")
+        {
+            SpawnSteveWithSkin();
+        }
+        else
+        {
+            SpawnModel(characterName);
+        }
+    }
+
+    private void SpawnSteveWithSkin()
+    {
+        // Determine which skin texture to use
+        Texture2D skinTexture = null;
+        string skinName = "";
+        
+        switch (_selectedSteveSkinIndex)
+        {
+            case 0: // Default Steve
+                skinName = "Default Steve";
+                skinTexture = ResourceLoader.Load<Texture2D>("res://assets/sprite/character/steve/Steve_steve.png");
+                break;
+            case 1: // Herobrine
+                skinName = "Herobrine";
+                skinTexture = ResourceLoader.Load<Texture2D>("res://assets/sprite/character/steve/herobrine.png");
+                break;
+            case 2: // Jack Black Steve
+                skinName = "Jack Black Steve";
+                skinTexture = ResourceLoader.Load<Texture2D>("res://assets/sprite/character/steve/jackblacksteve.png");
+                break;
+            case 3: // Custom Skin
+                skinName = "Custom";
+                skinTexture = _customSkinTexture;
+                break;
+        }
+        
+        // Load the Steve model using the original ModelLoader approach
+        // First, get the count of existing Steve objects
+        var main = Main.GetInstance();
+        int existingSteveCount = 0;
+        if (main?.MainViewport?.World != null)
+        {
+            foreach (var child in main.MainViewport.World.GetChildren())
+            {
+                if (child is SceneObject sceneObject)
+                {
+                    var objectName = sceneObject.Name.ToString();
+                    if (objectName.Contains("Steve") && !objectName.Contains("Wrapper"))
+                    {
+                        existingSteveCount++;
+                    }
+                }
+            }
+        }
+        
+        // Spawn the new Steve
+        SpawnModel("Steve");
+        
+        // Find the newly spawned Steve model and apply the custom skin
+        // Look for the Steve object that was just added (the one that makes the count increase)
+        if (main?.MainViewport?.World == null) return;
+        {
+            int currentSteveCount = 0;
+            SceneObject newlySpawnedSteve = null;
+            
+            foreach (var child in main.MainViewport.World.GetChildren())
+            {
+                if (child is not SceneObject sceneObject) continue;
+                var objectName = sceneObject.Name.ToString();
+                if (!objectName.Contains("Steve") || objectName.Contains("Wrapper")) continue;
+                currentSteveCount++;
+                // The newly spawned Steve is the one that makes count > existing count
+                if (currentSteveCount <= existingSteveCount) continue;
+                newlySpawnedSteve = sceneObject;
+                break;
+            }
+            
+            // Apply skin only to the newly spawned Steve
+            if (newlySpawnedSteve != null)
+            {
+                ApplySkinToSceneObject(newlySpawnedSteve, skinTexture, skinName);
+            }
+            else
+            {
+                GD.PrintErr("Could not find the newly spawned Steve");
+            }
+        }
+    }
+    
+    private void ApplySkinToSceneObject(SceneObject sceneObject, Texture2D skinTexture, string skinName)
+    {
+        if (skinTexture == null)
+            return;
+            
+        // Collect all MeshInstance3D nodes from the scene object and apply skin texture
+        var meshInstances = new List<MeshInstance3D>();
+        FindAllMeshInstances(sceneObject, meshInstances);
+        
+        if (meshInstances.Count == 0)
+        {
+            GD.PrintErr($"Steve scene object does not contain any MeshInstance3D");
+            return;
+        }
+        
+        // Apply skin texture to all mesh instances with independent materials
+        foreach (var meshInst in meshInstances)
+        {
+            if (meshInst.Mesh == null) continue;
+            // Duplicate the mesh to avoid modifying the original resource
+            var duplicatedMesh = meshInst.Mesh.Duplicate() as Mesh;
+            meshInst.Mesh = duplicatedMesh;
+                
+            // Create a unique material for each mesh to avoid sharing
+            var skinMaterial = new StandardMaterial3D();
+            skinMaterial.AlbedoTexture = skinTexture;
+            skinMaterial.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
+            skinMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+            skinMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                
+            // Apply the material to all surfaces
+            for (int i = 0; i < duplicatedMesh?.GetSurfaceCount(); i++)
+            {
+                duplicatedMesh.SurfaceSetMaterial(i, skinMaterial);
+            }
+        }
+        
+        // Update the scene object name to reflect the skin
+        sceneObject.Name = $"Steve_{skinName}";
     }
 
     private void RenderItemContent()
@@ -865,11 +1079,11 @@ public class SpawnObjectsMenu
             ? blockNames
             : Array.FindAll(blockNames, block => block.ToLower().Contains(_searchText.ToLower()));
         
-        for (int i = 0; i < filteredBlocks.Length; i++)
+        foreach (var t in filteredBlocks)
         {
-            if (ImGui.Selectable(filteredBlocks[i], _selectedBlockIndex == Array.IndexOf(blockNames, filteredBlocks[i])))
+            if (ImGui.Selectable(t, _selectedBlockIndex == Array.IndexOf(blockNames, t)))
             {
-                _selectedBlockIndex = Array.IndexOf(blockNames, filteredBlocks[i]);
+                _selectedBlockIndex = Array.IndexOf(blockNames, t);
             }
         }
         
@@ -1110,6 +1324,33 @@ public class SpawnObjectsMenu
         }
     }
 
+    private void RenderLightSourceContent()
+    {
+        ImGui.Text("Light Sources");
+        ImGui.Separator();
+        
+        ImGui.Text("Available Light Types");
+        ImGui.Separator();
+        
+        // Point Light option
+        ImGui.Text("Point Light");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Spawns a point light at the current viewport position");
+        }
+        
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+        
+        // Create button at the bottom
+        if (ImGui.Button("Create", new Vector2(-1, 30)))
+        {
+            Main.GetInstance().UI.ShowSpawnMenu = false;
+            SpawnLightSource();
+        }
+    }
+
     private void SpawnCamera()
     {
         var main = Main.GetInstance();
@@ -1141,6 +1382,19 @@ public class SpawnObjectsMenu
         main.UI.UpdateAvailableCameras();
     }
 
+    private void SpawnLightSource()
+    {
+        var main = Main.GetInstance();
+        if (main?.MainViewport == null)
+        {
+            GD.PrintErr("Main viewport is not available");
+            return;
+        }
+        
+        // Use MainViewport to create SceneObject of type PointLight
+        var sceneObject = main.MainViewport.CreateSceneObject(SceneObject.Type.PointLight, null, "Point Light");
+    }
+
     private void SpawnSelectedBlock()
     {
         if (_selectedBlockIndex < 0)
@@ -1164,506 +1418,489 @@ public class SpawnObjectsMenu
         var textureDef = _availableBlocks[blockName];
         
         MeshInstance3D meshInstance;
-        
-        // Handle different texture types
-        if (textureDef is string singleTextureName)
+
+        switch (textureDef)
         {
-            // Single texture for all faces
-            if (!Main.GetInstance().TerrainTextures.TryGetValue(singleTextureName, out var tileTexture))
+            // Handle different texture types
+            case string singleTextureName:
             {
-                GD.PrintErr($"Texture {singleTextureName} not found in terrain textures");
-                return;
-            }
-            
-            // Create custom cube mesh with the texture
-            var mesh = CreateCustomCubeMesh(tileTexture);
-            meshInstance = new MeshInstance3D();
-            meshInstance.Mesh = mesh;
-        }
-        else if (textureDef is Dictionary<string, string> multiTextures)
-        {
-            // Multi-texture block (like Grass)
-            if (!Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["top"], out var topTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["bottom"], out var bottomTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["front"], out var frontTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["back"], out var backTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["left"], out var leftTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["right"], out var rightTexture))
-            {
-                GD.PrintErr("One or more grass textures not found in terrain textures");
-                return;
-            }
-            
-            // Create appropriate mesh based on block type
-            ArrayMesh blockMesh;
-            
-            // For Farmland, check hydration status and use tile086 for top if hydrated
-            if (blockName == "Farmland" && _farmlandHydrated)
-            {
-                if (Main.GetInstance().TerrainTextures.TryGetValue("tile086", out var hydratedTopTexture))
+                // Single texture for all faces
+                if (!Main.GetInstance().TerrainTextures.TryGetValue(singleTextureName, out var tileTexture))
                 {
-                    topTexture = hydratedTopTexture;
-                }
-                else
-                {
-                    GD.PrintErr("Hydrated farmland texture tile086 not found");
-                }
-            }
-            
-            if (blockName == "Farmland")
-            {
-                blockMesh = CreateFarmlandMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
-            }
-            else
-            {
-                blockMesh = CreateGrassBlockMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
-            }
-            meshInstance = new MeshInstance3D();
-            meshInstance.Mesh = blockMesh;
-        }
-        else if (textureDef is Dictionary<string, object> furnaceDef && blockName == "Furnace")
-        {
-            // Handle Furnace block with burning state
-            if (!furnaceDef.ContainsKey("textures") || furnaceDef["textures"] is not Dictionary<string, string> textures)
-            {
-                GD.PrintErr("Textures not found or invalid format for furnace");
-                return;
-            }
-            
-            if (!Main.GetInstance().TerrainTextures.TryGetValue(textures["top"], out var topTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["back"], out var backTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["right"], out var rightTexture))
-            {
-                GD.PrintErr("One or more furnace textures not found in terrain textures");
-                return;
-            }
-            
-            // Check if burning is enabled and use burning texture for front face
-            if (_furnaceBurning && furnaceDef.ContainsKey("burning_textures") && furnaceDef["burning_textures"] is Dictionary<string, string> burningTextures)
-            {
-                if (burningTextures.ContainsKey("front") && Main.GetInstance().TerrainTextures.TryGetValue(burningTextures["front"], out var burningFrontTexture))
-                {
-                    frontTexture = burningFrontTexture;
-                }
-            }
-            
-            // Create grass block mesh with the appropriate textures
-            var blockMesh = CreateGrassBlockMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
-            meshInstance = new MeshInstance3D();
-            meshInstance.Mesh = blockMesh;
-        }
-        else if (textureDef is Dictionary<string, object> multiTextureDef && multiTextureDef.ContainsKey("type") && multiTextureDef["type"] as string == "multi_texture")
-        {
-            // Multi-texture block with variants (like Log or Double slab)
-            if (!multiTextureDef.ContainsKey("variants") || multiTextureDef["variants"] is not Dictionary<string, Dictionary<string, string>> variants)
-            {
-                GD.PrintErr("Variants not found or invalid format for multi-texture block");
-                return;
-            }
-
-            string selectedType;
-            if (blockName == "Log")
-            {
-                selectedType = _logTypes[_selectedLogTypeIndex];
-            }
-            else if (blockName == "Double slab")
-            {
-                selectedType = _slabTypes[_selectedSlabTypeIndex];
-            }
-            else
-            {
-                GD.PrintErr($"Unknown multi-texture block: {blockName}");
-                return;
-            }
-
-            if (!variants.TryGetValue(selectedType, out var textures))
-            {
-                GD.PrintErr($"{blockName} type {selectedType} not found in variants");
-                return;
-            }
-
-            if (!Main.GetInstance().TerrainTextures.TryGetValue(textures["top"], out var topTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["back"], out var backTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
-                !Main.GetInstance().TerrainTextures.TryGetValue(textures["right"], out var rightTexture))
-            {
-                GD.PrintErr($"One or more {blockName.ToLower()} textures not found in terrain textures");
-                return;
-            }
-
-            // Create a multi-surface mesh for the block
-            ArrayMesh blockMesh;
-            if (blockName == "Double slab" && _halfSlab)
-            {
-                blockMesh = CreateHalfSlabMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
-            }
-            else
-            {
-                blockMesh = CreateGrassBlockMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
-            }
-            meshInstance = new MeshInstance3D();
-            meshInstance.Mesh = blockMesh;
-        }
-        else if (textureDef is Dictionary<string, object> texturedBlockDef && texturedBlockDef.ContainsKey("type") && texturedBlockDef["type"] as string == "textured_block")
-        {
-            // Textured block with variants (like Wool or Redstone Lamp)
-            if (!texturedBlockDef.ContainsKey("textures") || texturedBlockDef["textures"] is not Dictionary<string, string> textures)
-            {
-                GD.PrintErr("Textures not found or invalid format for textured block");
-                return;
-            }
-
-            string selectedTextureName;
-            if (blockName == "Wool")
-            {
-                selectedTextureName = _woolColors[_selectedWoolColorIndex];
-            }
-            else if (blockName == "Large Mushroom")
-            {
-                selectedTextureName = _largeMushroomTypes[_selectedLargeMushroomTypeIndex];
-            }
-            else if (blockName == "Redstone Lamp")
-            {
-                // Handle Redstone Lamp powered state
-                if (_redstoneLampPowered)
-                {
-                    selectedTextureName = "Powered";
-                }
-                else
-                {
-                    selectedTextureName = "Unpowered";
-                }
-            }
-            else
-            {
-                GD.PrintErr($"Unknown textured_block: {blockName}");
-                return;
-            }
-            
-            if (!textures.TryGetValue(selectedTextureName, out var textureName))
-            {
-                GD.PrintErr($"Texture variant {selectedTextureName} not found in textures for {blockName}");
-                return;
-            }
-
-            if (!Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
-            {
-                GD.PrintErr($"Texture {textureName} not found in terrain textures");
-                return;
-            }
-
-            // Create custom cube mesh with the selected texture
-            var mesh = CreateCustomCubeMesh(texture);
-            meshInstance = new MeshInstance3D();
-            meshInstance.Mesh = mesh;
-        }
-        else if (textureDef is Dictionary<string, object> modelDef && modelDef.ContainsKey("type") && modelDef["type"] as string == "model")
-        {
-            // Model-based block (like Sapling or Bed)
-            string meshPath;
-            
-            // Handle door variants
-            if (blockName == "Door" && modelDef.ContainsKey("variants") && modelDef["variants"] is Dictionary<string, string> variants)
-            {
-                string selectedDoorType = _doorTypes[_selectedDoorTypeIndex];
-                if (variants.TryGetValue(selectedDoorType, out var variantMeshPath))
-                {
-                    meshPath = variantMeshPath;
-                }
-                else
-                {
-                    meshPath = modelDef["mesh"] as string;
-                }
-            }
-            else if ((blockName == "Torch" || blockName == "Redstone Torch") && _useWallTorch && modelDef.ContainsKey("wall_mesh"))
-            {
-                meshPath = modelDef["wall_mesh"] as string;
-            }
-            else
-            {
-                meshPath = modelDef["mesh"] as string;
-            }
-            
-            if (string.IsNullOrEmpty(meshPath))
-            {
-                GD.PrintErr("Mesh path not specified for model block");
-                return;
-            }
-            
-            // Handle different file types
-            if (meshPath.EndsWith(".obj"))
-            {
-                // Load the OBJ model as a mesh
-                var meshResource = ResourceLoader.Load<Mesh>($"res://assets/mesh/{meshPath}");
-                if (meshResource == null)
-                {
-                    GD.PrintErr($"Failed to load mesh: {meshPath}");
+                    GD.PrintErr($"Texture {singleTextureName} not found in terrain textures");
                     return;
                 }
-                
-                // Duplicate the mesh to avoid modifying the original resource
-                var duplicatedMesh = meshResource.Duplicate() as Mesh;
+            
+                // Create custom cube mesh with the texture
+                var mesh = CreateCustomCubeMesh(tileTexture);
                 meshInstance = new MeshInstance3D();
-                meshInstance.Mesh = duplicatedMesh;
-                
-                // Apply texture based on block type
-                if (modelDef.ContainsKey("textures") && modelDef["textures"] is Dictionary<string, string> textures)
+                meshInstance.Mesh = mesh;
+                break;
+            }
+            case Dictionary<string, string> multiTextures:
+            {
+                // Multi-texture block (like Grass)
+                if (!Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["top"], out var topTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["bottom"], out var bottomTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["front"], out var frontTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["back"], out var backTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["left"], out var leftTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(multiTextures["right"], out var rightTexture))
                 {
-                    string selectedTextureName = "";
-                    
-                    // Check if this is a sapling and use sapling type
-                    if (blockName == "Sapling")
+                    GD.PrintErr("One or more grass textures not found in terrain textures");
+                    return;
+                }
+            
+                // Create appropriate mesh based on block type
+                ArrayMesh blockMesh;
+            
+                // For Farmland, check hydration status and use tile086 for top if hydrated
+                if (blockName == "Farmland" && _farmlandHydrated)
+                {
+                    if (Main.GetInstance().TerrainTextures.TryGetValue("tile086", out var hydratedTopTexture))
                     {
-                        selectedTextureName = _saplingTypes[_selectedSaplingTypeIndex];
+                        topTexture = hydratedTopTexture;
                     }
-                    // Check if this is tall grass and use grass type
-                    else if (blockName == "Tall Grass")
+                    else
                     {
-                        selectedTextureName = _grassTypes[_selectedGrassTypeIndex];
+                        GD.PrintErr("Hydrated farmland texture tile086 not found");
                     }
-                    // Check if this is a small flower and use flower type
-                    else if (blockName == "Small Flower")
+                }
+            
+                blockMesh = blockName == "Farmland" ? CreateFarmlandMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture) : CreateGrassBlockMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
+                meshInstance = new MeshInstance3D();
+                meshInstance.Mesh = blockMesh;
+                break;
+            }
+            case Dictionary<string, object> furnaceDef when blockName == "Furnace":
+            {
+                // Handle Furnace block with burning state
+                if (!furnaceDef.TryGetValue("textures", out object texName) || texName is not Dictionary<string, string> textures)
+                {
+                    GD.PrintErr("Textures not found or invalid format for furnace");
+                    return;
+                }
+            
+                if (!Main.GetInstance().TerrainTextures.TryGetValue(textures["top"], out var topTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["back"], out var backTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["right"], out var rightTexture))
+                {
+                    GD.PrintErr("One or more furnace textures not found in terrain textures");
+                    return;
+                }
+            
+                // Check if burning is enabled and use burning texture for front face
+                if (_furnaceBurning && furnaceDef.TryGetValue("burning_textures", out object burning) && burning is Dictionary<string, string> burningTextures)
+                {
+                    if (burningTextures.TryGetValue("front", out string side) && Main.GetInstance().TerrainTextures.TryGetValue(side, out var burningFrontTexture))
                     {
-                        selectedTextureName = _flowerTypes[_selectedFlowerTypeIndex];
+                        frontTexture = burningFrontTexture;
                     }
-                    // Check if this is a small mushroom and use mushroom type
-                    else if (blockName == "Small Mushroom")
+                }
+            
+                // Create grass block mesh with the appropriate textures
+                var blockMesh = CreateGrassBlockMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
+                meshInstance = new MeshInstance3D();
+                meshInstance.Mesh = blockMesh;
+                break;
+            }
+            case Dictionary<string, object> multiTextureDef when multiTextureDef.ContainsKey("type") && multiTextureDef["type"] as string == "multi_texture":
+            {
+                // Multi-texture block with variants (like Log or Double slab)
+                if (!multiTextureDef.TryGetValue("variants", out object variant) || variant is not Dictionary<string, Dictionary<string, string>> variants)
+                {
+                    GD.PrintErr("Variants not found or invalid format for multi-texture block");
+                    return;
+                }
+
+                string selectedType;
+                switch (blockName)
+                {
+                    case "Log":
+                        selectedType = _logTypes[_selectedLogTypeIndex];
+                        break;
+                    case "Double slab":
+                        selectedType = _slabTypes[_selectedSlabTypeIndex];
+                        break;
+                    default:
+                        GD.PrintErr($"Unknown multi-texture block: {blockName}");
+                        return;
+                }
+
+                if (!variants.TryGetValue(selectedType, out var textures))
+                {
+                    GD.PrintErr($"{blockName} type {selectedType} not found in variants");
+                    return;
+                }
+
+                if (!Main.GetInstance().TerrainTextures.TryGetValue(textures["top"], out var topTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["bottom"], out var bottomTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["front"], out var frontTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["back"], out var backTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["left"], out var leftTexture) ||
+                    !Main.GetInstance().TerrainTextures.TryGetValue(textures["right"], out var rightTexture))
+                {
+                    GD.PrintErr($"One or more {blockName.ToLower()} textures not found in terrain textures");
+                    return;
+                }
+
+                // Create a multi-surface mesh for the block
+                ArrayMesh blockMesh;
+                if (blockName == "Double slab" && _halfSlab)
+                {
+                    blockMesh = CreateHalfSlabMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
+                }
+                else
+                {
+                    blockMesh = CreateGrassBlockMesh(topTexture, bottomTexture, frontTexture, backTexture, leftTexture, rightTexture);
+                }
+                meshInstance = new MeshInstance3D();
+                meshInstance.Mesh = blockMesh;
+                break;
+            }
+            case Dictionary<string, object> texturedBlockDef when texturedBlockDef.ContainsKey("type") && texturedBlockDef["type"] as string == "textured_block":
+            {
+                // Textured block with variants (like Wool or Redstone Lamp)
+                if (!texturedBlockDef.TryGetValue("textures", out object tex) || tex is not Dictionary<string, string> textures)
+                {
+                    GD.PrintErr("Textures not found or invalid format for textured block");
+                    return;
+                }
+
+                string selectedTextureName;
+                switch (blockName)
+                {
+                    case "Wool":
+                        selectedTextureName = _woolColors[_selectedWoolColorIndex];
+                        break;
+                    case "Large Mushroom":
+                        selectedTextureName = _largeMushroomTypes[_selectedLargeMushroomTypeIndex];
+                        break;
+                    // Handle Redstone Lamp powered state
+                    case "Redstone Lamp" when _redstoneLampPowered:
+                        selectedTextureName = "Powered";
+                        break;
+                    case "Redstone Lamp":
+                        selectedTextureName = "Unpowered";
+                        break;
+                    default:
+                        GD.PrintErr($"Unknown textured_block: {blockName}");
+                        return;
+                }
+            
+                if (!textures.TryGetValue(selectedTextureName, out var textureName))
+                {
+                    GD.PrintErr($"Texture variant {selectedTextureName} not found in textures for {blockName}");
+                    return;
+                }
+
+                if (!Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
+                {
+                    GD.PrintErr($"Texture {textureName} not found in terrain textures");
+                    return;
+                }
+
+                // Create custom cube mesh with the selected texture
+                var mesh = CreateCustomCubeMesh(texture);
+                meshInstance = new MeshInstance3D();
+                meshInstance.Mesh = mesh;
+                break;
+            }
+            case Dictionary<string, object> modelDef when modelDef.ContainsKey("type") && modelDef["type"] as string == "model":
+            {
+                // Model-based block (like Sapling or Bed)
+                string meshPath;
+
+                switch (blockName)
+                {
+                    // Handle door variants
+                    case "Door" when modelDef.ContainsKey("variants") && modelDef["variants"] is Dictionary<string, string> variants:
                     {
-                        selectedTextureName = _mushroomTypes[_selectedMushroomTypeIndex];
+                        string selectedDoorType = _doorTypes[_selectedDoorTypeIndex];
+                        if (variants.TryGetValue(selectedDoorType, out var variantMeshPath))
+                        {
+                            meshPath = variantMeshPath;
+                        }
+                        else
+                        {
+                            meshPath = modelDef["mesh"] as string;
+                        }
+
+                        break;
                     }
-                    // Check if this is a stair and use stair type
-                    else if (blockName == "Stair")
+                    case "Torch" or "Redstone Torch" when _useWallTorch && modelDef.ContainsKey("wall_mesh"):
+                        meshPath = modelDef["wall_mesh"] as string;
+                        break;
+                    default:
+                        meshPath = modelDef["mesh"] as string;
+                        break;
+                }
+            
+                if (string.IsNullOrEmpty(meshPath))
+                {
+                    GD.PrintErr("Mesh path not specified for model block");
+                    return;
+                }
+            
+                // Handle different file types
+                if (meshPath.EndsWith(".obj"))
+                {
+                    // Load the OBJ model as a mesh
+                    var meshResource = ResourceLoader.Load<Mesh>($"res://assets/mesh/{meshPath}");
+                    if (meshResource == null)
                     {
-                        selectedTextureName = _stairTypes[_selectedStairTypeIndex];
+                        GD.PrintErr($"Failed to load mesh: {meshPath}");
+                        return;
                     }
-                    // Check if this is a pressure plate and use pressure plate type
-                    else if (blockName == "Pressure Plate")
+                
+                    // Duplicate the mesh to avoid modifying the original resource
+                    var duplicatedMesh = meshResource.Duplicate() as Mesh;
+                    meshInstance = new MeshInstance3D();
+                    meshInstance.Mesh = duplicatedMesh;
+                
+                    // Apply texture based on block type
+                    if (modelDef.ContainsKey("textures") && modelDef["textures"] is Dictionary<string, string> textures)
                     {
-                        selectedTextureName = _pressurePlateTypes[_selectedPressurePlateTypeIndex];
+                        string selectedTextureName = blockName switch
+                        {
+                            // Check if this is a sapling and use sapling type
+                            "Sapling" => _saplingTypes[_selectedSaplingTypeIndex],
+                            // Check if this is tall grass and use grass type
+                            "Tall Grass" => _grassTypes[_selectedGrassTypeIndex],
+                            // Check if this is a small flower and use flower type
+                            "Small Flower" => _flowerTypes[_selectedFlowerTypeIndex],
+                            // Check if this is a small mushroom and use mushroom type
+                            "Small Mushroom" => _mushroomTypes[_selectedMushroomTypeIndex],
+                            // Check if this is a stair and use stair type
+                            "Stair" => _stairTypes[_selectedStairTypeIndex],
+                            // Check if this is a pressure plate and use pressure plate type
+                            "Pressure Plate" => _pressurePlateTypes[_selectedPressurePlateTypeIndex],
+                            // Check if this is a fence and use fence type
+                            "Fence" => _fenceTypes[_selectedFenceTypeIndex],
+                            _ => ""
+                        };
+
+                        if (!string.IsNullOrEmpty(selectedTextureName) && textures.TryGetValue(selectedTextureName, out var textureName))
+                        {
+                            GD.Print($"Selected texture name: {textureName} for block: {blockName}");
+                            if (Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
+                            {
+                                GD.Print($"Successfully loaded texture: {textureName}");
+                                var material = new StandardMaterial3D();
+                                material.AlbedoTexture = texture;
+                                material.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
+                                material.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                                material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                                material.CullMode = BaseMaterial3D.CullModeEnum.Disabled; // Disable front and backface culling for cross models
+                            
+                                // Apply the material directly to all surfaces of the mesh
+                                for (int i = 0; i < duplicatedMesh?.GetSurfaceCount(); i++)
+                                {
+                                    duplicatedMesh.SurfaceSetMaterial(i, material);
+                                }
+                            }
+                            else
+                            {
+                                GD.PrintErr($"Texture {textureName} not found in terrain textures");
+                                GD.Print($"Available terrain textures: {string.Join(", ", Main.GetInstance().TerrainTextures.Keys)}");
+                            }
+                        }
+                        else
+                        {
+                            GD.PrintErr($"Could not find texture for selected type: {selectedTextureName} in block: {blockName}");
+                            GD.Print($"Available texture types: {string.Join(", ", textures.Keys)}");
+                        }
                     }
-                    // Check if this is a fence and use fence type
-                    else if (blockName == "Fence")
+                    // Apply single texture if specified
+                    else if (modelDef.TryGetValue("texture", out object mdlTex) && mdlTex is string textureName)
                     {
-                        selectedTextureName = _fenceTypes[_selectedFenceTypeIndex];
-                    }
-                    
-                    if (!string.IsNullOrEmpty(selectedTextureName) && textures.TryGetValue(selectedTextureName, out var textureName))
-                    {
-                        GD.Print($"Selected texture name: {textureName} for block: {blockName}");
                         if (Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
                         {
-                            GD.Print($"Successfully loaded texture: {textureName}");
                             var material = new StandardMaterial3D();
                             material.AlbedoTexture = texture;
                             material.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
                             material.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
                             material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
-                            material.CullMode = BaseMaterial3D.CullModeEnum.Disabled; // Disable front and backface culling for cross models
-                            
+                            material.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+                        
                             // Apply the material directly to all surfaces of the mesh
-                            for (int i = 0; i < duplicatedMesh.GetSurfaceCount(); i++)
+                            for (int i = 0; i < duplicatedMesh?.GetSurfaceCount(); i++)
                             {
                                 duplicatedMesh.SurfaceSetMaterial(i, material);
                             }
                         }
+                    }
+                
+                    // Handle Redstone Torch texture replacement after any other texture application
+                    if (blockName == "Redstone Torch")
+                    {
+                        string redstoneTextureName;
+                        if (_redstoneTorchPowered)
+                        {
+                            redstoneTextureName = modelDef["texture"] as string;
+                        }
                         else
                         {
-                            GD.PrintErr($"Texture {textureName} not found in terrain textures");
-                            GD.Print($"Available terrain textures: {string.Join(", ", Main.GetInstance().TerrainTextures.Keys)}");
+                            redstoneTextureName = modelDef["unpowered_texture"] as string;
                         }
-                    }
-                    else
-                    {
-                        GD.PrintErr($"Could not find texture for selected type: {selectedTextureName} in block: {blockName}");
-                        GD.Print($"Available texture types: {string.Join(", ", textures.Keys)}");
-                    }
-                }
-                // Apply single texture if specified
-                else if (modelDef.ContainsKey("texture") && modelDef["texture"] is string textureName)
-                {
-                    if (Main.GetInstance().TerrainTextures.TryGetValue(textureName, out var texture))
-                    {
-                        var material = new StandardMaterial3D();
-                        material.AlbedoTexture = texture;
-                        material.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
-                        material.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
-                        material.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
-                        material.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
-                        
-                        // Apply the material directly to all surfaces of the mesh
-                        for (int i = 0; i < duplicatedMesh.GetSurfaceCount(); i++)
-                        {
-                            duplicatedMesh.SurfaceSetMaterial(i, material);
-                        }
-                    }
-                }
-                
-                // Handle Redstone Torch texture replacement after any other texture application
-                if (blockName == "Redstone Torch")
-                {
-                    string redstoneTextureName;
-                    if (_redstoneTorchPowered)
-                    {
-                        redstoneTextureName = modelDef["texture"] as string;
-                    }
-                    else
-                    {
-                        redstoneTextureName = modelDef["unpowered_texture"] as string;
-                    }
                     
-                    if (!string.IsNullOrEmpty(redstoneTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
-                    {
-                        var redstoneMaterial = new StandardMaterial3D();
-                        redstoneMaterial.AlbedoTexture = redstoneTexture;
-                        redstoneMaterial.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
-                        redstoneMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
-                        redstoneMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
-                        redstoneMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
-                        
-                        for (int i = 0; i < duplicatedMesh.GetSurfaceCount(); i++)
+                        if (!string.IsNullOrEmpty(redstoneTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
                         {
-                            duplicatedMesh.SurfaceSetMaterial(i, redstoneMaterial);
+                            var redstoneMaterial = new StandardMaterial3D();
+                            redstoneMaterial.AlbedoTexture = redstoneTexture;
+                            redstoneMaterial.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
+                            redstoneMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                            redstoneMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                            redstoneMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+                        
+                            for (int i = 0; i < duplicatedMesh?.GetSurfaceCount(); i++)
+                            {
+                                duplicatedMesh.SurfaceSetMaterial(i, redstoneMaterial);
+                            }
                         }
                     }
                 }
-            }
-            else if (meshPath.EndsWith(".glb"))
-            {
-                // Load the GLB model as a scene and instantiate it directly
-                var sceneResource = ResourceLoader.Load<PackedScene>($"res://assets/mesh/{meshPath}");
-                if (sceneResource == null)
+                else if (meshPath.EndsWith(".glb"))
                 {
-                    GD.PrintErr($"Failed to load scene: {meshPath}");
-                    return;
-                }
+                    // Load the GLB model as a scene and instantiate it directly
+                    var sceneResource = ResourceLoader.Load<PackedScene>($"res://assets/mesh/{meshPath}");
+                    if (sceneResource == null)
+                    {
+                        GD.PrintErr($"Failed to load scene: {meshPath}");
+                        return;
+                    }
                 
-                // Instantiate the scene
-                var instance = sceneResource.Instantiate();
+                    // Instantiate the scene
+                    var instance = sceneResource.Instantiate();
                 
-                // Collect all MeshInstance3D nodes from the scene
-                var meshInstances = new List<MeshInstance3D>();
-                FindAllMeshInstances(instance, meshInstances);
+                    // Collect all MeshInstance3D nodes from the scene
+                    var meshInstances = new List<MeshInstance3D>();
+                    FindAllMeshInstances(instance, meshInstances);
                 
-                if (meshInstances.Count == 0)
-                {
-                    GD.PrintErr($"GLB scene {meshPath} does not contain any MeshInstance3D");
+                    if (meshInstances.Count == 0)
+                    {
+                        GD.PrintErr($"GLB scene {meshPath} does not contain any MeshInstance3D");
+                        instance.QueueFree();
+                        return;
+                    }
+                
+                    // Create a parent Node3D to hold all mesh instances
+                    var parentNode = new Node3D();
+                    parentNode.Name = $"{System.IO.Path.GetFileNameWithoutExtension(meshPath)}_Container";
+                
+                    // Add all mesh instances to the parent node
+                    foreach (var meshInst in meshInstances)
+                    {
+                        // Reparent each mesh instance to the parent node
+                        meshInst.GetParent()?.RemoveChild(meshInst);
+                        parentNode.AddChild(meshInst);
+                    }
+                
+                    // Free the original scene instance
                     instance.QueueFree();
+
+                    switch (blockName)
+                    {
+                        // Handle Redstone Torch texture replacement for GLB models
+                        case "Redstone Torch":
+                        {
+                            string redstoneTextureName;
+                            if (_redstoneTorchPowered)
+                            {
+                                redstoneTextureName = modelDef["texture"] as string;
+                            }
+                            else
+                            {
+                                redstoneTextureName = modelDef["unpowered_texture"] as string;
+                            }
+                    
+                            if (!string.IsNullOrEmpty(redstoneTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
+                            {
+                                var redstoneMaterial = new StandardMaterial3D();
+                                redstoneMaterial.AlbedoTexture = redstoneTexture;
+                                redstoneMaterial.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
+                                redstoneMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                                redstoneMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                                redstoneMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+                        
+                                // Apply the material to all mesh instances in the parent node
+                                foreach (var meshInst in meshInstances)
+                                {
+                                    if (meshInst.Mesh == null) continue;
+                                    // Duplicate the mesh to avoid modifying the original resource
+                                    var duplicatedMesh = meshInst.Mesh.Duplicate() as Mesh;
+                                    meshInst.Mesh = duplicatedMesh;
+                                
+                                    // Apply the material to all surfaces
+                                    for (int i = 0; i < duplicatedMesh?.GetSurfaceCount(); i++)
+                                    {
+                                        duplicatedMesh.SurfaceSetMaterial(i, redstoneMaterial);
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
+                        // Handle Stair texture replacement for GLB models
+                        case "Stair" when modelDef.ContainsKey("textures") && modelDef["textures"] is Dictionary<string, string> stairTextures:
+                        {
+                            string selectedStairType = _stairTypes[_selectedStairTypeIndex];
+                            if (stairTextures.TryGetValue(selectedStairType, out var stairTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(stairTextureName, out var stairTexture))
+                            {
+                                var stairMaterial = new StandardMaterial3D();
+                                stairMaterial.AlbedoTexture = stairTexture;
+                                stairMaterial.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
+                                stairMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
+                                stairMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
+                                stairMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
+                        
+                                // Apply the material to all mesh instances in the parent node
+                                foreach (var meshInst in meshInstances)
+                                {
+                                    if (meshInst.Mesh == null) continue;
+                                    // Duplicate the mesh to avoid modifying the original resource
+                                    var duplicatedMesh = meshInst.Mesh.Duplicate() as Mesh;
+                                    meshInst.Mesh = duplicatedMesh;
+                                
+                                    // Apply the material to all surfaces
+                                    for (int i = 0; i < duplicatedMesh?.GetSurfaceCount(); i++)
+                                    {
+                                        duplicatedMesh.SurfaceSetMaterial(i, stairMaterial);
+                                    }
+                                }
+                            }
+
+                            break;
+                        }
+                    }
+                
+                    // Create a MeshInstance3D wrapper for the parent node
+                    // This is needed because CreateSceneObject expects a MeshInstance3D
+                    meshInstance = new MeshInstance3D();
+                    meshInstance.Name = $"{System.IO.Path.GetFileNameWithoutExtension(meshPath)}_Wrapper";
+                
+                    // Add the parent node with all meshes as a child of the wrapper
+                    meshInstance.AddChild(parentNode);
+                }
+                else
+                {
+                    GD.PrintErr($"Unsupported model format: {meshPath}");
                     return;
                 }
-                
-                // Create a parent Node3D to hold all mesh instances
-                var parentNode = new Node3D();
-                parentNode.Name = $"{System.IO.Path.GetFileNameWithoutExtension(meshPath)}_Container";
-                
-                // Add all mesh instances to the parent node
-                foreach (var meshInst in meshInstances)
-                {
-                    // Reparent each mesh instance to the parent node
-                    meshInst.GetParent()?.RemoveChild(meshInst);
-                    parentNode.AddChild(meshInst);
-                }
-                
-                // Free the original scene instance
-                instance.QueueFree();
-                
-                // Handle Redstone Torch texture replacement for GLB models
-                if (blockName == "Redstone Torch")
-                {
-                    string redstoneTextureName;
-                    if (_redstoneTorchPowered)
-                    {
-                        redstoneTextureName = modelDef["texture"] as string;
-                    }
-                    else
-                    {
-                        redstoneTextureName = modelDef["unpowered_texture"] as string;
-                    }
-                    
-                    if (!string.IsNullOrEmpty(redstoneTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(redstoneTextureName, out var redstoneTexture))
-                    {
-                        var redstoneMaterial = new StandardMaterial3D();
-                        redstoneMaterial.AlbedoTexture = redstoneTexture;
-                        redstoneMaterial.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
-                        redstoneMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
-                        redstoneMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
-                        redstoneMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
-                        
-                        // Apply the material to all mesh instances in the parent node
-                        foreach (var meshInst in meshInstances)
-                        {
-                            if (meshInst.Mesh != null)
-                            {
-                                // Duplicate the mesh to avoid modifying the original resource
-                                var duplicatedMesh = meshInst.Mesh.Duplicate() as Mesh;
-                                meshInst.Mesh = duplicatedMesh;
-                                
-                                // Apply the material to all surfaces
-                                for (int i = 0; i < duplicatedMesh.GetSurfaceCount(); i++)
-                                {
-                                    duplicatedMesh.SurfaceSetMaterial(i, redstoneMaterial);
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Handle Stair texture replacement for GLB models
-                else if (blockName == "Stair" && modelDef.ContainsKey("textures") && modelDef["textures"] is Dictionary<string, string> stairTextures)
-                {
-                    string selectedStairType = _stairTypes[_selectedStairTypeIndex];
-                    if (stairTextures.TryGetValue(selectedStairType, out var stairTextureName) && Main.GetInstance().TerrainTextures.TryGetValue(stairTextureName, out var stairTexture))
-                    {
-                        var stairMaterial = new StandardMaterial3D();
-                        stairMaterial.AlbedoTexture = stairTexture;
-                        stairMaterial.TextureFilter = BaseMaterial3D.TextureFilterEnum.Nearest;
-                        stairMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
-                        stairMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
-                        stairMaterial.CullMode = BaseMaterial3D.CullModeEnum.Disabled;
-                        
-                        // Apply the material to all mesh instances in the parent node
-                        foreach (var meshInst in meshInstances)
-                        {
-                            if (meshInst.Mesh != null)
-                            {
-                                // Duplicate the mesh to avoid modifying the original resource
-                                var duplicatedMesh = meshInst.Mesh.Duplicate() as Mesh;
-                                meshInst.Mesh = duplicatedMesh;
-                                
-                                // Apply the material to all surfaces
-                                for (int i = 0; i < duplicatedMesh.GetSurfaceCount(); i++)
-                                {
-                                    duplicatedMesh.SurfaceSetMaterial(i, stairMaterial);
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // Create a MeshInstance3D wrapper for the parent node
-                // This is needed because CreateSceneObject expects a MeshInstance3D
-                meshInstance = new MeshInstance3D();
-                meshInstance.Name = $"{System.IO.Path.GetFileNameWithoutExtension(meshPath)}_Wrapper";
-                
-                // Add the parent node with all meshes as a child of the wrapper
-                meshInstance.AddChild(parentNode);
+
+                break;
             }
-            else
+            default:
             {
-                GD.PrintErr($"Unsupported model format: {meshPath}");
-                return;
+                // Fallback: create a cube without texture
+                var mesh = CreateCustomCubeMesh();
+                meshInstance = new MeshInstance3D();
+                meshInstance.Mesh = mesh;
+                break;
             }
-        }
-        else
-        {
-            // Fallback: create a cube without texture
-            var mesh = CreateCustomCubeMesh();
-            meshInstance = new MeshInstance3D();
-            meshInstance.Mesh = mesh;
         }
         
         // Create scene object of type Block
@@ -1691,13 +1928,13 @@ public class SpawnObjectsMenu
         }
         
         // Define common UVs and indices for all faces
-        var uvs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0) };
-        var indices = new int[] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
-        var indices2 = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise winding
+        var uvs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0), new(0, 0) };
+        var indices = new [] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
+        var indices2 = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise winding
         
         // Create each face using CreateFace method without material
         // Front face: vertices at Z=0.5, normals Forward
-        var frontNormals = new Vector3[] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
+        var frontNormals = new [] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
         var frontFaceMesh = CreateFace(Vector3.Back, frontNormals, uvs, indices2);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, frontFaceMesh.SurfaceGetArrays(0));
         if (material != null)
@@ -1715,7 +1952,7 @@ public class SpawnObjectsMenu
         }
         
         // Top face: vertices at Y=0.5, normals Up
-        var topNormals = new Vector3[] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
+        var topNormals = new [] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
         var topFaceMesh = CreateFace(Vector3.Up, topNormals, uvs, indices);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, topFaceMesh.SurfaceGetArrays(0));
         if (material != null)
@@ -1724,7 +1961,7 @@ public class SpawnObjectsMenu
         }
         
         // Bottom face: vertices at Y=-0.5, normals Down
-        var bottomNormals = new Vector3[] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
+        var bottomNormals = new [] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
         var bottomFaceMesh = CreateFace(Vector3.Down, bottomNormals, uvs, indices);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, bottomFaceMesh.SurfaceGetArrays(0));
         if (material != null)
@@ -1733,7 +1970,7 @@ public class SpawnObjectsMenu
         }
         
         // Right face: vertices at X=0.5, normals Right
-        var rightNormals = new Vector3[] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
+        var rightNormals = new [] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
         var rightFaceMesh = CreateFace(Vector3.Right, rightNormals, uvs, indices2);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, rightFaceMesh.SurfaceGetArrays(0));
         if (material != null)
@@ -1742,7 +1979,7 @@ public class SpawnObjectsMenu
         }
         
         // Left face: vertices at X=-0.5, normals Left
-        var leftNormals = new Vector3[] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
+        var leftNormals = new [] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
         var leftFaceMesh = CreateFace(Vector3.Left, leftNormals, uvs, indices2);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, leftFaceMesh.SurfaceGetArrays(0));
         if (material != null)
@@ -1779,57 +2016,64 @@ public class SpawnObjectsMenu
     {
         if (direction == Vector3.Forward) // Back face (Z=0)
         {
-            return new Vector3[] {
-                new Vector3(0.5f, -0.5f, -0.5f),
-                new Vector3(-0.5f, -0.5f, -0.5f),
-                new Vector3(-0.5f, 0.5f, -0.5f),
-                new Vector3(0.5f, 0.5f, -0.5f)
-            };
+            return
+            [
+                new(0.5f, -0.5f, -0.5f),
+                new(-0.5f, -0.5f, -0.5f),
+                new(-0.5f, 0.5f, -0.5f),
+                new(0.5f, 0.5f, -0.5f)
+            ];
         }
-        else if (direction == Vector3.Back) // Front face (Z=0.5f)
+
+        if (direction == Vector3.Back) // Front face (Z=0.5f)
         {
-            return new Vector3[] {
-                new Vector3(-0.5f, -0.5f, 0.5f),
-                new Vector3(0.5f, -0.5f, 0.5f),
-                new Vector3(0.5f, 0.5f, 0.5f),
-                new Vector3(-0.5f, 0.5f, 0.5f)
-            };
+            return
+            [
+                new(-0.5f, -0.5f, 0.5f),
+                new(0.5f, -0.5f, 0.5f),
+                new(0.5f, 0.5f, 0.5f),
+                new(-0.5f, 0.5f, 0.5f)
+            ];
         }
-        else if (direction == Vector3.Left) // Left face (X=-0.5f)
+        if (direction == Vector3.Left) // Left face (X=-0.5f)
         {
-            return new Vector3[] {
-                new Vector3(-0.5f, -0.5f, -0.5f),
-                new Vector3(-0.5f, -0.5f, 0.5f),
-                new Vector3(-0.5f, 0.5f, 0.5f),
-                new Vector3(-0.5f, 0.5f, -0.5f)
-            };
+            return
+            [
+                new(-0.5f, -0.5f, -0.5f),
+                new(-0.5f, -0.5f, 0.5f),
+                new(-0.5f, 0.5f, 0.5f),
+                new(-0.5f, 0.5f, -0.5f)
+            ];
         }
-        else if (direction == Vector3.Right) // Right face (X=0.5f)
+        if (direction == Vector3.Right) // Right face (X=0.5f)
         {
-            return new Vector3[] {
-                new Vector3(0.5f, -0.5f, 0.5f),
-                new Vector3(0.5f, -0.5f, -0.5f),
-                new Vector3(0.5f, 0.5f, -0.5f),
-                new Vector3(0.5f, 0.5f, 0.5f)
-            };
+            return
+            [
+                new(0.5f, -0.5f, 0.5f),
+                new(0.5f, -0.5f, -0.5f),
+                new(0.5f, 0.5f, -0.5f),
+                new(0.5f, 0.5f, 0.5f)
+            ];
         }
-        else if (direction == Vector3.Down) // Bottom face (Y=-0.5f)
+        if (direction == Vector3.Down) // Bottom face (Y=-0.5f)
         {
-            return new Vector3[] {
-                new Vector3(-0.5f, -0.5f, -0.5f),
-                new Vector3(-0.5f, -0.5f, 0.5f),
-                new Vector3(0.5f, -0.5f, 0.5f),
-                new Vector3(0.5f, -0.5f, -0.5f)
-            };
+            return
+            [
+                new(-0.5f, -0.5f, -0.5f),
+                new(-0.5f, -0.5f, 0.5f),
+                new(0.5f, -0.5f, 0.5f),
+                new(0.5f, -0.5f, -0.5f)
+            ];
         }
-        else if (direction == Vector3.Up) // Top face (Y=0.5f)
+        if (direction == Vector3.Up) // Top face (Y=0.5f)
         {
-            return new Vector3[] {
-                new Vector3(-0.5f, 0.5f, -0.5f),
-                new Vector3(0.5f, 0.5f, -0.5f),
-                new Vector3(0.5f, 0.5f, 0.5f),
-                new Vector3(-0.5f, 0.5f, 0.5f)
-            };
+            return
+            [
+                new(-0.5f, 0.5f, -0.5f),
+                new(0.5f, 0.5f, -0.5f),
+                new(0.5f, 0.5f, 0.5f),
+                new(-0.5f, 0.5f, 0.5f)
+            ];
         }
 
         // Default case (should never happen with the defined directions)
@@ -1877,49 +2121,49 @@ public class SpawnObjectsMenu
         rightMaterial.Transparency = BaseMaterial3D.TransparencyEnum.AlphaDepthPrePass;
         rightMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
         
-        var topNormals = new Vector3[] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
-        var topUVs = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
-        var topIndices = new int[] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
+        var topNormals = new [] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
+        var topUVs = new Vector2[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) };
+        var topIndices = new [] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
         
         var topFaceMesh = CreateFace(Vector3.Up, topNormals, topUVs, topIndices, topMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, topFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, topMaterial);
         
-        var bottomNormals = new Vector3[] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
-        var bottomUVs = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
-        var bottomIndices = new int[] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise when viewed from below
+        var bottomNormals = new [] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
+        var bottomUVs = new Vector2[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) };
+        var bottomIndices = new [] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise when viewed from below
         
         var bottomFaceMesh = CreateFace(Vector3.Down, bottomNormals, bottomUVs, bottomIndices, bottomMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, bottomFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, bottomMaterial);
         
-        var frontNormals = new Vector3[] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
-        var frontUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0) };
-        var frontIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var frontNormals = new [] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
+        var frontUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0), new(0, 0) };
+        var frontIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         
         var frontFaceMesh = CreateFace(Vector3.Forward, frontNormals, frontUVs, frontIndices, frontMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, frontFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, frontMaterial);
         
-        var backNormals = new Vector3[] { Vector3.Back, Vector3.Back, Vector3.Back, Vector3.Back };
-        var backUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0) };
-        var backIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var backNormals = new [] { Vector3.Back, Vector3.Back, Vector3.Back, Vector3.Back };
+        var backUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0), new(0, 0) };
+        var backIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         
         var backFaceMesh = CreateFace(Vector3.Back, backNormals, backUVs, backIndices, backMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, backFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, backMaterial);
         
-        var rightNormals = new Vector3[] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
-        var rightUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0) };
-        var rightIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var rightNormals = new [] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
+        var rightUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0), new(0, 0) };
+        var rightIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         
         var rightFaceMesh = CreateFace(Vector3.Right, rightNormals, rightUVs, rightIndices, rightMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, rightFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, rightMaterial);
         
-        var leftNormals = new Vector3[] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
-        var leftUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0), new Vector2(0, 0) };
-        var leftIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var leftNormals = new [] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
+        var leftUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0), new(0, 0) };
+        var leftIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         
         var leftFaceMesh = CreateFace(Vector3.Left, leftNormals, leftUVs, leftIndices, leftMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, leftFaceMesh.SurfaceGetArrays(0));
@@ -1983,84 +2227,84 @@ public class SpawnObjectsMenu
         rightMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
         
         // Top face: vertices at Y=0, normals Up
-        var topNormals = new Vector3[] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
-        var topUVs = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
-        var topIndices = new int[] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
+        var topNormals = new [] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
+        var topUVs = new Vector2[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) };
+        var topIndices = new [] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
         var topVertices = new Vector3[] {
-            new Vector3(-0.5f, 0.0f, -0.5f),
-            new Vector3(0.5f, 0.0f, -0.5f),
-            new Vector3(0.5f, 0.0f, 0.5f),
-            new Vector3(-0.5f, 0.0f, 0.5f)
+            new(-0.5f, 0.0f, -0.5f),
+            new(0.5f, 0.0f, -0.5f),
+            new(0.5f, 0.0f, 0.5f),
+            new(-0.5f, 0.0f, 0.5f)
         };
         var topFaceMesh = CreateFaceWithVertices(topVertices, topNormals, topUVs, topIndices, topMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, topFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, topMaterial);
         
         // Bottom face: vertices at Y=-0.5, normals Down
-        var bottomNormals = new Vector3[] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
-        var bottomUVs = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
-        var bottomIndices = new int[] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise when viewed from below
+        var bottomNormals = new [] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
+        var bottomUVs = new Vector2[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) };
+        var bottomIndices = new [] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise when viewed from below
         var bottomVertices = new Vector3[] {
-            new Vector3(-0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, -0.5f)
+            new(-0.5f, -0.5f, -0.5f),
+            new(-0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, -0.5f)
         };
         var bottomFaceMesh = CreateFaceWithVertices(bottomVertices, bottomNormals, bottomUVs, bottomIndices, bottomMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, bottomFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, bottomMaterial);
         
         // Front face: vertices at Z=0.5, normals Forward, UVs using top half of texture
-        var frontNormals = new Vector3[] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
-        var frontUVs = new Vector2[] { new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(1, 0), new Vector2(0, 0) };
-        var frontIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var frontNormals = new [] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
+        var frontUVs = new Vector2[] { new(0, 0.5f), new(1, 0.5f), new(1, 0), new(0, 0) };
+        var frontIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var frontVertices = new Vector3[] {
-            new Vector3(-0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, 0.0f, 0.5f),
-            new Vector3(-0.5f, 0.0f, 0.5f)
+            new(-0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, 0.5f),
+            new(0.5f, 0.0f, 0.5f),
+            new(-0.5f, 0.0f, 0.5f)
         };
         var frontFaceMesh = CreateFaceWithVertices(frontVertices, frontNormals, frontUVs, frontIndices, frontMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, frontFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, frontMaterial);
         
         // Back face: vertices at Z=-0.5, normals Back, UVs using top half of texture
-        var backNormals = new Vector3[] { Vector3.Back, Vector3.Back, Vector3.Back, Vector3.Back };
-        var backUVs = new Vector2[] { new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(1, 0), new Vector2(0, 0) };
-        var backIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var backNormals = new [] { Vector3.Back, Vector3.Back, Vector3.Back, Vector3.Back };
+        var backUVs = new Vector2[] { new(0, 0.5f), new(1, 0.5f), new(1, 0), new(0, 0) };
+        var backIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var backVertices = new Vector3[] {
-            new Vector3(0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, 0.0f, -0.5f),
-            new Vector3(0.5f, 0.0f, -0.5f)
+            new(0.5f, -0.5f, -0.5f),
+            new(-0.5f, -0.5f, -0.5f),
+            new(-0.5f, 0.0f, -0.5f),
+            new(0.5f, 0.0f, -0.5f)
         };
         var backFaceMesh = CreateFaceWithVertices(backVertices, backNormals, backUVs, backIndices, backMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, backFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, backMaterial);
         
         // Right face: vertices at X=0.5, normals Right, UVs using top half of texture
-        var rightNormals = new Vector3[] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
-        var rightUVs = new Vector2[] { new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(1, 0), new Vector2(0, 0) };
-        var rightIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var rightNormals = new [] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
+        var rightUVs = new Vector2[] { new(0, 0.5f), new(1, 0.5f), new(1, 0), new(0, 0) };
+        var rightIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var rightVertices = new Vector3[] {
-            new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, -0.5f),
-            new Vector3(0.5f, 0.0f, -0.5f),
-            new Vector3(0.5f, 0.0f, 0.5f)
+            new(0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, -0.5f),
+            new(0.5f, 0.0f, -0.5f),
+            new(0.5f, 0.0f, 0.5f)
         };
         var rightFaceMesh = CreateFaceWithVertices(rightVertices, rightNormals, rightUVs, rightIndices, rightMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, rightFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, rightMaterial);
         
         // Left face: vertices at X=-0.5, normals Left, UVs using top half of texture
-        var leftNormals = new Vector3[] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
-        var leftUVs = new Vector2[] { new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(1, 0), new Vector2(0, 0) };
-        var leftIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var leftNormals = new [] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
+        var leftUVs = new Vector2[] { new(0, 0.5f), new(1, 0.5f), new(1, 0), new(0, 0) };
+        var leftIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var leftVertices = new Vector3[] {
-            new Vector3(-0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, 0.5f),
-            new Vector3(-0.5f, 0.0f, 0.5f),
-            new Vector3(-0.5f, 0.0f, -0.5f)
+            new(-0.5f, -0.5f, -0.5f),
+            new(-0.5f, -0.5f, 0.5f),
+            new(-0.5f, 0.0f, 0.5f),
+            new(-0.5f, 0.0f, -0.5f)
         };
         var leftFaceMesh = CreateFaceWithVertices(leftVertices, leftNormals, leftUVs, leftIndices, leftMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, leftFaceMesh.SurfaceGetArrays(0));
@@ -2131,84 +2375,84 @@ public class SpawnObjectsMenu
         rightMaterial.DepthDrawMode = BaseMaterial3D.DepthDrawModeEnum.OpaqueOnly;
         
         // Top face: vertices at Y=0.4375 (lowered by 0.0625), normals Up
-        var topNormals = new Vector3[] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
-        var topUVs = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
-        var topIndices = new int[] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
+        var topNormals = new [] { Vector3.Up, Vector3.Up, Vector3.Up, Vector3.Up };
+        var topUVs = new Vector2[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) };
+        var topIndices = new [] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise winding
         var topVertices = new Vector3[] {
-            new Vector3(-0.5f, 0.4375f, -0.5f),  // Lowered by 0.0625
-            new Vector3(0.5f, 0.4375f, -0.5f),   // Lowered by 0.0625
-            new Vector3(0.5f, 0.4375f, 0.5f),    // Lowered by 0.0625
-            new Vector3(-0.5f, 0.4375f, 0.5f)    // Lowered by 0.0625
+            new(-0.5f, 0.4375f, -0.5f),  // Lowered by 0.0625
+            new(0.5f, 0.4375f, -0.5f),   // Lowered by 0.0625
+            new(0.5f, 0.4375f, 0.5f),    // Lowered by 0.0625
+            new(-0.5f, 0.4375f, 0.5f)    // Lowered by 0.0625
         };
         var topFaceMesh = CreateFaceWithVertices(topVertices, topNormals, topUVs, topIndices, topMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, topFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, topMaterial);
         
         // Bottom face: vertices at Y=-0.5, normals Down
-        var bottomNormals = new Vector3[] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
-        var bottomUVs = new Vector2[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1), new Vector2(0, 1) };
-        var bottomIndices = new int[] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise when viewed from below
+        var bottomNormals = new [] { Vector3.Down, Vector3.Down, Vector3.Down, Vector3.Down };
+        var bottomUVs = new Vector2[] { new(0, 0), new(1, 0), new(1, 1), new(0, 1) };
+        var bottomIndices = new [] { 0, 1, 2, 0, 2, 3 }; // Counter-clockwise when viewed from below
         var bottomVertices = new Vector3[] {
-            new Vector3(-0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, -0.5f)
+            new(-0.5f, -0.5f, -0.5f),
+            new(-0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, -0.5f)
         };
         var bottomFaceMesh = CreateFaceWithVertices(bottomVertices, bottomNormals, bottomUVs, bottomIndices, bottomMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, bottomFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, bottomMaterial);
         
         // Front face: vertices at Z=0.5, normals Forward
-        var frontNormals = new Vector3[] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
-        var frontUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0.0625f), new Vector2(0, 0.0625f) }; // Top UVs moved down to 0.0625
-        var frontIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var frontNormals = new [] { Vector3.Forward, Vector3.Forward, Vector3.Forward, Vector3.Forward };
+        var frontUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0.0625f), new(0, 0.0625f) }; // Top UVs moved down to 0.0625
+        var frontIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var frontVertices = new Vector3[] {
-            new Vector3(-0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, 0.4375f, 0.5f),  // Top vertex lowered by 0.0625
-            new Vector3(-0.5f, 0.4375f, 0.5f)   // Top vertex lowered by 0.0625
+            new(-0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, 0.5f),
+            new(0.5f, 0.4375f, 0.5f),  // Top vertex lowered by 0.0625
+            new(-0.5f, 0.4375f, 0.5f)   // Top vertex lowered by 0.0625
         };
         var frontFaceMesh = CreateFaceWithVertices(frontVertices, frontNormals, frontUVs, frontIndices, frontMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, frontFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, frontMaterial);
         
         // Back face: vertices at Z=-0.5, normals Back
-        var backNormals = new Vector3[] { Vector3.Back, Vector3.Back, Vector3.Back, Vector3.Back };
-        var backUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0.0625f), new Vector2(0, 0.0625f) }; // Top UVs moved down to 0.0625
-        var backIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var backNormals = new [] { Vector3.Back, Vector3.Back, Vector3.Back, Vector3.Back };
+        var backUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0.0625f), new(0, 0.0625f) }; // Top UVs moved down to 0.0625
+        var backIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var backVertices = new Vector3[] {
-            new Vector3(0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, 0.4375f, -0.5f),  // Top vertex lowered by 0.0625
-            new Vector3(0.5f, 0.4375f, -0.5f)    // Top vertex lowered by 0.0625
+            new(0.5f, -0.5f, -0.5f),
+            new(-0.5f, -0.5f, -0.5f),
+            new(-0.5f, 0.4375f, -0.5f),  // Top vertex lowered by 0.0625
+            new(0.5f, 0.4375f, -0.5f)    // Top vertex lowered by 0.0625
         };
         var backFaceMesh = CreateFaceWithVertices(backVertices, backNormals, backUVs, backIndices, backMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, backFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, backMaterial);
         
         // Right face: vertices at X=0.5, normals Right
-        var rightNormals = new Vector3[] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
-        var rightUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0.0625f), new Vector2(0, 0.0625f) }; // Top UVs moved down to 0.0625
-        var rightIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var rightNormals = new [] { Vector3.Right, Vector3.Right, Vector3.Right, Vector3.Right };
+        var rightUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0.0625f), new(0, 0.0625f) }; // Top UVs moved down to 0.0625
+        var rightIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var rightVertices = new Vector3[] {
-            new Vector3(0.5f, -0.5f, 0.5f),
-            new Vector3(0.5f, -0.5f, -0.5f),
-            new Vector3(0.5f, 0.4375f, -0.5f),  // Top vertex lowered by 0.0625
-            new Vector3(0.5f, 0.4375f, 0.5f)     // Top vertex lowered by 0.0625
+            new(0.5f, -0.5f, 0.5f),
+            new(0.5f, -0.5f, -0.5f),
+            new(0.5f, 0.4375f, -0.5f),  // Top vertex lowered by 0.0625
+            new(0.5f, 0.4375f, 0.5f)     // Top vertex lowered by 0.0625
         };
         var rightFaceMesh = CreateFaceWithVertices(rightVertices, rightNormals, rightUVs, rightIndices, rightMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, rightFaceMesh.SurfaceGetArrays(0));
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, rightMaterial);
         
         // Left face: vertices at X=-0.5, normals Left
-        var leftNormals = new Vector3[] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
-        var leftUVs = new Vector2[] { new Vector2(0, 1), new Vector2(1, 1), new Vector2(1, 0.0625f), new Vector2(0, 0.0625f) }; // Top UVs moved down to 0.0625
-        var leftIndices = new int[] { 2, 1, 0, 3, 2, 0 }; // Clockwise
+        var leftNormals = new [] { Vector3.Left, Vector3.Left, Vector3.Left, Vector3.Left };
+        var leftUVs = new Vector2[] { new(0, 1), new(1, 1), new(1, 0.0625f), new(0, 0.0625f) }; // Top UVs moved down to 0.0625
+        var leftIndices = new [] { 2, 1, 0, 3, 2, 0 }; // Clockwise
         var leftVertices = new Vector3[] {
-            new Vector3(-0.5f, -0.5f, -0.5f),
-            new Vector3(-0.5f, -0.5f, 0.5f),
-            new Vector3(-0.5f, 0.4375f, 0.5f),  // Top vertex lowered by 0.0625
-            new Vector3(-0.5f, 0.4375f, -0.5f)   // Top vertex lowered by 0.0625
+            new(-0.5f, -0.5f, -0.5f),
+            new(-0.5f, -0.5f, 0.5f),
+            new(-0.5f, 0.4375f, 0.5f),  // Top vertex lowered by 0.0625
+            new(-0.5f, 0.4375f, -0.5f)   // Top vertex lowered by 0.0625
         };
         var leftFaceMesh = CreateFaceWithVertices(leftVertices, leftNormals, leftUVs, leftIndices, leftMaterial);
         arrayMesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, leftFaceMesh.SurfaceGetArrays(0));

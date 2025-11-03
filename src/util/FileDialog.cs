@@ -16,16 +16,14 @@ public static class FileDialog
         {
             return await ShowOpenDialogWindowsAsync(title, filter);
         }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             return await ShowOpenDialogLinuxAsync(title);
         }
-        else
-        {
-            // Fallback for unsupported platforms
-            Console.WriteLine("File dialog not supported on this platform");
-            return null;
-        }
+        
+        // Fallback for unsupported platforms
+        Console.WriteLine("File dialog not supported on this platform"); 
+        return null;
     }
 
     public static async Task<string?> ShowSaveDialogAsync(string defaultFileName = "render",
@@ -35,16 +33,13 @@ public static class FileDialog
         {
             return await ShowSaveDialogWindowsAsync(defaultFileName, filter);
         }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
         {
             return await ShowSaveDialogLinuxAsync(defaultFileName);
         }
-        else
-        {
-            // Fallback for unsupported platforms
-            Console.WriteLine("File dialog not supported on this platform");
-            return null;
-        }
+        // Fallback for unsupported platforms
+        Console.WriteLine("File dialog not supported on this platform");
+        return null;
     }
 
     private static async Task<string?> ShowOpenDialogWindowsAsync(string title, string filter)

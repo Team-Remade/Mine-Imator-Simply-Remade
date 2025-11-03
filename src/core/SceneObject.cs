@@ -16,12 +16,40 @@ public partial class SceneObject : Node3D
         Item,
         ModelPart,
         Camera,
-        TestInvalidType,
+        PointLight,
     }
 
     public int ID;
     
     public Type ObjectType;
+    
+    // Control properties for what can be manipulated for this object
+    public bool Rotatable = true;
+    public bool Scalable = true;
+    public bool AlphaControl = true;
+    
+    public void InitializeControlProperties()
+    {
+        // Set control properties based on object type
+        switch (ObjectType)
+        {
+            case Type.Camera:
+                Rotatable = true;    // Cameras can be rotated
+                Scalable = false;    // Cameras cannot be scaled
+                AlphaControl = false; // Cameras cannot have alpha control
+                break;
+            case Type.PointLight:
+                Rotatable = false;
+                Scalable = false;
+                AlphaControl = false;
+                break;
+            default:
+                Rotatable = true;
+                Scalable = true;
+                AlphaControl = true;
+                break;
+        }
+    }
     
     public Dictionary<int, float> PosXKeyframes { get; set; } = new Dictionary<int, float>();
     public Dictionary<int, float> PosYKeyframes { get; set; } = new Dictionary<int, float>();
@@ -43,6 +71,7 @@ public partial class SceneObject : Node3D
     public override void _Ready()
     {
         SelectionManager.TransformGizmo.TransformEnd += TransformGizmoOnTransformEnd;
+        InitializeControlProperties();
     }
 
     public void AddVisuals(Node3D node)
