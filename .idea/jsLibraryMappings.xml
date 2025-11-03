@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="JavaScriptLibraryMappings">
-    <excludedPredefinedLibrary name="simply-remade-mi/Jenova/Packages/JenovaCodeIDE-1.103.15539/resources/app/extensions/node_modules" />
-    <excludedPredefinedLibrary name="simply-remade-mi/Jenova/Packages/JenovaCodeIDE-1.103.15539/resources/app/node_modules" />
-  </component>
-</project>
