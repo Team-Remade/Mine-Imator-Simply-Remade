@@ -139,6 +139,9 @@ partial class FreeLookCameraBase : Camera3D
     private void _update_movement(float delta)
     { 
         // Computes desired direction from key states
+
+        if (!Main.GetInstance().MainViewport.Controlled) return;
+        
         _direction = Vector3.Zero;
         if (_d) _direction.X += 1.0f;
         if (_a) _direction.X -= 1.0f;
