@@ -29,6 +29,16 @@
       "pkgType": 0,
       "pkgUninstallScript": false,
       "pkgVersion": "14.38.33130 (x64)"
+    },
+    {
+      "pkgDestination": "res://Jenova/Packages/JenovaCodeIDE-1.103.15539",
+      "pkgHash": "c9163f245be62fef5f4380557116e121",
+      "pkgInstallScript": false,
+      "pkgName": "Jenova Code IDE (JCIDE)",
+      "pkgPlatform": 0,
+      "pkgType": 6,
+      "pkgUninstallScript": false,
+      "pkgVersion": "1.103.15539 (x64)"
     }
   ]
 }
