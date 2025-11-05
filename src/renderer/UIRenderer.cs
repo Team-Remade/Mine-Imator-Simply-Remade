@@ -43,7 +43,7 @@ public class UIRenderer
         ActiveCamera ??= Main.GetInstance().MainViewport.Camera;
 
         if (!Timeline.IsPlaying && !Timeline.IsScrubbing && !Timeline.IsDraggingKeyframe) return;
-        foreach (var obj in SceneTreePanel.SceneObjects)
+        foreach (var obj in SceneTreePanel.SceneObjects.Values)
         {
             if (!Timeline.HasKeyframes(obj)) continue;
             var animatedPosition = Timeline.GetAnimatedPosition(obj);
@@ -209,7 +209,7 @@ public class UIRenderer
         _availableCameras.Add(Main.GetInstance().Output.MainCamera);
         
         // Find all SceneObjects of type Camera that have a valid camera component
-        foreach (var camera in (from sceneObject in SceneTreePanel.SceneObjects where sceneObject.ObjectType == SceneObject.Type.Camera select sceneObject.GetCamera()).OfType<Camera3D>())
+        foreach (var camera in (from sceneObject in SceneTreePanel.SceneObjects.Values where sceneObject.ObjectType == SceneObject.Type.Camera select sceneObject.GetCamera()).OfType<Camera3D>())
         {
             _availableCameras.Add(camera);
         }

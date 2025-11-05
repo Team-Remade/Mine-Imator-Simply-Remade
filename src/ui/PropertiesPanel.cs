@@ -84,7 +84,7 @@ public class PropertiesPanel
 
         // Object type and mesh information
         ImGui.Text("Object Information");
-        ImGui.Text($"Object ID: {Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex}");
+        ImGui.Text($"Object ID: {Main.GetInstance().UI.SceneTreePanel.SelectedObjectGuid}");
 
         // Object statistics
         var totalKeyframes = Main.GetInstance().UI.SceneTreePanel.SelectedObject?.PosXKeyframes.Count + Main.GetInstance().UI.SceneTreePanel.SelectedObject?.PosYKeyframes.Count +
@@ -99,7 +99,7 @@ public class PropertiesPanel
         ImGui.Spacing();
         ImGui.Separator();
 
-        var availableParents = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Where(obj =>
+        var availableParents = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values.Where(obj =>
                 obj != Main.GetInstance().UI.SceneTreePanel.SelectedObject && !obj.IsDescendantOf(Main.GetInstance().UI.SceneTreePanel.SelectedObject))
             .ToList();
         availableParents.Insert(0, null); // Add "None" option

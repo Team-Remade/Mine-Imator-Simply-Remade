@@ -235,7 +235,7 @@ public partial class Main : Control
             var keyframeFrames = new HashSet<int>();
             if (UI.SceneTreePanel.SceneObjects != null)
             {
-                foreach (var obj in UI.SceneTreePanel.SceneObjects)
+                foreach (var obj in UI.SceneTreePanel.SceneObjects.Values)
                 {
                     keyframeFrames.UnionWith(obj.PosXKeyframes.Keys);
                     keyframeFrames.UnionWith(obj.PosYKeyframes.Keys);

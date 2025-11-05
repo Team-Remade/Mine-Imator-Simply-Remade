@@ -101,6 +101,19 @@ public partial class MainViewport : SubViewport
         
         foreach (var so in allSceneObjects)
         {
+            // Safety check for duplicate IDs
+            if (Objects.ContainsKey(so.ID))
+            {
+                GD.PrintErr($"Duplicate object ID detected: {so.ID} for object {so.Name}. Regenerating ID.");
+                // Find a new unique ID
+                int newId = so.ID;
+                while (Objects.ContainsKey(newId))
+                {
+                    newId++;
+                }
+                so.ID = newId;
+            }
+            
             // Create a new node for the picking system instead of duplicating the entire SceneObject
             var pickingNode = new Node3D();
             pickingNode.Name = so.Name + "_Picking";
@@ -189,8 +202,6 @@ public partial class MainViewport : SubViewport
             sceneObject.ObjectOriginOffset = Vector3.Zero;
         }
         
-        Main.GetInstance().UI.SceneTreePanel.SceneObjects.Add(sceneObject);
-        
         sceneObject.ObjectType = objectType;
         
         // Add to the provided parent or default to World
@@ -203,9 +214,18 @@ public partial class MainViewport : SubViewport
             World.AddChild(sceneObject);
         }
         
-        sceneObject.Name = string.IsNullOrEmpty(name) ? $"{objectType}{Main.GetInstance().UI.SceneTreePanel.SceneObjects.IndexOf(sceneObject)}" : name;
+        // Ensure the object has a GUID
+        if (sceneObject.ObjectGuid == Guid.Empty)
+        {
+            sceneObject.ObjectGuid = Guid.NewGuid();
+        }
         
-        sceneObject.ID = Main.GetInstance().UI.SceneTreePanel.SceneObjects.IndexOf(sceneObject) + 1;
+        // Add to SceneObjects dictionary using GUID as key
+        Main.GetInstance().UI.SceneTreePanel.SceneObjects.Add(sceneObject.ObjectGuid, sceneObject);
+        
+        sceneObject.Name = string.IsNullOrEmpty(name) ? $"{objectType}{Main.GetInstance().UI.SceneTreePanel.SceneObjects.Count}" : name;
+        
+        sceneObject.ID = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Count;
         
         UpdatePicking();
         return sceneObject;
@@ -213,22 +233,25 @@ public partial class MainViewport : SubViewport
 
     private void TransformGizmoOnTransformEnd(int mode)
     {
+        var selectedObject = Main.GetInstance().UI.SceneTreePanel.SelectedObject;
+        if (selectedObject == null) return;
+
         switch (mode)
         {
             case 2:
-                Main.GetInstance().UI.Timeline.AddKeyframe("position.x", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Position.X);
-                Main.GetInstance().UI.Timeline.AddKeyframe("position.y", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Position.Y);
-                Main.GetInstance().UI.Timeline.AddKeyframe("position.z", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Position.Z);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.x", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Position.X);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.y", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Position.Y);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.z", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Position.Z);
                 break;
             case (int)Gizmo3D.ToolMode.Rotate - 1:
-                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.x", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].RotationDegrees.X);
-                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.y", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].RotationDegrees.Y);
-                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.z", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].RotationDegrees.Z);
+                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.x", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.RotationDegrees.X);
+                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.y", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.RotationDegrees.Y);
+                Main.GetInstance().UI.Timeline.AddKeyframe("rotation.z", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.RotationDegrees.Z);
                 break;
             case (int)Gizmo3D.ToolMode.Scale - 1:
-                Main.GetInstance().UI.Timeline.AddKeyframe("scale.x", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Scale.X);
-                Main.GetInstance().UI.Timeline.AddKeyframe("scale.y", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Scale.Y);
-                Main.GetInstance().UI.Timeline.AddKeyframe("scale.z", Main.GetInstance().UI.Timeline.CurrentFrame, Main.GetInstance().UI.SceneTreePanel.SceneObjects[Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex].Scale.Z);
+                Main.GetInstance().UI.Timeline.AddKeyframe("scale.x", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Scale.X);
+                Main.GetInstance().UI.Timeline.AddKeyframe("scale.y", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Scale.Y);
+                Main.GetInstance().UI.Timeline.AddKeyframe("scale.z", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Scale.Z);
                 break;
         }
     }
@@ -279,6 +302,11 @@ public partial class MainViewport : SubViewport
         {
             CreateSceneObject(SceneObject.Type.Empty);
             UpdatePicking();
+        }
+
+        if (Input.IsActionJustPressed("Duplicate"))
+        {
+            DuplicateSelectedObject();
         }
 
         if (Input.IsActionJustPressed("ToggleDebugView"))
@@ -400,9 +428,9 @@ public partial class MainViewport : SubViewport
             objectToSelect = SelectionManager.Selection.Count == 0 ? FindFirstSceneObjectInChain(sceneObject) :
                 // If other objects are selected, select the clicked object directly
                 sceneObject;
-                
-            // Select the object - convert from 1-based objectId to 0-based index
-            Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex = objectToSelect.ID - 1;
+            
+            // Update SceneTreePanel selection using GUID
+            Main.GetInstance().UI.SceneTreePanel.SelectedObjectGuid = objectToSelect.ObjectGuid;
                 
             // Update SelectionManager
             SelectionManager.ClearSelection();
@@ -414,7 +442,7 @@ public partial class MainViewport : SubViewport
         else
         {
             // No object selected (clicked on background)
-            Main.GetInstance().UI.SceneTreePanel.SelectedObjectIndex = -1;
+            Main.GetInstance().UI.SceneTreePanel.SelectedObjectGuid = null;
             SelectionManager.ClearSelection();
         }
     }
@@ -473,5 +501,86 @@ public partial class MainViewport : SubViewport
     {
         BackgroundObject.BackgroundTexture.Texture = null;
         Main.GetInstance().Output.BackgroundObject.BackgroundTexture.Texture = null;
+    }
+
+    private void DuplicateSelectedObject()
+    {
+        // Check if we have selected objects to duplicate
+        if (SelectionManager.Selection.Count == 0) return;
+        
+        var duplicatedObjects = new List<SceneObject>();
+        
+        // Find the maximum existing ID to ensure unique IDs
+        int maxExistingId = 0;
+        foreach (var existingObj in Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values)
+        {
+            maxExistingId = Math.Max(maxExistingId, existingObj.ID);
+        }
+        
+        // Duplicate each selected object
+        for (int i = 0; i < SelectionManager.Selection.Count; i++)
+        {
+            var selectedObject = SelectionManager.Selection[i];
+            if (selectedObject is not SceneObject sceneObject) continue;
+            
+            // Generate a new unique ID for the duplicated object
+            // Use a large base to avoid conflicts with child object IDs
+            int baseId = maxExistingId + 10000 + i;
+            int newId = baseId;
+            
+            // Ensure the ID is not 0 (which would cause issues with child objects)
+            if (newId == 0) newId = 10000;
+            
+            // Create a deep duplicate of the scene object with all its children and keyframes
+            var duplicatedObject = sceneObject.DeepDuplicateSceneObject(newId);
+            
+            if (duplicatedObject == null)
+            {
+                GD.PrintErr($"Failed to duplicate SceneObject {sceneObject.Name}");
+                continue;
+            }
+            
+            // Ensure the duplicated object has a unique GUID
+            if (duplicatedObject.ObjectGuid == Guid.Empty || duplicatedObject.ObjectGuid == sceneObject.ObjectGuid)
+            {
+                duplicatedObject.ObjectGuid = Guid.NewGuid();
+            }
+            
+            // Position the duplicate slightly offset from the original and stagger multiple duplicates
+            Vector3 offset = new Vector3((i + 1) * 0.5f, 0, (i + 1) * 0.5f);
+            duplicatedObject.Position = sceneObject.Position + offset;
+            
+            // Add to the scene tree panel using GUID as key
+            Main.GetInstance().UI.SceneTreePanel.SceneObjects.Add(duplicatedObject.ObjectGuid, duplicatedObject);
+            
+            // Add to the world
+            World.AddChild(duplicatedObject);
+            
+            // Update the object name
+            duplicatedObject.Name = $"{sceneObject.ObjectType}_{Main.GetInstance().UI.SceneTreePanel.SceneObjects.Count}";
+            
+            duplicatedObjects.Add(duplicatedObject);
+        }
+        
+        // Update the picking system to include all new objects
+        UpdatePicking();
+        
+        // Select all newly duplicated objects
+        SelectionManager.ClearSelection();
+        foreach (var duplicatedObject in duplicatedObjects)
+        {
+            SelectionManager.Selection.Add(duplicatedObject);
+        }
+        
+        if (duplicatedObjects.Count > 0)
+        {
+            SelectionManager.TransformGizmo.Visible = true;
+            // Position gizmo at the first duplicated object for reference
+            SelectionManager.TransformGizmo.Position = duplicatedObjects[0].Position;
+            SelectionManager.TransformGizmo.Select(duplicatedObjects[0]);
+            
+            // Update selected GUID to the last duplicated object
+            Main.GetInstance().UI.SceneTreePanel.SelectedObjectGuid = duplicatedObjects[duplicatedObjects.Count - 1].ObjectGuid;
+        }
     }
 }

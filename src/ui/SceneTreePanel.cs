@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using ImGuiNET;
@@ -12,14 +13,14 @@ public class SceneTreePanel
 {
     public SceneWorld World { get; set; }
     
-    public readonly List<SceneObject> SceneObjects = [];
-    public int SelectedObjectIndex = -1;
+    public readonly Dictionary<Guid, SceneObject> SceneObjects = new();
+    public Guid? SelectedObjectGuid = null;
 
-    private const string PAYLOAD_TYPE = "SCENE_OBJECT_INDEX";
+    private const string PAYLOAD_TYPE = "SCENE_OBJECT_GUID";
     
     #nullable enable
-    public SceneObject? SelectedObject => SelectedObjectIndex >= 0 && SelectedObjectIndex < SceneObjects.Count
-        ? SceneObjects[SelectedObjectIndex]
+    public SceneObject? SelectedObject => SelectedObjectGuid.HasValue && SceneObjects.ContainsKey(SelectedObjectGuid.Value)
+        ? SceneObjects[SelectedObjectGuid.Value]
         : null;
     #nullable disable
 
@@ -41,7 +42,7 @@ public class SceneTreePanel
 
             // Build and render hierarchy: top-level nodes are objects with no parent
             int renderedCount = 0;
-            foreach (var obj in SceneObjects.Where(obj => obj.GetParent() is SceneWorld))
+            foreach (var obj in SceneObjects.Values.Where(obj => obj.GetParent() is SceneWorld))
             {
                 RenderObjectNode(obj);
                 renderedCount++;
@@ -62,12 +63,12 @@ public class SceneTreePanel
     {
         if (!ImGui.BeginDragDropTarget()) return;
         var payload = ImGui.AcceptDragDropPayload(PAYLOAD_TYPE);
-        if (payload.NativePtr != null && payload.Data != System.IntPtr.Zero && payload.DataSize == sizeof(int))
+        if (payload.NativePtr != null && payload.Data != System.IntPtr.Zero && payload.DataSize == sizeof(Guid))
         {
-            int index = *(int*)payload.Data;
-            if (index >= 0 && index < SceneObjects.Count)
+            Guid draggedGuid = *(Guid*)payload.Data;
+            if (SceneObjects.ContainsKey(draggedGuid))
             {
-                var obj = SceneObjects[index];
+                var obj = SceneObjects[draggedGuid];
                 // Unparent
                 obj.GetParent().RemoveChild(obj);
                 World.AddChild(obj);
@@ -79,8 +80,8 @@ public class SceneTreePanel
 
     private unsafe void RenderObjectNode(SceneObject obj)
     {
-        int index = SceneObjects.IndexOf(obj);
-        bool isSelected = index == SelectedObjectIndex;
+        Guid objGuid = obj.ObjectGuid;
+        bool isSelected = SelectedObjectGuid == objGuid;
         bool hasChildren = obj.GetChildren().Count > 0;
 
         var flags = ImGuiTreeNodeFlags.OpenOnArrow | ImGuiTreeNodeFlags.OpenOnDoubleClick |
@@ -95,20 +96,21 @@ public class SceneTreePanel
             flags |= ImGuiTreeNodeFlags.Selected;
         }
 
-        ImGui.PushID(index);
+        ImGui.PushID(objGuid.ToString());
         bool open = ImGui.TreeNodeEx(obj.Name, flags);
         if (ImGui.IsItemClicked())
         {
-            SelectedObjectIndex = index;
-            SelectionManager.Selection.Add(SceneObjects[index]);
+            SelectedObjectGuid = objGuid;
+            SelectionManager.Selection.Clear();
+            SelectionManager.Selection.Add(obj);
             SelectionManager.QuerySelection();
         }
 
         // Begin drag source for this node
         if (ImGui.BeginDragDropSource())
         {
-            // Payload: index of the dragged object
-            ImGui.SetDragDropPayload(PAYLOAD_TYPE, (System.IntPtr)(&index), (uint)sizeof(int));
+            // Payload: GUID of the dragged object
+            ImGui.SetDragDropPayload(PAYLOAD_TYPE, (System.IntPtr)(&objGuid), (uint)sizeof(Guid));
             ImGui.Text($"Move '{obj.Name}'");
             ImGui.EndDragDropSource();
         }
@@ -117,12 +119,12 @@ public class SceneTreePanel
         if (ImGui.BeginDragDropTarget())
         {
             var payload = ImGui.AcceptDragDropPayload(PAYLOAD_TYPE);
-            if (payload.NativePtr != null && payload.Data != System.IntPtr.Zero && payload.DataSize == sizeof(int))
+            if (payload.NativePtr != null && payload.Data != System.IntPtr.Zero && payload.DataSize == sizeof(Guid))
             {
-                int draggedIndex = *(int*)payload.Data;
-                if (draggedIndex >= 0 && draggedIndex < SceneObjects.Count)
+                Guid draggedGuid = *(Guid*)payload.Data;
+                if (SceneObjects.ContainsKey(draggedGuid))
                 {
-                    var draggedObj = SceneObjects[draggedIndex];
+                    var draggedObj = SceneObjects[draggedGuid];
                     // Prevent invalid parenting: to itself or descendant
                     if (draggedObj != obj && !obj.IsDescendantOf(draggedObj))
                     {
@@ -182,10 +184,10 @@ public class SceneTreePanel
     }
     public void DeleteSelectedObject()
     {
-        if (SelectedObjectIndex < 0 || SelectedObjectIndex >= SceneObjects.Count)
+        if (SelectedObjectGuid == null || !SceneObjects.ContainsKey(SelectedObjectGuid.Value))
             return;
 
-        var selectedObject = SceneObjects[SelectedObjectIndex];
+        var selectedObject = SceneObjects[SelectedObjectGuid.Value];
         
         // Recursively collect all SceneObject children to delete
         var objectsToDelete = new List<SceneObject>();
@@ -194,22 +196,14 @@ public class SceneTreePanel
         // Add the selected object itself to the deletion list
         objectsToDelete.Add(selectedObject);
         
-        // Delete all collected objects in reverse order (children first)
-        for (int i = objectsToDelete.Count - 1; i >= 0; i--)
+        // Delete all collected objects
+        foreach (var objToDelete in objectsToDelete)
         {
-            var objToDelete = objectsToDelete[i];
-            
-            // Remove from the SceneObjects list if it's there
-            int indexInList = SceneObjects.IndexOf(objToDelete);
-            if (indexInList != -1)
+            // Remove from the SceneObjects dictionary
+            if (SceneObjects.ContainsValue(objToDelete))
             {
-                SceneObjects.RemoveAt(indexInList);
-                
-                // Adjust selected index if necessary
-                if (indexInList < SelectedObjectIndex)
-                {
-                    SelectedObjectIndex--;
-                }
+                var guid = objToDelete.ObjectGuid;
+                SceneObjects.Remove(guid);
             }
             
             // Remove from the scene tree
@@ -222,7 +216,7 @@ public class SceneTreePanel
         // Clear selection if the selected object was deleted
         if (objectsToDelete.Contains(selectedObject))
         {
-            SelectedObjectIndex = -1;
+            SelectedObjectGuid = null;
             SelectionManager.ClearSelection();
         }
     }

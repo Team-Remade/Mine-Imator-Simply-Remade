@@ -110,19 +110,19 @@ public class Timeline
     {
         public string Property { get; init; } = "";
         public int Frame { get; init; } = -1;
-        public int ObjectIndex { get; init; } = -1;
+        public Guid? ObjectGuid { get; init; } = null;
 
         public override bool Equals(object? obj)
         {
             return obj is SelectedKeyframe other &&
                    Property == other.Property &&
                    Frame == other.Frame &&
-                   ObjectIndex == other.ObjectIndex;
+                   ObjectGuid == other.ObjectGuid;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Property, Frame, ObjectIndex);
+            return HashCode.Combine(Property, Frame, ObjectGuid);
         }
     }
 
@@ -216,13 +216,10 @@ public class Timeline
         get
         {
             var instance = Main.GetInstance();
-            if (instance?.UI?.SceneTreePanel.SceneObjects == null)
+            if (instance?.UI?.SceneTreePanel == null)
                 return null;
 
-            var objects = instance.UI.SceneTreePanel.SceneObjects;
-            var index = instance.UI.SceneTreePanel.SelectedObjectIndex;
-
-            return index >= 0 && index < objects.Count ? objects[index] : null;
+            return instance.UI.SceneTreePanel.SelectedObject;
         }
     }
 
@@ -252,13 +249,12 @@ public class Timeline
 
     private void HandleObjectSelectionChange()
     {
-        var currentIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
-        if (_previousSelectedObjectIndex == currentIndex) return;
+        var currentGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
+        // Clear all keyframe-related state when selected object changes
         SelectedKeyframes.Clear();
         IsDraggingKeyframe = false;
         _draggedKeyframesData.Clear();
         _dragAnchorKeyframe = null;
-        _previousSelectedObjectIndex = currentIndex;
         _selectedTrackProperty = null;
 
         // Clear cache when object changes
@@ -822,7 +818,7 @@ public class Timeline
         var instance = Main.GetInstance();
         if (instance?.UI?.SceneTreePanel?.SceneObjects == null) return;
 
-        foreach (var obj in instance.UI.SceneTreePanel.SceneObjects)
+        foreach (var obj in instance.UI.SceneTreePanel.SceneObjects.Values)
         {
             if (obj.PosXKeyframes.Count > 0 || obj.PosYKeyframes.Count > 0 || obj.PosZKeyframes.Count > 0)
             {
@@ -2597,7 +2593,7 @@ public class Timeline
         {
             Property = property,
             Frame = clickedFrame,
-            ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
+            ObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid
         });
 
         // Synchronize the marker with the created keyframe
@@ -2883,7 +2879,7 @@ public class Timeline
                 {
                     Property = property,
                     Frame = frame,
-                    ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
+                    ObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid
                 };
 
                 float normalizedPos = (frame - TimelineStart) / (float)visibleFrames;
@@ -2907,7 +2903,7 @@ public class Timeline
             {
                 Property = property,
                 Frame = frame,
-                ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
+                ObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid
             };
 
             bool isSelected = SelectedKeyframes.Contains(keyframeId);
@@ -3235,7 +3231,7 @@ public class Timeline
                 {
                     Property = move.keyframe.Property,
                     Frame = targetFrame,
-                    ObjectIndex = move.keyframe.ObjectIndex
+                    ObjectGuid = move.keyframe.ObjectGuid
                 });
             }
         }
@@ -3696,7 +3692,7 @@ public class Timeline
 
         var selectedForProperty = SelectedKeyframes.FirstOrDefault(k =>
             k.Property == property &&
-            k.ObjectIndex == (Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1));
+            k.ObjectGuid == Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid);
 
         if (selectedForProperty != null)
         {
@@ -3730,7 +3726,7 @@ public class Timeline
         var instance = Main.GetInstance();
         if (instance?.UI?.SceneTreePanel?.SceneObjects != null)
         {
-            foreach (var obj in instance.UI.SceneTreePanel.SceneObjects)
+            foreach (var obj in instance.UI.SceneTreePanel.SceneObjects.Values)
             {
                 maxFrame = Math.Max(maxFrame, GetMaxFrameFromKeyframes(obj.PosXKeyframes));
                 maxFrame = Math.Max(maxFrame, GetMaxFrameFromKeyframes(obj.PosYKeyframes));
@@ -3927,7 +3923,7 @@ public class Timeline
 
         int targetFrame = CurrentFrame;
         int keyframesCreated = 0;
-        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        Guid? selectedObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
 
         SelectedKeyframes.Clear();
 
@@ -3974,7 +3970,7 @@ public class Timeline
                 {
                     Property = propertyName,
                     Frame = targetFrame,
-                    ObjectIndex = selectedObjectIndex
+                    ObjectGuid = selectedObjectGuid
                 });
             }
         }
@@ -4255,7 +4251,7 @@ public class Timeline
         }
 
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        Guid? selectedObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
@@ -4266,7 +4262,7 @@ public class Timeline
                 {
                     Property = property,
                     Frame = frame,
-                    ObjectIndex = selectedObjectIndex
+                    ObjectGuid = selectedObjectGuid
                 });
             }
         }
@@ -4279,7 +4275,7 @@ public class Timeline
         if (IsPlaying) IsPlaying = false;
         
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        Guid? selectedObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
@@ -4290,7 +4286,7 @@ public class Timeline
                 {
                     Property = property,
                     Frame = frame,
-                    ObjectIndex = selectedObjectIndex
+                    ObjectGuid = selectedObjectGuid
                 });
             }
         }
@@ -4306,7 +4302,7 @@ public class Timeline
         }
 
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        Guid? selectedObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
@@ -4317,7 +4313,7 @@ public class Timeline
             {
                 Property = property,
                 Frame = firstFrame,
-                ObjectIndex = selectedObjectIndex
+                ObjectGuid = selectedObjectGuid
             });
         }
     }
@@ -4332,7 +4328,7 @@ public class Timeline
         }
 
         SelectedKeyframes.Clear();
-        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        Guid? selectedObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
 
         foreach (var (property, accessor) in PropertyAccessors)
         {
@@ -4343,7 +4339,7 @@ public class Timeline
             {
                 Property = property,
                 Frame = lastFrame,
-                ObjectIndex = selectedObjectIndex
+                ObjectGuid = selectedObjectGuid
             });
         }
     }
@@ -4358,7 +4354,7 @@ public class Timeline
         
         SelectedKeyframes.Clear();
 
-        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        Guid? selectedObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
 
         int minFrame = Math.Min(_regionStartFrame, _regionEndFrame);
         int maxFrame = Math.Max(_regionStartFrame, _regionEndFrame);
@@ -4372,7 +4368,7 @@ public class Timeline
                 {
                     Property = property,
                     Frame = frame,
-                    ObjectIndex = selectedObjectIndex
+                    ObjectGuid = selectedObjectGuid
                 });
             }
         }
@@ -4457,7 +4453,7 @@ public class Timeline
             {
                 Property = copiedKf.Property,
                 Frame = newFrame,
-                ObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1
+                ObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid
             });
         }
 
@@ -4500,7 +4496,7 @@ public class Timeline
 
         int targetFrame = CurrentFrame;
         int keyframesCreated = 0;
-        int selectedObjectIndex = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectIndex ?? -1;
+        Guid? selectedObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
 
         SelectedKeyframes.Clear();
 
@@ -4550,7 +4546,7 @@ public class Timeline
             {
                 Property = propertyName,
                 Frame = targetFrame,
-                ObjectIndex = selectedObjectIndex
+                ObjectGuid = selectedObjectGuid
             });
         }
 
