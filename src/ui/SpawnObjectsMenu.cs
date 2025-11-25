@@ -21,9 +21,15 @@ public class SpawnObjectsMenu
     private bool _use3DMode = true;
     private int _selectedTextureSheet = 0; // 0 = Item, 1 = Terrain
     private string[] _textureSheets = ["Item Sheet", "Terrain Sheet"];
-    private string[] _categories = ["Character", "Item", "Block", "Light Source", "Camera"];
+    private string[] _categories = ["Character", "Custom Model", "Item", "Block", "Light Source", "Camera"];
     private string[] _allCharacters = ["Steve", "Balloonicorn", "PyroBaby"];
     private ModelLoader _modelLoader = new();
+    
+    // Custom model options
+    private string _customModelFilePath = "";
+    private string _pendingCustomModelPath = null;
+    private List<string> _customModelHistory = new();
+    private int _selectedCustomModelIndex = -1;
     
     // Steve skin options
     private int _selectedSteveSkinIndex = 0;
@@ -561,16 +567,19 @@ public class SpawnObjectsMenu
             case 0: // Character
                 RenderCharacterContent();
                 break;
-            case 1: // Item
+            case 1: // Custom Model
+                RenderCustomModelContent();
+                break;
+            case 2: // Item
                 RenderItemContent();
                 break;
-            case 2: // Block
+            case 3: // Block
                 RenderBlockContent();
                 break;
-            case 3: // Light Source
+            case 4: // Light Source
                 RenderLightSourceContent();
                 break;
-            case 4: // Camera
+            case 5: // Camera
                 RenderCameraContent();
                 break;
             default:
@@ -2459,5 +2468,91 @@ public class SpawnObjectsMenu
         arrayMesh.SurfaceSetMaterial(arrayMesh.GetSurfaceCount() - 1, leftMaterial);
         
         return arrayMesh;
+    }
+
+    private void RenderCustomModelContent()
+    {
+        // Handle pending custom model loading
+        if (!string.IsNullOrEmpty(_pendingCustomModelPath))
+        {
+            if (System.IO.File.Exists(_pendingCustomModelPath))
+            {
+                _customModelFilePath = _pendingCustomModelPath;
+                
+                // Add to history if not already present
+                if (!_customModelHistory.Contains(_pendingCustomModelPath))
+                {
+                    _customModelHistory.Add(_pendingCustomModelPath);
+                }
+            }
+            _pendingCustomModelPath = null;
+        }
+
+        // File path input and browse button
+        ImGui.Text("Custom Model File:");
+        ImGui.SetNextItemWidth(-1);
+        ImGui.InputText("##CustomModelPath", ref _customModelFilePath, 512);
+        
+        if (ImGui.Button("Browse"))
+        {
+            _ = Task.Run(async () =>
+            {
+                var modelPath = await util.FileDialog.ShowOpenDialogAsync("Select GLTF/GLB Model", "GLTF Files|*.gltf|GLB Files|*.glb|All Files|*.*");
+                if (!string.IsNullOrEmpty(modelPath) && System.IO.File.Exists(modelPath))
+                {
+                    _pendingCustomModelPath = modelPath;
+                }
+            });
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // Dropdown for previously selected models
+        if (_customModelHistory.Count > 0)
+        {
+            ImGui.Text("Recent Models:");
+            ImGui.SetNextItemWidth(-1);
+            
+            // Create array of history items for the combo
+            var historyItems = _customModelHistory.ToArray();
+            if (ImGui.Combo("##CustomModelHistory", ref _selectedCustomModelIndex, historyItems, historyItems.Length))
+            {
+                // Update current path when selection changes
+                if (_selectedCustomModelIndex >= 0 && _selectedCustomModelIndex < _customModelHistory.Count)
+                {
+                    _customModelFilePath = _customModelHistory[_selectedCustomModelIndex];
+                }
+            }
+            
+            ImGui.Spacing();
+            ImGui.Separator();
+            ImGui.Spacing();
+        }
+
+        // Create button
+        if (ImGui.Button("Create", new Vector2(-1, 30)))
+        {
+            Main.GetInstance().UI.ShowSpawnMenu = false;
+            
+            if (!string.IsNullOrEmpty(_customModelFilePath) && System.IO.File.Exists(_customModelFilePath))
+            {
+                SpawnCustomModel(_customModelFilePath);
+            }
+        }
+    }
+
+    private void SpawnCustomModel(string modelPath)
+    {
+        var main = Main.GetInstance();
+        if (main?.MainViewport?.World == null)
+        {
+            GD.PrintErr("Main viewport or world is not available");
+            return;
+        }
+
+        // Load the custom model using ModelLoader
+        _modelLoader.LoadModel(modelPath, main.MainViewport.World, true);
     }
 }

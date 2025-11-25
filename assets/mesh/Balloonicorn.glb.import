@@ -3,7 +3,7 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dqs75a538b5rd"
+uid="uid://b5wulvojokyha"
 path="res://.godot/imported/Balloonicorn.glb-07a651b2a3931297b965a8c3d9221913.scn"
 
 [deps]
@@ -37,14 +37,6 @@ import_script/path=""
 materials/extract=0
 materials/extract_format=0
 materials/extract_path=""
-_subresources={
-"materials": {
-"Material": {
-"use_external/enabled": true,
-"use_external/fallback_path": "res://assets/material/BallonicornMaterial.tres",
-"use_external/path": "uid://daoqnpqrci5wu"
-}
-}
-}
-gltf/naming_version=1
+_subresources={}
+gltf/naming_version=2
 gltf/embedded_image_handling=1

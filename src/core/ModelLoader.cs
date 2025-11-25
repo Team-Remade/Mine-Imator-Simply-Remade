@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Godot;
 
@@ -6,12 +7,32 @@ namespace SimplyRemadeMI.core;
 
 public partial class ModelLoader : Node
 {
-    public SceneObject LoadModel(string glbPath, Node3D parent = null)
+    public SceneObject LoadModel(string glbPath, Node3D parent = null, bool isExternalFile = false)
     {
         // Load the GLB file using ResourceLoader
-        var packedScene = ResourceLoader.Load<PackedScene>(glbPath);
+        Node3D modelInstance = null;
+
+        if (!isExternalFile)
+        {
+            var packedScene = ResourceLoader.Load<PackedScene>(glbPath);
+            modelInstance = packedScene.Instantiate<Node3D>();
+        }
+        else
+        {
+            var doc = new GltfDocument();
+            var state = new GltfState();
+            
+            var error = doc.AppendFromFile(glbPath, state);
+            if (error == Error.Ok)
+            {
+                modelInstance = doc.GenerateScene(state) as Node3D;
+            }
+            else
+            {
+                GD.PrintErr(error);
+            }
+        }
         
-        var modelInstance = packedScene.Instantiate<Node3D>();
         if (modelInstance == null)
         {
             GD.PrintErr($"Failed to instantiate GLB scene: {glbPath}");
