@@ -475,14 +475,66 @@ public class PropertiesPanel
         ImGui.Spacing();
         ImGui.Text("Object Settings");
 
-        // Animation options
+        // Animation options - show easing mode for selected keyframes
         ImGui.Spacing();
         ImGui.Text("Animation");
-        ImGui.Text("Interpolation: Linear");
-        ImGui.Text("Easing: None");
+        
+        var timeline = Main.GetInstance().UI.Timeline;
+        if (timeline != null && timeline.HasSelectedKeyframe())
+        {
+            ImGui.Text($"Selected Keyframes: {timeline.SelectedKeyframes.Count}");
+            
+            // Get the easing mode of the first selected keyframe
+            var firstKeyframe = timeline.SelectedKeyframes.FirstOrDefault();
+            if (firstKeyframe != null && selectedObject != null)
+            {
+                var keyframeDict = GetKeyframeDictionary(firstKeyframe.Property, selectedObject);
+                if (keyframeDict != null && keyframeDict.TryGetValue(firstKeyframe.Frame, out core.Keyframe? keyframe))
+                {
+                    ImGui.Text($"Frame: {firstKeyframe.Frame}");
+                    ImGui.Text($"Property: {firstKeyframe.Property}");
+                    
+                    // Show easing mode selector
+                    var easingModes = core.EasingFunctions.GetAllEasingModes();
+                    var easingModeNames = easingModes.Select(m => core.EasingFunctions.GetEasingModeName(m)).ToArray();
+                    int currentEasingIndex = Array.IndexOf(easingModes, keyframe.EasingMode);
+                    
+                    if (ImGui.Combo("Easing Mode", ref currentEasingIndex, easingModeNames, easingModeNames.Length))
+                    {
+                        var newEasingMode = easingModes[currentEasingIndex];
+                        timeline.SetEasingModeForSelectedKeyframes(newEasingMode);
+                    }
+                    
+                    // Show helper text
+                    ImGui.TextWrapped($"Easing mode controls interpolation to the next keyframe.");
+                }
+            }
+        }
+        else
+        {
+            ImGui.TextDisabled("Select keyframes in the timeline to change easing mode");
+        }
 
         ImGui.Spacing();
         ImGui.Separator();
+    }
+    
+    private System.Collections.Generic.Dictionary<int, core.Keyframe>? GetKeyframeDictionary(string property, core.SceneObject obj)
+    {
+        return property.ToLower() switch
+        {
+            "position.x" => obj.PosXKeyframes,
+            "position.y" => obj.PosYKeyframes,
+            "position.z" => obj.PosZKeyframes,
+            "rotation.x" => obj.RotXKeyframes,
+            "rotation.y" => obj.RotYKeyframes,
+            "rotation.z" => obj.RotZKeyframes,
+            "scale.x" => obj.ScaleXKeyframes,
+            "scale.y" => obj.ScaleYKeyframes,
+            "scale.z" => obj.ScaleZKeyframes,
+            "alpha" => obj.AlphaKeyframes,
+            _ => null
+        };
     }
     
     private void RenderNoObjectSelected()

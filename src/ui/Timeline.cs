@@ -170,7 +170,7 @@ public class Timeline
     private float _objectEditStartAlpha = 1.0f;
 
     // cached property arrays
-    private static readonly (string, Func<SceneObject, Dictionary<int, float>>)[] PropertyAccessors =
+    private static readonly (string, Func<SceneObject, Dictionary<int, Keyframe>>)[] PropertyAccessors =
     [
         ("position.x", obj => obj.PosXKeyframes),
         ("position.y", obj => obj.PosYKeyframes),
@@ -249,17 +249,16 @@ public class Timeline
 
     private void HandleObjectSelectionChange()
     {
-        var currentGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid;
-        // Clear all keyframe-related state when selected object changes
+        // Clear cache when object changes
+        var newObjectHash = CurrentObject?.GetHashCode() ?? 0;
+        if (newObjectHash == _lastCacheObjectHash) return;
+        
+        // Only clear keyframe-related state when object actually changes
         SelectedKeyframes.Clear();
         IsDraggingKeyframe = false;
         _draggedKeyframesData.Clear();
         _dragAnchorKeyframe = null;
         _selectedTrackProperty = null;
-
-        // Clear cache when object changes
-        var newObjectHash = CurrentObject?.GetHashCode() ?? 0;
-        if (newObjectHash == _lastCacheObjectHash) return;
         _sortedKeyframeCache.Clear();
         _lastCacheObjectHash = newObjectHash;
     }
@@ -852,15 +851,15 @@ public class Timeline
         }
     }
 
-    public float EvaluateKeyframesWithDefault(Dictionary<int, float> keyframes, float frame, float defaultValue)
+    public float EvaluateKeyframesWithDefault(Dictionary<int, Keyframe> keyframes, float frame, float defaultValue)
     {
         if (keyframes.Count == 0)
             return defaultValue;
 
         int frameInt = (int)Math.Round(frame);
 
-        if (keyframes.TryGetValue(frameInt, out float exactValue))
-            return exactValue;
+        if (keyframes.TryGetValue(frameInt, out Keyframe? exactKeyframe))
+            return exactKeyframe.Value;
 
         string cacheKey = $"{keyframes.Count}_{string.Join(",", keyframes.Keys.OrderBy(x => x))}";
         if (!_sortedKeyframeCache.TryGetValue(cacheKey, out var sortedFrames))
@@ -873,17 +872,17 @@ public class Timeline
             return defaultValue;
 
         if (frame < sortedFrames[0])
-            return keyframes[sortedFrames[0]];
+            return keyframes[sortedFrames[0]].Value;
 
         if (frame > sortedFrames[^1])
-            return keyframes[sortedFrames[^1]];
+            return keyframes[sortedFrames[^1]].Value;
 
         int left = 0, right = sortedFrames.Count - 1;
         while (left < right - 1)
         {
             int mid = (left + right) / 2;
             if (sortedFrames[mid] == frameInt)
-                return keyframes[sortedFrames[mid]];
+                return keyframes[sortedFrames[mid]].Value;
             if (sortedFrames[mid] < frame)
                 left = mid;
             else
@@ -894,15 +893,19 @@ public class Timeline
         int rightFrame = sortedFrames[right];
 
         if (rightFrame == leftFrame)
-            return keyframes[leftFrame];
+            return keyframes[leftFrame].Value;
 
-        float leftValue = keyframes[leftFrame];
-        float rightValue = keyframes[rightFrame];
+        Keyframe leftKeyframe = keyframes[leftFrame];
+        Keyframe rightKeyframe = keyframes[rightFrame];
         float t = (frame - leftFrame) / (rightFrame - leftFrame);
-        return leftValue + (rightValue - leftValue) * t;
+        
+        // Apply easing from the left keyframe
+        float easedT = EasingFunctions.ApplyEasing(t, leftKeyframe.EasingMode);
+        
+        return leftKeyframe.Value + (rightKeyframe.Value - leftKeyframe.Value) * easedT;
     }
 
-    public float EvaluateKeyframesWithDefault(Dictionary<int, float> keyframes, int frame, float defaultValue)
+    public float EvaluateKeyframesWithDefault(Dictionary<int, Keyframe> keyframes, int frame, float defaultValue)
     {
         return EvaluateKeyframesWithDefault(keyframes, (float)frame, defaultValue);
     }
@@ -2244,7 +2247,7 @@ public class Timeline
         }
     }
 
-    private bool IsMouseNearAnyKeyframe(Vector2 mousePos, Dictionary<int, float> keyframes, int visibleFrames)
+    private bool IsMouseNearAnyKeyframe(Vector2 mousePos, Dictionary<int, Keyframe> keyframes, int visibleFrames)
     {
         if (keyframes.Count == 0) return false;
 
@@ -2533,7 +2536,7 @@ public class Timeline
         ImGui.PopStyleColor();
     }
 
-    private void RenderTimelineTrack(Dictionary<int, float> keyframes, string property, int visibleFrames)
+    private void RenderTimelineTrack(Dictionary<int, Keyframe> keyframes, string property, int visibleFrames)
     {
         var drawList = ImGui.GetWindowDrawList();
         var barSize = new Vector2(-1, 18);
@@ -2572,7 +2575,7 @@ public class Timeline
         RenderKeyframesOnTrack(keyframes, property, visibleFrames, trackRect, trackSize, isTrackHovered, drawList);
     }
 
-    private void HandleTrackDoubleClick(bool isTrackHovered, Dictionary<int, float> keyframes, string property,
+    private void HandleTrackDoubleClick(bool isTrackHovered, Dictionary<int, Keyframe> keyframes, string property,
      int visibleFrames, Vector2 trackRect, Vector2 trackSize)
     {
         if (!isTrackHovered || !ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left) || IsDraggingKeyframe ||
@@ -2591,16 +2594,26 @@ public class Timeline
         bool clickedOnExistingKeyframe = IsMouseOnKeyframe(mousePos, keyframes, visibleFrames, trackRect, trackSize);
 
         if (clickedOnExistingKeyframe) return;
-        float currentValue = GetCurrentPropertyValue(property);
-        keyframes[clickedFrame] = currentValue;
-
-        SelectedKeyframes.Clear();
-        SelectedKeyframes.Add(new SelectedKeyframe
+        
+        try
         {
-            Property = property,
-            Frame = clickedFrame,
-            ObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid
-        });
+            float currentValue = GetCurrentPropertyValue(property);
+            EasingMode easingMode = GetEasingModeForNewKeyframe(keyframes, clickedFrame);
+            keyframes[clickedFrame] = new Keyframe(currentValue, easingMode);
+
+            SelectedKeyframes.Clear();
+            SelectedKeyframes.Add(new SelectedKeyframe
+            {
+                Property = property,
+                Frame = clickedFrame,
+                ObjectGuid = Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid
+            });
+        }
+        catch (Exception ex)
+        {
+            GD.PrintErr($"Error creating keyframe: {ex.Message}");
+            return;
+        }
 
         // Synchronize the marker with the created keyframe
         CurrentFrame = clickedFrame;
@@ -2613,7 +2626,7 @@ public class Timeline
         CalculateTotalFrames();
     }
 
-    private bool IsMouseOnKeyframe(Vector2 mousePos, Dictionary<int, float> keyframes,
+    private bool IsMouseOnKeyframe(Vector2 mousePos, Dictionary<int, Keyframe> keyframes,
     int visibleFrames, Vector2 trackRect, Vector2 trackSize)
     {
         if (keyframes.Count == 0) return false;
@@ -2867,7 +2880,7 @@ public class Timeline
         CurrentFrameFloat = CurrentFrame;
     }
 
-    private void RenderKeyframesOnTrack(Dictionary<int, float> keyframes, string property,
+    private void RenderKeyframesOnTrack(Dictionary<int, Keyframe> keyframes, string property,
     int visibleFrames, Vector2 trackRect, Vector2 trackSize, bool isTrackHovered, ImDrawListPtr drawList)
     {
         var keyframeList = keyframes.Keys.OrderBy(k => k).ToList();
@@ -2965,6 +2978,8 @@ public class Timeline
     {
         if (isHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !IsDraggingKeyframe)
         {
+            GD.Print($"Keyframe clicked: {keyframeId.Property} at frame {keyframeId.Frame}");
+            
             if (IsPlaying)
             {
                 IsPlaying = false;
@@ -2975,9 +2990,15 @@ public class Timeline
             if (io.KeyCtrl)
             {
                 if (isSelected)
+                {
                     SelectedKeyframes.Remove(keyframeId);
+                    GD.Print($"Deselected keyframe. Total selected: {SelectedKeyframes.Count}");
+                }
                 else
+                {
                     SelectedKeyframes.Add(keyframeId);
+                    GD.Print($"Added to selection. Total selected: {SelectedKeyframes.Count}");
+                }
             }
             else
             {
@@ -2985,6 +3006,7 @@ public class Timeline
                 {
                     SelectedKeyframes.Clear();
                     SelectedKeyframes.Add(keyframeId);
+                    GD.Print($"Selected keyframe. Total selected: {SelectedKeyframes.Count}");
                 }
 
                 IsDraggingKeyframe = true;
@@ -3003,9 +3025,9 @@ public class Timeline
                 foreach (var kf in SelectedKeyframes)
                 {
                     var kfDict = GetKeyframeDictionary(kf.Property);
-                    if (kfDict != null && kfDict.TryGetValue(kf.Frame, out float value))
+                    if (kfDict != null && kfDict.TryGetValue(kf.Frame, out Keyframe? keyframe))
                     {
-                        _draggedKeyframesData[kf] = (kf.Frame, value);
+                        _draggedKeyframesData[kf] = (kf.Frame, keyframe.Value);
                         _previewFrames[kf] = kf.Frame;
                     }
                 }
@@ -3231,7 +3253,8 @@ public class Timeline
                     targetFrame = FindNextAvailableFrame(keyframes, targetFrame);
                 }
 
-                keyframes[targetFrame] = move.value;
+                EasingMode easingMode = GetEasingModeForNewKeyframe(keyframes, targetFrame);
+                keyframes[targetFrame] = new Keyframe(move.value, easingMode);
 
                 newSelection.Add(new SelectedKeyframe
                 {
@@ -3248,7 +3271,7 @@ public class Timeline
         ApplyKeyframesToObjects();
     }
 
-    private int FindNextAvailableFrame(Dictionary<int, float> existingKeyframes, int startFrame)
+    private int FindNextAvailableFrame(Dictionary<int, Keyframe> existingKeyframes, int startFrame)
     {
         // FIX: Search alternating left/right, prioritizing smaller distance
         for (int offset = 1; offset <= TotalFrames; offset++)
@@ -3266,7 +3289,7 @@ public class Timeline
         return startFrame;
     }
 
-    private Dictionary<int, float>? GetKeyframeDictionary(string property)
+    private Dictionary<int, Keyframe>? GetKeyframeDictionary(string property)
     {
         if (CurrentObject == null) return null;
 
@@ -3702,14 +3725,9 @@ public class Timeline
             k.Property == property &&
             k.ObjectGuid == Main.GetInstance()?.UI?.SceneTreePanel?.SelectedObjectGuid);
 
-        if (selectedForProperty != null)
-        {
-            keyframes[selectedForProperty.Frame] = value;
-        }
-        else
-        {
-            keyframes[frame] = value;
-        }
+        int targetFrame = selectedForProperty?.Frame ?? frame;
+        EasingMode easingMode = GetEasingModeForNewKeyframe(keyframes, targetFrame);
+        keyframes[targetFrame] = new Keyframe(value, easingMode);
 
         _sortedKeyframeCache.Clear();
         CalculateTotalFrames();
@@ -3751,7 +3769,7 @@ public class Timeline
         TotalFrames = Math.Max(5000, maxFrame + 100);
     }
 
-    private int GetMaxFrameFromKeyframes(Dictionary<int, float> keyframes)
+    private int GetMaxFrameFromKeyframes(Dictionary<int, Keyframe> keyframes)
     {
         return keyframes.Count > 0 ? keyframes.Keys.Max() : 0;
     }
@@ -3777,9 +3795,9 @@ public class Timeline
             foreach (var selectedKf in SelectedKeyframes)
             {
                 var keyframes = GetKeyframeDictionary(selectedKf.Property);
-                if (keyframes != null && keyframes.TryGetValue(selectedKf.Frame, out float value))
+                if (keyframes != null && keyframes.TryGetValue(selectedKf.Frame, out Keyframe? keyframe))
                 {
-                    _keyframeEditStartValues[selectedKf] = value;
+                    _keyframeEditStartValues[selectedKf] = keyframe.Value;
                     storedCount++;
                 }
                 else
@@ -3865,7 +3883,7 @@ public class Timeline
                 float originalValue = _keyframeEditStartValues[selectedKf];
 
                 // CRITICAL: Check CURRENT value in dictionary BEFORE modifying
-                float currentValueInDict = keyframes[selectedKf.Frame];
+                float currentValueInDict = keyframes[selectedKf.Frame].Value;
 
                 // Get appropriate delta for this property
                 float delta = GetDeltaForProperty(
@@ -3882,12 +3900,13 @@ public class Timeline
                 // Only apply if delta is significant
                 if (Math.Abs(delta) > EPSILON)
                 {
-                    // CRITICAL: Assign directly to dictionary
-                    keyframes[selectedKf.Frame] = newValue;
+                    // CRITICAL: Assign directly to dictionary, preserving existing easing mode
+                    var existingKeyframe = keyframes[selectedKf.Frame];
+                    keyframes[selectedKf.Frame] = new Keyframe(newValue, existingKeyframe.EasingMode);
                     updatedCount++;
 
                     // CRITICAL: Check IMMEDIATELY if really updated
-                    if (keyframes.TryGetValue(selectedKf.Frame, out float verifyValue))
+                    if (keyframes.TryGetValue(selectedKf.Frame, out Keyframe? verifyKeyframe))
                     {
                         // Verification successful
                     }
@@ -3953,7 +3972,7 @@ public class Timeline
                 break;
             }
 
-            Dictionary<int, float>? keyframeDict = null;
+            Dictionary<int, Keyframe>? keyframeDict = null;
             try
             {
                 keyframeDict = accessor(CurrentObject);
@@ -3971,7 +3990,8 @@ public class Timeline
             if (keyframeDict.Count > 0 || !hasAnyKeyframes)
             {
                 float currentValue = GetCurrentPropertyValue(propertyName);
-                keyframeDict[targetFrame] = currentValue;
+                EasingMode easingMode = GetEasingModeForNewKeyframe(keyframeDict, targetFrame);
+                keyframeDict[targetFrame] = new Keyframe(currentValue, easingMode);
                 keyframesCreated++;
 
                 SelectedKeyframes.Add(new SelectedKeyframe
@@ -4034,7 +4054,7 @@ public class Timeline
         }
 
         float defaultValue = property.ToLower().StartsWith("scale") || property.ToLower().StartsWith("alpha") ? 1.0f : 0.0f;
-        return EvaluateKeyframesWithDefault(keyframes, frame, defaultValue);
+        return EvaluateKeyframesWithDefault(keyframes, (float)frame, defaultValue);
     }
 
     public Vector3 GetAnimatedPosition(SceneObject obj)
@@ -4134,6 +4154,51 @@ public class Timeline
         SelectedKeyframes.Clear();
     }
 
+    /// <summary>
+    /// Get the easing mode to use for a new keyframe, inheriting from previous keyframe if available
+    /// </summary>
+    private EasingMode GetEasingModeForNewKeyframe(Dictionary<int, Keyframe> keyframes, int newFrame)
+    {
+        if (keyframes.Count == 0)
+            return EasingMode.Linear;
+        
+        // Find all keyframes before this one
+        var previousKeyframes = keyframes.Keys.Where(f => f < newFrame).ToList();
+        
+        if (previousKeyframes.Count == 0)
+            return EasingMode.Linear;
+        
+        // Get the most recent one
+        int previousFrame = previousKeyframes.Max();
+        
+        if (keyframes.TryGetValue(previousFrame, out Keyframe? previousKeyframe))
+        {
+            GD.Print($"Inheriting easing mode {previousKeyframe.EasingMode} from frame {previousFrame} for new keyframe at {newFrame}");
+            return previousKeyframe.EasingMode;
+        }
+        
+        return EasingMode.Linear;
+    }
+    
+    public void SetEasingModeForSelectedKeyframes(EasingMode easingMode)
+    {
+        if (!HasSelectedKeyframe() || CurrentObject == null)
+            return;
+
+        foreach (var selectedKf in SelectedKeyframes)
+        {
+            var keyframes = GetKeyframeDictionary(selectedKf.Property);
+            if (keyframes != null && keyframes.TryGetValue(selectedKf.Frame, out Keyframe? keyframe))
+            {
+                // Update the keyframe with the new easing mode
+                keyframes[selectedKf.Frame] = new Keyframe(keyframe.Value, easingMode);
+            }
+        }
+
+        _sortedKeyframeCache.Clear();
+        ApplyKeyframesToObjects();
+    }
+
     private void RenderContextMenuItems()
     {
         IsScrubbing = false;
@@ -4184,6 +4249,28 @@ public class Timeline
         if (ImGui.MenuItem("Delete Keyframes", "Delete"))
         {
             DeleteSelectedKeyframes();
+        }
+
+        if (!canCopy)
+            ImGui.EndDisabled();
+
+        ImGui.Separator();
+
+        // Easing Mode submenu
+        if (!canCopy)
+            ImGui.BeginDisabled();
+
+        if (ImGui.BeginMenu("Easing Mode"))
+        {
+            foreach (var easingMode in EasingFunctions.GetAllEasingModes())
+            {
+                string modeName = EasingFunctions.GetEasingModeName(easingMode);
+                if (ImGui.MenuItem(modeName))
+                {
+                    SetEasingModeForSelectedKeyframes(easingMode);
+                }
+            }
+            ImGui.EndMenu();
         }
 
         if (!canCopy)
@@ -4395,9 +4482,9 @@ public class Timeline
         foreach (var selectedKf in SelectedKeyframes)
         {
             var keyframes = GetKeyframeDictionary(selectedKf.Property);
-            if (keyframes != null && keyframes.TryGetValue(selectedKf.Frame, out float value))
+            if (keyframes != null && keyframes.TryGetValue(selectedKf.Frame, out Keyframe? keyframe))
             {
-                _copiedKeyframes.Add((selectedKf, value));
+                _copiedKeyframes.Add((selectedKf, keyframe.Value));
             }
         }
     }
@@ -4415,9 +4502,9 @@ public class Timeline
         foreach (var selectedKf in SelectedKeyframes)
         {
             var keyframes = GetKeyframeDictionary(selectedKf.Property);
-            if (keyframes != null && keyframes.TryGetValue(selectedKf.Frame, out float value))
+            if (keyframes != null && keyframes.TryGetValue(selectedKf.Frame, out Keyframe? keyframe))
             {
-                _copiedKeyframes.Add((selectedKf, value));
+                _copiedKeyframes.Add((selectedKf, keyframe.Value));
             }
         }
 
@@ -4455,7 +4542,8 @@ public class Timeline
             var keyframes = GetKeyframeDictionary(copiedKf.Property);
 
             if (keyframes == null) continue;
-            keyframes[newFrame] = value;
+            EasingMode easingMode = GetEasingModeForNewKeyframe(keyframes, newFrame);
+            keyframes[newFrame] = new Keyframe(value, easingMode);
 
             SelectedKeyframes.Add(new SelectedKeyframe
             {
@@ -4529,7 +4617,7 @@ public class Timeline
             //    break;
             //}
 
-            Dictionary<int, float>? keyframeDict = null;
+            Dictionary<int, Keyframe>? keyframeDict = null;
             try
             {
                 keyframeDict = accessor(CurrentObject);
@@ -4547,7 +4635,8 @@ public class Timeline
 
             if (keyframeDict.Count <= 0 && hasAnyKeyframes) continue;
             float currentValue = GetCurrentPropertyValue(propertyName);
-            keyframeDict[targetFrame] = currentValue;
+            EasingMode easingMode = GetEasingModeForNewKeyframe(keyframeDict, targetFrame);
+            keyframeDict[targetFrame] = new Keyframe(currentValue, easingMode);
             keyframesCreated++;
 
             SelectedKeyframes.Add(new SelectedKeyframe

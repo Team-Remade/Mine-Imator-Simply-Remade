@@ -53,16 +53,16 @@ public partial class SceneObject : Node3D
         }
     }
     
-    public Dictionary<int, float> PosXKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> PosYKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> PosZKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> RotXKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> RotYKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> RotZKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> ScaleXKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> ScaleYKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> ScaleZKeyframes { get; set; } = new Dictionary<int, float>();
-    public Dictionary<int, float> AlphaKeyframes { get; set; } = new Dictionary<int, float>();
+    public Dictionary<int, Keyframe> PosXKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> PosYKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> PosZKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> RotXKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> RotYKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> RotZKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> ScaleXKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> ScaleYKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> ScaleZKeyframes { get; set; } = new Dictionary<int, Keyframe>();
+    public Dictionary<int, Keyframe> AlphaKeyframes { get; set; } = new Dictionary<int, Keyframe>();
     
     public float Alpha = 1.0f;
 
@@ -257,16 +257,16 @@ public partial class SceneObject : Node3D
             duplicatedObject.Alpha = this.Alpha;
             
             // Copy all keyframe dictionaries for animations
-            duplicatedObject.PosXKeyframes = new Dictionary<int, float>(this.PosXKeyframes);
-            duplicatedObject.PosYKeyframes = new Dictionary<int, float>(this.PosYKeyframes);
-            duplicatedObject.PosZKeyframes = new Dictionary<int, float>(this.PosZKeyframes);
-            duplicatedObject.RotXKeyframes = new Dictionary<int, float>(this.RotXKeyframes);
-            duplicatedObject.RotYKeyframes = new Dictionary<int, float>(this.RotYKeyframes);
-            duplicatedObject.RotZKeyframes = new Dictionary<int, float>(this.RotZKeyframes);
-            duplicatedObject.ScaleXKeyframes = new Dictionary<int, float>(this.ScaleXKeyframes);
-            duplicatedObject.ScaleYKeyframes = new Dictionary<int, float>(this.ScaleYKeyframes);
-            duplicatedObject.ScaleZKeyframes = new Dictionary<int, float>(this.ScaleZKeyframes);
-            duplicatedObject.AlphaKeyframes = new Dictionary<int, float>(this.AlphaKeyframes);
+            duplicatedObject.PosXKeyframes = CloneKeyframeDictionary(this.PosXKeyframes);
+            duplicatedObject.PosYKeyframes = CloneKeyframeDictionary(this.PosYKeyframes);
+            duplicatedObject.PosZKeyframes = CloneKeyframeDictionary(this.PosZKeyframes);
+            duplicatedObject.RotXKeyframes = CloneKeyframeDictionary(this.RotXKeyframes);
+            duplicatedObject.RotYKeyframes = CloneKeyframeDictionary(this.RotYKeyframes);
+            duplicatedObject.RotZKeyframes = CloneKeyframeDictionary(this.RotZKeyframes);
+            duplicatedObject.ScaleXKeyframes = CloneKeyframeDictionary(this.ScaleXKeyframes);
+            duplicatedObject.ScaleYKeyframes = CloneKeyframeDictionary(this.ScaleYKeyframes);
+            duplicatedObject.ScaleZKeyframes = CloneKeyframeDictionary(this.ScaleZKeyframes);
+            duplicatedObject.AlphaKeyframes = CloneKeyframeDictionary(this.AlphaKeyframes);
             
             // For hierarchical objects, we need to ensure children maintain their local positions
             // by properly setting their TargetPosition relative to the parent
@@ -312,16 +312,16 @@ public partial class SceneObject : Node3D
                     duplicatedChild.Alpha = originalChild.Alpha;
                     
                     // Copy keyframes
-                    duplicatedChild.PosXKeyframes = new Dictionary<int, float>(originalChild.PosXKeyframes);
-                    duplicatedChild.PosYKeyframes = new Dictionary<int, float>(originalChild.PosYKeyframes);
-                    duplicatedChild.PosZKeyframes = new Dictionary<int, float>(originalChild.PosZKeyframes);
-                    duplicatedChild.RotXKeyframes = new Dictionary<int, float>(originalChild.RotXKeyframes);
-                    duplicatedChild.RotYKeyframes = new Dictionary<int, float>(originalChild.RotYKeyframes);
-                    duplicatedChild.RotZKeyframes = new Dictionary<int, float>(originalChild.RotZKeyframes);
-                    duplicatedChild.ScaleXKeyframes = new Dictionary<int, float>(originalChild.ScaleXKeyframes);
-                    duplicatedChild.ScaleYKeyframes = new Dictionary<int, float>(originalChild.ScaleYKeyframes);
-                    duplicatedChild.ScaleZKeyframes = new Dictionary<int, float>(originalChild.ScaleZKeyframes);
-                    duplicatedChild.AlphaKeyframes = new Dictionary<int, float>(originalChild.AlphaKeyframes);
+                    duplicatedChild.PosXKeyframes = CloneKeyframeDictionary(originalChild.PosXKeyframes);
+                    duplicatedChild.PosYKeyframes = CloneKeyframeDictionary(originalChild.PosYKeyframes);
+                    duplicatedChild.PosZKeyframes = CloneKeyframeDictionary(originalChild.PosZKeyframes);
+                    duplicatedChild.RotXKeyframes = CloneKeyframeDictionary(originalChild.RotXKeyframes);
+                    duplicatedChild.RotYKeyframes = CloneKeyframeDictionary(originalChild.RotYKeyframes);
+                    duplicatedChild.RotZKeyframes = CloneKeyframeDictionary(originalChild.RotZKeyframes);
+                    duplicatedChild.ScaleXKeyframes = CloneKeyframeDictionary(originalChild.ScaleXKeyframes);
+                    duplicatedChild.ScaleYKeyframes = CloneKeyframeDictionary(originalChild.ScaleYKeyframes);
+                    duplicatedChild.ScaleZKeyframes = CloneKeyframeDictionary(originalChild.ScaleZKeyframes);
+                    duplicatedChild.AlphaKeyframes = CloneKeyframeDictionary(originalChild.AlphaKeyframes);
                     
                     // Recursively handle grandchildren
                     PreserveChildLocalPositions(originalChild, duplicatedChild);
@@ -358,6 +358,19 @@ public partial class SceneObject : Node3D
         }
         
         return null;
+    }
+    
+    /// <summary>
+    /// Helper method to deep clone a keyframe dictionary
+    /// </summary>
+    private static Dictionary<int, Keyframe> CloneKeyframeDictionary(Dictionary<int, Keyframe> source)
+    {
+        var cloned = new Dictionary<int, Keyframe>();
+        foreach (var kvp in source)
+        {
+            cloned[kvp.Key] = kvp.Value.Clone();
+        }
+        return cloned;
     }
     
     private void CopyVisualsHierarchy(Node source, Node destination)
