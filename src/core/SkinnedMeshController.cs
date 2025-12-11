@@ -58,7 +58,46 @@ public partial class SkinnedMeshController : Node
 
     private Transform3D CalculateBoneTransform(SceneObject boneObject)
     {
-        return RuntimeSkeleton == null ? Transform3D.Identity : boneObject.Transform;
+        if (RuntimeSkeleton == null) return Transform3D.Identity;
+        
+        // Get the bone ID for this bone object
+        int boneId = -1;
+        foreach (var kvp in SkeletonBones)
+        {
+            if (kvp.Value == boneObject)
+            {
+                boneId = kvp.Key;
+                break;
+            }
+        }
+        
+        if (boneId == -1) return Transform3D.Identity;
+        
+        // Get the rest pose as the base
+        Transform3D restPose = RuntimeSkeleton.GetBoneRest(boneId);
+        
+        // Get parent bone ID
+        int parentBoneId = RuntimeSkeleton.GetBoneParent(boneId);
+        
+        // Calculate the local transform relative to the parent
+        Transform3D localTransform;
+        
+        if (parentBoneId != -1 && SkeletonBones.TryGetValue(parentBoneId, out var parentBoneObject))
+        {
+            // Calculate local transform relative to parent bone
+            Transform3D parentGlobalTransform = parentBoneObject.GlobalTransform;
+            Transform3D boneGlobalTransform = boneObject.GlobalTransform;
+            localTransform = parentGlobalTransform.AffineInverse() * boneGlobalTransform;
+        }
+        else
+        {
+            // Root bone - calculate relative to skeleton
+            Transform3D skeletonGlobalTransform = RuntimeSkeleton.GlobalTransform;
+            Transform3D boneGlobalTransform = boneObject.GlobalTransform;
+            localTransform = skeletonGlobalTransform.AffineInverse() * boneGlobalTransform;
+        }
+        
+        return localTransform;
     }
 
     // Public method to reset bones to their rest pose
