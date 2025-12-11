@@ -88,19 +88,27 @@ public class Dialog
 
         if (ImGui.Begin("##Dialog", flags))
         {
-            // Adjust position to keep auto-sized dialog fully on screen
+            // Get window position and bounds for proper multi-monitor clamping
+            var windowPos = Main.GetInstance().GetWindow().Position;
+            var windowBounds = new Vector2(windowPos.X + windowSize.X, windowPos.Y + windowSize.Y);
+            
+            // Adjust position to keep auto-sized dialog fully within the window bounds
             var currentDialogSize = ImGui.GetWindowSize();
             var currentDialogPos = ImGui.GetWindowPos();
 
             var adjustedPos = currentDialogPos;
-            if (currentDialogPos.X + currentDialogSize.X > windowSize.X)
-                adjustedPos.X = windowSize.X - currentDialogSize.X - 10;
-            if (currentDialogPos.Y + currentDialogSize.Y > windowSize.Y)
-                adjustedPos.Y = windowSize.Y - currentDialogSize.Y - 10;
-            if (adjustedPos.X < 10)
-                adjustedPos.X = 10;
-            if (adjustedPos.Y < 10)
-                adjustedPos.Y = 10;
+            
+            // Clamp to window bounds (right/bottom edges)
+            if (currentDialogPos.X + currentDialogSize.X > windowBounds.X)
+                adjustedPos.X = windowBounds.X - currentDialogSize.X - 10;
+            if (currentDialogPos.Y + currentDialogSize.Y > windowBounds.Y)
+                adjustedPos.Y = windowBounds.Y - currentDialogSize.Y - 10;
+            
+            // Clamp to window bounds (left/top edges)
+            if (adjustedPos.X < windowPos.X + 10)
+                adjustedPos.X = windowPos.X + 10;
+            if (adjustedPos.Y < windowPos.Y + 10)
+                adjustedPos.Y = windowPos.Y + 10;
 
             if (Math.Abs(adjustedPos.X - currentDialogPos.X) > 0.01f || Math.Abs(adjustedPos.Y - currentDialogPos.Y) > 0.01f)
                 ImGui.SetWindowPos(adjustedPos);

@@ -19,7 +19,7 @@ imgui/config="uid://b5w7u77gth2td"
 [application]
 
 config/name="Simply Remade MI"
-config/version="0.1.3"
+config/version="0.1.4"
 run/main_scene="uid://cykt8uneb4j0m"
 run/print_header=false
 config/use_custom_user_dir=true

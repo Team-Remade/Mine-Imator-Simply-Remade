@@ -188,8 +188,14 @@ public class UIRenderer
     private void ShowRenderAnimationDialog()
     {
         if (dialog != null) return;
-        var io = ImGui.GetIO();
-        var centerPos = new Vector2(io.DisplaySize.X * 0.5f - 200, io.DisplaySize.Y * 0.5f - 150);
+        
+        // Get window position and size to position dialog on the correct monitor
+        var windowPos = Main.GetInstance().GetWindow().Position;
+        var windowSize = Main.GetInstance().WindowSize;
+        var centerPos = new Vector2(
+            windowPos.X + windowSize.X * 0.5f - 200,
+            windowPos.Y + windowSize.Y * 0.5f - 150
+        );
 
         dialog = new Dialog(
             DialogType.RenderAnimation,
@@ -339,8 +345,14 @@ public class UIRenderer
     private void ShowRenderSettingsDialog()
     {
         if (dialog != null) return;
-        var io = ImGui.GetIO();
-        var center = new Vector2(io.DisplaySize.X * 0.5f - 150, io.DisplaySize.Y * 0.5f - 100);
+        
+        // Get window position and size to position dialog on the correct monitor
+        var windowPos = Main.GetInstance().GetWindow().Position;
+        var windowSize = Main.GetInstance().WindowSize;
+        var center = new Vector2(
+            windowPos.X + windowSize.X * 0.5f - 150,
+            windowPos.Y + windowSize.Y * 0.5f - 100
+        );
             
         dialog = new Dialog(
             DialogType.RenderSettings,
@@ -365,8 +377,13 @@ public class UIRenderer
         if (SceneTreePanel.SelectedObject == null)
             return;
 
-        var io = ImGui.GetIO();
-        var centerPos = new Vector2(io.DisplaySize.X * 0.5f - 150, io.DisplaySize.Y * 0.5f - 50);
+        // Get window position and size to position dialog on the correct monitor
+        var windowPos = Main.GetInstance().GetWindow().Position;
+        var windowSize = Main.GetInstance().WindowSize;
+        var centerPos = new Vector2(
+            windowPos.X + windowSize.X * 0.5f - 150,
+            windowPos.Y + windowSize.Y * 0.5f - 50
+        );
 
         dialog = new Dialog(
             DialogType.DeleteConfirmation,
