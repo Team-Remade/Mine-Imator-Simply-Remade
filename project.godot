@@ -63,6 +63,11 @@ naming/scene_name_casing=1
 
 enabled=PackedStringArray("res://addons/Gizmo3DSharp/plugin.cfg", "res://addons/copy_files_on_export/plugin.cfg", "res://addons/imgui-godot/plugin.cfg", "res://addons/obj_exporter/plugin.cfg", "res://addons/properUI_toast/plugin.cfg", "res://addons/scene_texture/plugin.cfg", "res://addons/script-ide/plugin.cfg", "res://addons/sprite_mesh/plugin.cfg", "res://addons/window-placement-switcher/plugin.cfg")
 
+[filesystem]
+
+import/fbx2gltf/enabled=false
+import/blender/enabled=false
+
 [gui]
 
 theme/denoising/denoiser=0
@@ -99,6 +104,8 @@ Duplicate={
 [rendering]
 
 textures/canvas_textures/default_texture_filter=3
+rendering_device/fallback_to_d3d12=false
+shader_compiler/shader_cache/strip_debug=true
 global_illumination/gi/use_half_resolution=true
 textures/default_filters/use_nearest_mipmap_filter=true
 textures/default_filters/anisotropic_filtering_level=0
