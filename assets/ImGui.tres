@@ -1,13 +1,28 @@
-[gd_resource type="Resource" script_class="ImGuiConfig" load_steps=2 format=3 uid="uid://b5w7u77gth2td"]
+[gd_resource type="Resource" script_class="ImGuiConfig" load_steps=9 format=3 uid="uid://b5w7u77gth2td"]
 
 [ext_resource type="Script" uid="uid://bn7bybs5t15hx" path="res://addons/imgui-godot/scripts/ImGuiConfig.gd" id="1_euo57"]
+[ext_resource type="FontFile" uid="uid://8ul77y3nxmbb" path="res://assets/fonts/segoeui/segoeuithis.ttf" id="1_vitrm"]
+[ext_resource type="Script" uid="uid://bb783yklcojlu" path="res://addons/imgui-godot/scripts/ImGuiFont.gd" id="2_eddvq"]
+[ext_resource type="FontFile" uid="uid://dm5247oxkw0c8" path="res://assets/fonts/noto/Noto_Sans_TC/NotoSansTC-VariableFont_wght.ttf" id="3_rqx1y"]
+[ext_resource type="FontFile" uid="uid://n3ii0mn3sasn" path="res://assets/fonts/noto/Noto_Sans_SC/NotoSansSC-VariableFont_wght.ttf" id="4_36cde"]
+
+[sub_resource type="Resource" id="Resource_vitrm"]
+script = ExtResource("2_eddvq")
+FontData = ExtResource("1_vitrm")
+metadata/_custom_type_script = "uid://bb783yklcojlu"
+
+[sub_resource type="Resource" id="Resource_nennw"]
+script = ExtResource("2_eddvq")
+FontData = ExtResource("3_rqx1y")
+metadata/_custom_type_script = "uid://bb783yklcojlu"
+
+[sub_resource type="Resource" id="Resource_m6xu4"]
+script = ExtResource("2_eddvq")
+FontData = ExtResource("4_36cde")
+metadata/_custom_type_script = "uid://bb783yklcojlu"
 
 [resource]
 script = ExtResource("1_euo57")
-Scale = 1.0
-IniFilename = "user://imgui.ini"
-Renderer = "RenderingDevice"
-Layer = 128
-AddDefaultFont = true
-Fonts = []
+AddDefaultFont = false
+Fonts = [SubResource("Resource_vitrm"), SubResource("Resource_nennw"), SubResource("Resource_m6xu4")]
 metadata/_custom_type_script = "uid://bn7bybs5t15hx"
