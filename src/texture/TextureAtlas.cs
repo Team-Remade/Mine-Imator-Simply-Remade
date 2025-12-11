@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Godot;
 using SimplyRemadeMI;
 
@@ -47,56 +48,67 @@ public class TextureAtlas
         }
     }
 
-    public void LoadTexturesFromPattern(string pattern, bool items = false)
+    public void LoadTexturesFromDirectory(string directoryPath, bool items = false)
     {
-        // Extract the numeric pattern part (tile###.png -> ###)
-        string numericPattern = pattern.Substring(pattern.IndexOf("tile") + 4);
-        numericPattern = numericPattern.Substring(0, numericPattern.IndexOf(".png"));
-        int digits = numericPattern.Length;
+        GD.Print($"Scanning directory for PNG files: {directoryPath}");
         
-        //GD.Print($"Loading textures with pattern: {pattern}, digits: {digits}");
+        var files = new List<string>();
         
-        // Load all matching textures using Godot's resource system
-        for (int i = 0; i < 1000; i++) // Support up to 999 tiles
+        // Scan for .import files which exist in both editor and exported builds
+        var dir = DirAccess.Open(directoryPath);
+        if (dir != null)
         {
-            string paddedNumber = i.ToString().PadLeft(digits, '0');
-            string fullPath = pattern.Replace("###", paddedNumber);
-            
-            if (ResourceLoader.Exists(fullPath))
+            dir.ListDirBegin();
+            string fileName = dir.GetNext();
+            while (fileName != "")
             {
-                //GD.Print($"Found texture: {fullPath}");
-                Texture2D texture = ResourceLoader.Load<Texture2D>(fullPath);
-                if (texture != null)
+                // Look for .import files
+                if (!dir.CurrentIsDir() && fileName.EndsWith(".png.import"))
                 {
-                    //GD.Print($"Loaded texture: {fullPath}, size: {texture.GetWidth()}x{texture.GetHeight()}");
-                    if (!AddTexture(fullPath, texture))
-                    {
-                        GD.PrintErr($"Failed to add texture to atlas: {fullPath}");
-                    }
-                    else
-                    {
-                        //GD.Print($"Successfully added texture to atlas: {fullPath}");
-                    }
+                    // Extract the PNG filename by removing .import extension
+                    string pngFileName = fileName.Substring(0, fileName.Length - 7); // Remove ".import"
+                    files.Add(pngFileName);
+                }
+                fileName = dir.GetNext();
+            }
+            dir.ListDirEnd();
+        }
+        else
+        {
+            GD.PrintErr($"Failed to open directory: {directoryPath}");
+            return;
+        }
+        
+        // Sort files alphabetically
+        files.Sort();
+        
+        GD.Print($"Found {files.Count} PNG files via .import file scan");
+        
+        // Load each PNG file
+        foreach (string file in files)
+        {
+            string fullPath = directoryPath + "/" + file;
+            
+            Texture2D texture = ResourceLoader.Load<Texture2D>(fullPath);
+            if (texture != null)
+            {
+                if (!AddTexture(fullPath, texture))
+                {
+                    GD.PrintErr($"Failed to add texture to atlas: {fullPath}");
+                }
 
-                    if (!items)
-                    {
-                        Main.GetInstance().TerrainTextures.Add(fullPath.GetFile().GetBaseName(), texture);
-                    }
-                    else
-                    {
-                        Main.GetInstance().ItemTextures.Add(fullPath.GetFile().GetBaseName(), texture);
-                    }
+                if (!items)
+                {
+                    Main.GetInstance().TerrainTextures.Add(fullPath.GetFile().GetBaseName(), texture);
                 }
                 else
                 {
-                    GD.PrintErr($"Failed to load texture: {fullPath}");
+                    Main.GetInstance().ItemTextures.Add(fullPath.GetFile().GetBaseName(), texture);
                 }
             }
             else
             {
-                GD.Print($"Texture not found: {fullPath}, stopping sequence");
-                // Stop when we find a gap in the sequence
-                break;
+                GD.PrintErr($"Failed to load texture: {fullPath}");
             }
         }
     }

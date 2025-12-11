@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -8,38 +9,87 @@ namespace SimplyRemadeMI.util;
 
 public static class FileDialog
 {
+    // Track if a file dialog is currently open
+    public static bool IsDialogOpen { get; private set; }
+    
+    // Track active dialog processes
+    private static readonly List<Process> _activeProcesses = new List<Process>();
+    private static readonly object _processLock = new object();
+    
+    /// <summary>
+    /// Cleanup all active file dialog processes. Call this when the application is closing.
+    /// </summary>
+    public static void CleanupDialogs()
+    {
+        lock (_processLock)
+        {
+            foreach (var process in _activeProcesses)
+            {
+                try
+                {
+                    if (!process.HasExited)
+                    {
+                        process.Kill();
+                        process.Dispose();
+                    }
+                }
+                catch
+                {
+                    // Ignore errors when killing processes
+                }
+            }
+            _activeProcesses.Clear();
+        }
+    }
+    
     public static async Task<string?> ShowOpenDialogAsync(string title = "Open Image File",
         string filter =
             "Image Files (*.png;*.jpg;*.jpeg;*.bmp;*.tga)|*.png;*.jpg;*.jpeg;*.bmp;*.tga|PNG Files (*.png)|*.png|JPEG Files (*.jpg;*.jpeg)|*.jpg;*.jpeg|BMP Files (*.bmp)|*.bmp|TGA Files (*.tga)|*.tga|All Files (*.*)|*.*")
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        IsDialogOpen = true;
+        try
         {
-            return await ShowOpenDialogWindowsAsync(title, filter);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return await ShowOpenDialogWindowsAsync(title, filter);
+            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return await ShowOpenDialogLinuxAsync(title);
+            }
+            
+            // Fallback for unsupported platforms
+            Console.WriteLine("File dialog not supported on this platform");
+            return null;
         }
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        finally
         {
-            return await ShowOpenDialogLinuxAsync(title);
+            IsDialogOpen = false;
         }
-        
-        // Fallback for unsupported platforms
-        Console.WriteLine("File dialog not supported on this platform"); 
-        return null;
     }
 
     public static async Task<string?> ShowSaveDialogAsync(string defaultFileName = "render",
         string filter = "PNG Files (*.png)|*.png|JPEG Files (*.jpg)|*.jpg|BMP Files (*.bmp)|*.bmp")
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        IsDialogOpen = true;
+        try
         {
-            return await ShowSaveDialogWindowsAsync(defaultFileName, filter);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return await ShowSaveDialogWindowsAsync(defaultFileName, filter);
+            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return await ShowSaveDialogLinuxAsync(defaultFileName);
+            }
+            // Fallback for unsupported platforms
+            Console.WriteLine("File dialog not supported on this platform");
+            return null;
         }
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+        finally
         {
-            return await ShowSaveDialogLinuxAsync(defaultFileName);
+            IsDialogOpen = false;
         }
-        // Fallback for unsupported platforms
-        Console.WriteLine("File dialog not supported on this platform");
-        return null;
     }
 
     private static async Task<string?> ShowOpenDialogWindowsAsync(string title, string filter)
@@ -70,13 +120,29 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(startInfo);
+            var process = Process.Start(startInfo);
             if (process != null)
             {
-                await process.WaitForExitAsync();
-                var result = await process.StandardOutput.ReadToEndAsync();
-                var trimmedResult = result.Trim();
-                return string.IsNullOrEmpty(trimmedResult) ? null : trimmedResult;
+                lock (_processLock)
+                {
+                    _activeProcesses.Add(process);
+                }
+                
+                try
+                {
+                    await process.WaitForExitAsync();
+                    var result = await process.StandardOutput.ReadToEndAsync();
+                    var trimmedResult = result.Trim();
+                    return string.IsNullOrEmpty(trimmedResult) ? null : trimmedResult;
+                }
+                finally
+                {
+                    lock (_processLock)
+                    {
+                        _activeProcesses.Remove(process);
+                    }
+                    process.Dispose();
+                }
             }
         }
         catch (Exception ex)
@@ -127,13 +193,29 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(startInfo);
+            var process = Process.Start(startInfo);
             if (process != null)
             {
-                await process.WaitForExitAsync();
-                var result = await process.StandardOutput.ReadToEndAsync();
-                var trimmedResult = result.Trim();
-                return string.IsNullOrEmpty(trimmedResult) ? null : trimmedResult;
+                lock (_processLock)
+                {
+                    _activeProcesses.Add(process);
+                }
+                
+                try
+                {
+                    await process.WaitForExitAsync();
+                    var result = await process.StandardOutput.ReadToEndAsync();
+                    var trimmedResult = result.Trim();
+                    return string.IsNullOrEmpty(trimmedResult) ? null : trimmedResult;
+                }
+                finally
+                {
+                    lock (_processLock)
+                    {
+                        _activeProcesses.Remove(process);
+                    }
+                    process.Dispose();
+                }
             }
         }
         catch (Exception ex)
@@ -214,15 +296,31 @@ if ($result -eq [System.Windows.Forms.DialogResult]::OK) {{
                 CreateNoWindow = true
             };
 
-            using var process = Process.Start(startInfo);
+            var process = Process.Start(startInfo);
             if (process != null)
             {
-                await process.WaitForExitAsync();
-                if (process.ExitCode == 0)
+                lock (_processLock)
                 {
-                    var result = await process.StandardOutput.ReadToEndAsync();
-                    var trimmedResult = result.Trim();
-                    return string.IsNullOrEmpty(trimmedResult) ? null : trimmedResult;
+                    _activeProcesses.Add(process);
+                }
+                
+                try
+                {
+                    await process.WaitForExitAsync();
+                    if (process.ExitCode == 0)
+                    {
+                        var result = await process.StandardOutput.ReadToEndAsync();
+                        var trimmedResult = result.Trim();
+                        return string.IsNullOrEmpty(trimmedResult) ? null : trimmedResult;
+                    }
+                }
+                finally
+                {
+                    lock (_processLock)
+                    {
+                        _activeProcesses.Remove(process);
+                    }
+                    process.Dispose();
                 }
             }
         }

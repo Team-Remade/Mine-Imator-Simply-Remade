@@ -7,6 +7,7 @@ using System.Diagnostics;
 using Godot;
 using ImGuiNET;
 using SimplyRemadeMI.renderer;
+using SimplyRemadeMI.util;
 
 namespace SimplyRemadeMI;
 
@@ -103,13 +104,13 @@ public partial class Main : Control
         
         // Initialize terrain texture atlas
         TerrainAtlas = new TextureAtlas(2048, 2048);
-        TerrainAtlas.LoadTexturesFromPattern("res://assets/sprite/terrain/tile###.png");
+        TerrainAtlas.LoadTexturesFromDirectory("res://assets/sprite/terrain");
         TerrainAtlas.GenerateAtlas();
         GD.Print($"Terrain atlas generated with {TerrainAtlas.GetTextureCount()} textures");
         
         // Initialize item texture atlas
         ItemAtlas = new TextureAtlas(2048, 2048);
-        ItemAtlas.LoadTexturesFromPattern("res://assets/sprite/item/tile###.png", true);
+        ItemAtlas.LoadTexturesFromDirectory("res://assets/sprite/item", true);
         ItemAtlas.GenerateAtlas();
         GD.Print($"Item atlas generated with {ItemAtlas.GetTextureCount()} textures");
         
@@ -130,6 +131,10 @@ public partial class Main : Control
         {
             //TODO: Implement unsaved project detection
             GD.Print("Window closing...");
+            
+            // Cleanup any open file dialogs
+            SimplyRemadeMI.util.FileDialog.CleanupDialogs();
+            
             GetTree().Quit();
         }
     }

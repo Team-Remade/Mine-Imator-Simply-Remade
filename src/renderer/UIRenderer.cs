@@ -21,6 +21,9 @@ public class UIRenderer
     private readonly ViewportObject _viewportObject;
     private readonly MenuBar menuBar = new();
     
+    // Property to check if any blocking UI is visible
+    public bool IsBlockingUIVisible => ShowSpawnMenu || dialog != null || menuBar.ShouldShowRenderSettings || menuBar.ShouldShowRenderAnimation || util.FileDialog.IsDialogOpen;
+    
     private Camera3D? ActiveCamera;
     
     public bool ShowPreviewWindow = true;
@@ -173,6 +176,12 @@ public class UIRenderer
         if (ShowSpawnMenu)
         {
             RenderSpawnMenu();
+        }
+        
+        // Render input blocker when FileDialog is open
+        if (util.FileDialog.IsDialogOpen)
+        {
+            RenderDialogInputBlocker(new Vector2(Main.GetInstance().WindowSize.X, Main.GetInstance().WindowSize.Y));
         }
     }
     

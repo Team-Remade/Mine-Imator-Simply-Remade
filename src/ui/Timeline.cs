@@ -2012,13 +2012,16 @@ public class Timeline
 
     private void HandleTimelineAreaContextMenu()
     {
-        // CRITICAL: Check if any popup is open
+        // CRITICAL: Check if any popup is open or blocking UI is visible
         bool isAnyPopupOpen = _editingMarker != null ||
                               ImGui.IsPopupOpen("KeyframeContextMenu") ||
                               _markers.Any(m => ImGui.IsPopupOpen($"MarkerEdit_{m.Id}")) ||
                               ImGui.IsPopupOpen("MarkerColorPicker");
 
         if (isAnyPopupOpen) return;
+        
+        // Check if blocking UI (spawn menu or dialogs) is visible
+        if (Main.GetInstance()?.UI?.IsBlockingUIVisible == true) return;
         
         // Calculate marker footer area
         var windowPos = ImGui.GetWindowPos();
@@ -2113,13 +2116,16 @@ public class Timeline
 
     private void HandleBoxSelectionInContentArea()
     {
-        // CRITICAL: Check if any popup is open
+        // CRITICAL: Check if any popup is open or blocking UI is visible
         bool isAnyPopupOpen = _editingMarker != null ||
                               ImGui.IsPopupOpen("KeyframeContextMenu") ||
                               _markers.Any(m => ImGui.IsPopupOpen($"MarkerEdit_{m.Id}")) ||
                               ImGui.IsPopupOpen("MarkerColorPicker");
 
         if (isAnyPopupOpen) return;
+        
+        // Check if blocking UI (spawn menu or dialogs) is visible
+        if (Main.GetInstance()?.UI?.IsBlockingUIVisible == true) return;
         
         // Calculate marker footer area
         var windowPos = ImGui.GetWindowPos();
@@ -3311,14 +3317,16 @@ public class Timeline
             hoveredHandle = handleType;
         }
 
-        // CRITICAL: Check if any popup is open (marker or context)
+        // CRITICAL: Check if any popup is open (marker or context) or blocking UI is visible
         bool isAnyPopupOpen = _editingMarker != null ||
                               ImGui.IsPopupOpen("KeyframeContextMenu") ||
                               _markers.Any(m => ImGui.IsPopupOpen($"MarkerEdit_{m.Id}")) ||
                               ImGui.IsPopupOpen("MarkerColorPicker");
+        
+        bool isBlockingUIVisible = Main.GetInstance()?.UI?.IsBlockingUIVisible == true;
 
         // PROCESS REGION INTERACTION (even if mouse is not over Scrubber)
-        if (_regionActive && !_isCreatingRegion && !isAnyPopupOpen)
+        if (_regionActive && !_isCreatingRegion && !isAnyPopupOpen && !isBlockingUIVisible)
         {
             HandleRegionInteraction(itemRect, itemSize, visibleFrames, isOverRegionHandle, isOverRegionBody, hoveredHandle, isScrubberHovered);
         }
@@ -3328,7 +3336,7 @@ public class Timeline
         bool isMouseOverMarkerLabel = IsMouseOverAnyMarkerLabel(mousePos);
 
         // Create new region with right mouse button
-        if (isScrubberHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !IsDraggingKeyframe && !isAnyPopupOpen)
+        if (isScrubberHovered && ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !IsDraggingKeyframe && !isAnyPopupOpen && !isBlockingUIVisible)
         {
             bool clickedOnExistingRegion = _regionActive && (isOverRegionHandle || isOverRegionBody);
 
@@ -3385,10 +3393,10 @@ public class Timeline
             }
         }
 
-        // Original scrubber logic (only if not interacting with region, marker label OR popup)
-        if (!_isCreatingRegion && !_isDraggingRegion && !_isResizingRegion && !isMouseOverMarkerLabel && !isAnyPopupOpen)
+        // Original scrubber logic (only if not interacting with region, marker label, popup, OR blocking UI)
+        if (!_isCreatingRegion && !_isDraggingRegion && !_isResizingRegion && !isMouseOverMarkerLabel && !isAnyPopupOpen && !isBlockingUIVisible)
         {
-            // Only start scrubbing if NOT over marker label AND NO popup open
+            // Only start scrubbing if NOT over marker label AND NO popup open AND NO blocking UI
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !IsDraggingKeyframe)
             {
                 IsScrubbing = true;
@@ -3479,7 +3487,7 @@ public class Timeline
         }
 
         // Auto-scroll for region being dragged/resized
-        if (!isAnyPopupOpen)
+        if (!isAnyPopupOpen && !isBlockingUIVisible)
         {
             HandleRegionDragAutoScroll(itemRect, itemSize, visibleFrames);
         }

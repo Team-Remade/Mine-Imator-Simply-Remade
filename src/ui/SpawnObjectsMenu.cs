@@ -484,7 +484,37 @@ public class SpawnObjectsMenu
 
     public void Render()
     {
+        // Render fullscreen invisible input blocker behind the menu
+        var io = ImGui.GetIO();
+        var mainViewport = ImGui.GetMainViewport();
+        ImGui.SetNextWindowPos(mainViewport.Pos);
+        ImGui.SetNextWindowSize(mainViewport.Size);
+        
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0);
+        ImGui.PushStyleColor(ImGuiCol.WindowBg, new Vector4(0, 0, 0, 0.3f)); // Semi-transparent dark overlay
+        
+        if (ImGui.Begin("##SpawnMenuBlocker",
+            ImGuiWindowFlags.NoTitleBar |
+            ImGuiWindowFlags.NoResize |
+            ImGuiWindowFlags.NoMove |
+            ImGuiWindowFlags.NoScrollbar |
+            ImGuiWindowFlags.NoScrollWithMouse |
+            ImGuiWindowFlags.NoCollapse |
+            ImGuiWindowFlags.NoSavedSettings |
+            ImGuiWindowFlags.NoBringToFrontOnFocus |
+            ImGuiWindowFlags.NoFocusOnAppearing))
+        {
+            // This window blocks input to elements behind the menu
+        }
+        ImGui.End();
+        
+        ImGui.PopStyleColor();
+        ImGui.PopStyleVar(2);
+        
+        // Render main spawn objects menu on top of blocker
         ImGui.SetNextWindowSize(new Vector2(600, 500), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowFocus(); // Ensure spawn menu is focused and on top
         if (ImGui.Begin("Spawn Objects", ImGuiWindowFlags.NoCollapse))
         {
             // Add close button at top-right
@@ -2497,7 +2527,7 @@ public class SpawnObjectsMenu
         {
             _ = Task.Run(async () =>
             {
-                var modelPath = await util.FileDialog.ShowOpenDialogAsync("Select GLTF/GLB Model", "GLTF Files|*.gltf|GLB Files|*.glb|All Files|*.*");
+                var modelPath = await util.FileDialog.ShowOpenDialogAsync("Select GLTF/GLB Model", "GLTF/GLB Files|*.gltf;*.glb|All Files|*.*");
                 if (!string.IsNullOrEmpty(modelPath) && System.IO.File.Exists(modelPath))
                 {
                     _pendingCustomModelPath = modelPath;
