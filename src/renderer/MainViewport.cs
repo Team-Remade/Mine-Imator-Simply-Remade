@@ -141,8 +141,15 @@ public partial class MainViewport : SubViewport
                         // Apply picking material
                         meshCopy.MaterialOverride = PickingMaterial.Duplicate() as Material;
                         
-                        var id = (float)so.ID;
-                        var colorId = new Color(id / 255f, 1.0f, 1.0f, 0);
+                        // Encode ID across RGB channels to support up to 16,777,216 objects
+                        // Red: ID % 256 (lowest 8 bits)
+                        // Green: (ID / 256) % 256 (middle 8 bits)
+                        // Blue: (ID / 65536) % 256 (highest 8 bits)
+                        int id = so.ID;
+                        float r = (id % 256) / 255f;
+                        float g = ((id / 256) % 256) / 255f;
+                        float b = ((id / 65536) % 256) / 255f;
+                        var colorId = new Color(r, g, b, 0);
                         
                         var mat = (ShaderMaterial)meshCopy.MaterialOverride;
                         mat?.SetShaderParameter("object_id", colorId);
@@ -306,6 +313,13 @@ public partial class MainViewport : SubViewport
             CreateSceneObject(SceneObject.Type.Empty);
             UpdatePicking();
         }
+        
+        // Debug: Spawn 300 stone blocks to test RGB ID encoding
+        if (Input.IsKeyPressed(Key.F9))
+        {
+            return;
+            SpawnTestBlocks(300);
+        }
 
         if (Input.IsActionJustPressed("Duplicate"))
         {
@@ -419,10 +433,14 @@ public partial class MainViewport : SubViewport
         // Read the pixel color at the mouse position
         var pixelColor = image.GetPixel(viewportPos.X, viewportPos.Y);
         
-        // Convert color back to object ID (red channel contains ID/255)
-        if (pixelColor.R > 0)
+        // Decode ID from RGB channels to support up to 16,777,216 objects
+        // Reconstruct: ID = R + (G * 256) + (B * 65536)
+        if (pixelColor.R > 0 || pixelColor.G > 0 || pixelColor.B > 0)
         {
-            int objectId = Mathf.RoundToInt(pixelColor.R * 255f);
+            int r = Mathf.RoundToInt(pixelColor.R * 255f);
+            int g = Mathf.RoundToInt(pixelColor.G * 255f);
+            int b = Mathf.RoundToInt(pixelColor.B * 255f);
+            int objectId = r + (g * 256) + (b * 65536);
 
             if (!Objects.TryGetValue(objectId, out var sceneObject)) return;
             SceneObject objectToSelect;
@@ -593,5 +611,29 @@ public partial class MainViewport : SubViewport
             // Update selected GUID to the last duplicated object
             Main.GetInstance().UI.SceneTreePanel.SelectedObjectGuid = duplicatedObjects[duplicatedObjects.Count - 1].ObjectGuid;
         }
+    }
+    
+    private void SpawnTestBlocks(int count)
+    {
+        GD.Print($"Spawning {count} test blocks to verify RGB ID encoding...");
+        
+        // Calculate grid dimensions (roughly square)
+        int gridSize = Mathf.CeilToInt(Mathf.Sqrt(count));
+        float spacing = 1.5f;
+        
+        for (int i = 0; i < count; i++)
+        {
+            int x = i % gridSize;
+            int z = i / gridSize;
+            
+            // Use Type.Cube to create blocks with visible BoxMesh
+            var block = CreateSceneObject(SceneObject.Type.Cube);
+            block.Name = $"TestBlock_{i}";
+            block.Position = new Vector3(x * spacing, 0, z * spacing);
+        }
+        
+        UpdatePicking();
+        GD.Print($"Spawned {count} blocks with meshes. Check debug view (toggle with assigned key) to see ID color encoding.");
+        GD.Print("IDs 0-255 should be red gradient, 256-511 should start showing green, etc.");
     }
 }
