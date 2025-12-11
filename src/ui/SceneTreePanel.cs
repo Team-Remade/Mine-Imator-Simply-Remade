@@ -182,6 +182,24 @@ public class SceneTreePanel
 
         ImGui.PopID();
     }
+    public void UpdateAllObjectIDs()
+    {
+        // Convert dictionary values to a list to get consistent indexing
+        // Filter out any objects that are no longer valid (disposed/queued for deletion)
+        var objectsList = SceneObjects.Values
+            .Where(obj => GodotObject.IsInstanceValid(obj))
+            .ToList();
+        
+        // Update each object's ID based on its index in the list (starting at 1)
+        for (int i = 0; i < objectsList.Count; i++)
+        {
+            objectsList[i].ID = i + 1;
+        }
+        
+        // Update the picking system to reflect new IDs
+        Main.GetInstance().MainViewport.UpdatePicking();
+    }
+    
     public void DeleteSelectedObject()
     {
         if (SelectedObjectGuid == null || !SceneObjects.ContainsKey(SelectedObjectGuid.Value))
@@ -219,6 +237,9 @@ public class SceneTreePanel
             SelectedObjectGuid = null;
             SelectionManager.ClearSelection();
         }
+        
+        // Update all object IDs based on their new indices
+        UpdateAllObjectIDs();
     }
     
     private static void CollectChildrenRecursive(SceneObject parent, List<SceneObject> children)

@@ -81,6 +81,13 @@ public partial class SceneObject : Node3D
         SelectionManager.TransformGizmo.TransformEnd += TransformGizmoOnTransformEnd;
         InitializeControlProperties();
     }
+    
+    public override void _ExitTree()
+    {
+        // Unsubscribe from events when the object is removed from the tree
+        SelectionManager.TransformGizmo.TransformEnd -= TransformGizmoOnTransformEnd;
+        base._ExitTree();
+    }
 
     public void AddVisuals(Node3D node)
     {
@@ -89,6 +96,10 @@ public partial class SceneObject : Node3D
 
     private void TransformGizmoOnTransformEnd(int mode)
     {
+        // Validate that this object is still valid before accessing its properties
+        if (!GodotObject.IsInstanceValid(this))
+            return;
+            
         if (mode == 2)
         {
             TargetPosition = Position;
@@ -215,7 +226,7 @@ public partial class SceneObject : Node3D
         return null;
     }
 
-    public SceneObject DeepDuplicateSceneObject(int newId = -1)
+    public SceneObject DeepDuplicateSceneObject()
     {
         // Use Godot's built-in Duplicate method to create a deep copy
         SceneObject duplicatedObject = null;
@@ -236,22 +247,26 @@ public partial class SceneObject : Node3D
                 return null;
             }
             
-            // Update the ID if requested
-            if (newId > 0)
-            {
-                duplicatedObject.ID = newId;
-            }
-            else if (duplicatedObject.ID == 0)
-            {
-                // If ID is 0, assign a new unique ID
-                duplicatedObject.ID = GetUniqueSceneObjectId();
-            }
+            // IDs will be assigned based on index in SceneObjects dictionary by UpdateAllObjectIDs()
             
             // CRITICAL: Preserve essential properties that affect visual positioning and behavior
+            duplicatedObject.ObjectType = this.ObjectType;
             duplicatedObject.TargetPosition = this.TargetPosition;
             duplicatedObject.ObjectOriginOffset = this.ObjectOriginOffset;
             duplicatedObject.OriginalOriginOffset = this.OriginalOriginOffset;
             duplicatedObject.Alpha = this.Alpha;
+            
+            // Copy all keyframe dictionaries for animations
+            duplicatedObject.PosXKeyframes = new Dictionary<int, float>(this.PosXKeyframes);
+            duplicatedObject.PosYKeyframes = new Dictionary<int, float>(this.PosYKeyframes);
+            duplicatedObject.PosZKeyframes = new Dictionary<int, float>(this.PosZKeyframes);
+            duplicatedObject.RotXKeyframes = new Dictionary<int, float>(this.RotXKeyframes);
+            duplicatedObject.RotYKeyframes = new Dictionary<int, float>(this.RotYKeyframes);
+            duplicatedObject.RotZKeyframes = new Dictionary<int, float>(this.RotZKeyframes);
+            duplicatedObject.ScaleXKeyframes = new Dictionary<int, float>(this.ScaleXKeyframes);
+            duplicatedObject.ScaleYKeyframes = new Dictionary<int, float>(this.ScaleYKeyframes);
+            duplicatedObject.ScaleZKeyframes = new Dictionary<int, float>(this.ScaleZKeyframes);
+            duplicatedObject.AlphaKeyframes = new Dictionary<int, float>(this.AlphaKeyframes);
             
             // For hierarchical objects, we need to ensure children maintain their local positions
             // by properly setting their TargetPosition relative to the parent
@@ -266,9 +281,6 @@ public partial class SceneObject : Node3D
             
             // Initialize control properties for the new object
             duplicatedObject.InitializeControlProperties();
-            
-            // Recursively update IDs for all child SceneObjects to ensure uniqueness
-            UpdateChildSceneObjectIds(duplicatedObject);
         }
         catch (Exception ex)
         {
@@ -292,9 +304,24 @@ public partial class SceneObject : Node3D
                 SceneObject duplicatedChild = FindDuplicatedChild(originalChild, duplicatedParent);
                 if (duplicatedChild != null)
                 {
-                    // The key is to preserve the TARGET POSITION which drives the local positioning
-                    // Don't copy the absolute Position, as that's the world position
+                    // Preserve essential properties for child objects
+                    duplicatedChild.ObjectType = originalChild.ObjectType;
                     duplicatedChild.TargetPosition = originalChild.TargetPosition;
+                    duplicatedChild.ObjectOriginOffset = originalChild.ObjectOriginOffset;
+                    duplicatedChild.OriginalOriginOffset = originalChild.OriginalOriginOffset;
+                    duplicatedChild.Alpha = originalChild.Alpha;
+                    
+                    // Copy keyframes
+                    duplicatedChild.PosXKeyframes = new Dictionary<int, float>(originalChild.PosXKeyframes);
+                    duplicatedChild.PosYKeyframes = new Dictionary<int, float>(originalChild.PosYKeyframes);
+                    duplicatedChild.PosZKeyframes = new Dictionary<int, float>(originalChild.PosZKeyframes);
+                    duplicatedChild.RotXKeyframes = new Dictionary<int, float>(originalChild.RotXKeyframes);
+                    duplicatedChild.RotYKeyframes = new Dictionary<int, float>(originalChild.RotYKeyframes);
+                    duplicatedChild.RotZKeyframes = new Dictionary<int, float>(originalChild.RotZKeyframes);
+                    duplicatedChild.ScaleXKeyframes = new Dictionary<int, float>(originalChild.ScaleXKeyframes);
+                    duplicatedChild.ScaleYKeyframes = new Dictionary<int, float>(originalChild.ScaleYKeyframes);
+                    duplicatedChild.ScaleZKeyframes = new Dictionary<int, float>(originalChild.ScaleZKeyframes);
+                    duplicatedChild.AlphaKeyframes = new Dictionary<int, float>(originalChild.AlphaKeyframes);
                     
                     // Recursively handle grandchildren
                     PreserveChildLocalPositions(originalChild, duplicatedChild);
@@ -331,69 +358,6 @@ public partial class SceneObject : Node3D
         }
         
         return null;
-    }
-    
-    private int GetUniqueSceneObjectId()
-    {
-        // Get all existing SceneObjects to find the maximum ID
-        int maxId = 0;
-        var allSceneObjects = GetAllSceneObjects();
-        foreach (var obj in allSceneObjects)
-        {
-            maxId = Math.Max(maxId, obj.ID);
-        }
-        return maxId + 1;
-    }
-    
-    private static List<SceneObject> GetAllSceneObjects()
-    {
-        var sceneObjects = new List<SceneObject>();
-        if (Main.GetInstance()?.UI?.SceneTreePanel?.SceneObjects != null)
-        {
-            sceneObjects.AddRange(Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values);
-        }
-        return sceneObjects;
-    }
-    
-    private void UpdateChildSceneObjectIds(SceneObject rootObject)
-    {
-        int baseId = rootObject.ID;
-        int childIndex = 1;
-        
-        // Recursively update all child SceneObjects
-        foreach (var child in rootObject.GetChildren())
-        {
-            if (child is SceneObject childSceneObject)
-            {
-                // Use a strategy that ensures no conflicts across different root objects:
-                // - Parent gets ID N
-                // - Children get IDs starting at N * 50000 + 1
-                // - This ensures child IDs are far enough apart to avoid conflicts
-                // - For example:
-                //   - Root ID 1: children get 50001, 50002, etc.
-                //   - Root ID 2: children get 100001, 100002, etc.
-                //   - Root ID 3: children get 150001, 150002, etc.
-                int childId = baseId * 50000 + childIndex;
-                
-                // Ensure this ID doesn't conflict with existing objects
-                while (IsIdConflict(childId))
-                {
-                    childId++;
-                }
-                
-                childSceneObject.ID = childId;
-                childIndex++;
-                
-                // Recursively update grandchildren with smaller offsets
-                UpdateChildSceneObjectIds(childSceneObject);
-            }
-        }
-    }
-    
-    private bool IsIdConflict(int testId)
-    {
-        var allSceneObjects = GetAllSceneObjects();
-        return allSceneObjects.Any(obj => obj.ID == testId);
     }
     
     private void CopyVisualsHierarchy(Node source, Node destination)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Gizmo3DPlugin;
 using Godot;
 using ImGuiGodot;
@@ -96,8 +97,10 @@ public partial class MainViewport : SubViewport
             obj.QueueFree();
         }
 
-        // Get all SceneObjects recursively from the World
-        var allSceneObjects = GetAllSceneObjects(World);
+        // Get all SceneObjects recursively from the World, filtering out disposed objects
+        var allSceneObjects = GetAllSceneObjects(World)
+            .Where(so => GodotObject.IsInstanceValid(so))
+            .ToList();
         
         foreach (var so in allSceneObjects)
         {
@@ -225,9 +228,9 @@ public partial class MainViewport : SubViewport
         
         sceneObject.Name = string.IsNullOrEmpty(name) ? $"{objectType}{Main.GetInstance().UI.SceneTreePanel.SceneObjects.Count}" : name;
         
-        sceneObject.ID = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Count;
+        // Update all object IDs based on their indices in the SceneObjects dictionary
+        Main.GetInstance().UI.SceneTreePanel.UpdateAllObjectIDs();
         
-        UpdatePicking();
         return sceneObject;
     }
 
@@ -320,7 +323,7 @@ public partial class MainViewport : SubViewport
             
             // Get the original object ID from metadata
             var objectId = (int)pickingNode.GetMeta("object_id");
-            if (Objects.TryGetValue(objectId, out var parentObj))
+            if (Objects.TryGetValue(objectId, out var parentObj) && GodotObject.IsInstanceValid(parentObj))
             {
                 pickingNode.GlobalTransform = parentObj.GlobalTransform * new Transform3D(Basis.Identity, parentObj.ObjectOriginOffset);
             }
@@ -503,6 +506,28 @@ public partial class MainViewport : SubViewport
         Main.GetInstance().Output.BackgroundObject.BackgroundTexture.Texture = null;
     }
 
+    private string GenerateUniqueName(string baseName)
+    {
+        // Try base name with "_copy" first
+        string newName = baseName + "_copy";
+        
+        // Check if this name already exists
+        bool nameExists = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values
+            .Any(obj => obj.Name == newName);
+        
+        // If name exists, add numbers until we find a unique one
+        int counter = 1;
+        while (nameExists)
+        {
+            newName = $"{baseName}_copy{counter}";
+            nameExists = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values
+                .Any(obj => obj.Name == newName);
+            counter++;
+        }
+        
+        return newName;
+    }
+
     private void DuplicateSelectedObject()
     {
         // Check if we have selected objects to duplicate
@@ -510,29 +535,15 @@ public partial class MainViewport : SubViewport
         
         var duplicatedObjects = new List<SceneObject>();
         
-        // Find the maximum existing ID to ensure unique IDs
-        int maxExistingId = 0;
-        foreach (var existingObj in Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values)
-        {
-            maxExistingId = Math.Max(maxExistingId, existingObj.ID);
-        }
-        
         // Duplicate each selected object
         for (int i = 0; i < SelectionManager.Selection.Count; i++)
         {
             var selectedObject = SelectionManager.Selection[i];
             if (selectedObject is not SceneObject sceneObject) continue;
             
-            // Generate a new unique ID for the duplicated object
-            // Use a large base to avoid conflicts with child object IDs
-            int baseId = maxExistingId + 10000 + i;
-            int newId = baseId;
-            
-            // Ensure the ID is not 0 (which would cause issues with child objects)
-            if (newId == 0) newId = 10000;
-            
             // Create a deep duplicate of the scene object with all its children and keyframes
-            var duplicatedObject = sceneObject.DeepDuplicateSceneObject(newId);
+            // ID will be assigned based on index after adding to SceneObjects dictionary
+            var duplicatedObject = sceneObject.DeepDuplicateSceneObject();
             
             if (duplicatedObject == null)
             {
@@ -556,14 +567,14 @@ public partial class MainViewport : SubViewport
             // Add to the world
             World.AddChild(duplicatedObject);
             
-            // Update the object name
-            duplicatedObject.Name = $"{sceneObject.ObjectType}_{Main.GetInstance().UI.SceneTreePanel.SceneObjects.Count}";
+            // Update the object name - preserve original name and add a suffix
+            duplicatedObject.Name = GenerateUniqueName(sceneObject.Name);
             
             duplicatedObjects.Add(duplicatedObject);
         }
         
-        // Update the picking system to include all new objects
-        UpdatePicking();
+        // Update all object IDs based on their indices in the SceneObjects dictionary
+        Main.GetInstance().UI.SceneTreePanel.UpdateAllObjectIDs();
         
         // Select all newly duplicated objects
         SelectionManager.ClearSelection();
