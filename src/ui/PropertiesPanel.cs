@@ -799,15 +799,15 @@ public class PropertiesPanel
                     }
                 }
                 
-                // Create a scrollable area for terrain tiles
+                // Create a scrollable area for terrain tiles with fixed height
                 var availableSize = ImGui.GetContentRegionAvail();
-                var maxHeight = Math.Min(300f, availableSize.Y); // Limit height to prevent overflow
+                var tileGridHeight = 300f; // Fixed height for the tile grid
                 
-                if (ImGui.BeginChild("TerrainTiles", new Vector2(availableSize.X, maxHeight), ImGuiChildFlags.Borders))
+                if (ImGui.BeginChild("TerrainTiles", new Vector2(availableSize.X, tileGridHeight), ImGuiChildFlags.Borders))
                 {
                     // Calculate grid layout (4 columns, responsive height)
                     var buttonSize = new Vector2(16, 16);
-                    var spacing = 4f;
+                    var spacing = 8f;
                     var columns = Math.Max(4, (int)((availableSize.X - 20) / (buttonSize.X + spacing))); // Ensure at least 4 columns
                     
                     int col = 0;
