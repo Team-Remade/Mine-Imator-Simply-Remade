@@ -220,8 +220,8 @@ public class UIRenderer
     {
         _availableCameras.Clear();
         
-        // Always include the main camera from RenderOutput
-        _availableCameras.Add(Main.GetInstance().Output.MainCamera);
+        // Always include the main viewport camera (not Output.MainCamera which is the render target)
+        _availableCameras.Add(Main.GetInstance().MainViewport.Camera);
         
         // Find all SceneObjects of type Camera that have a valid camera component
         foreach (var camera in (from sceneObject in SceneTreePanel.SceneObjects.Values where sceneObject.ObjectType == SceneObject.Type.Camera select sceneObject.GetCamera()).OfType<Camera3D>())
@@ -255,19 +255,12 @@ public class UIRenderer
             ImGui.SetNextItemWidth(-1); // Full width
             if (ImGui.Combo("##CameraSelect", ref _selectedCameraIndex, GetCameraNames(), _availableCameras.Count))
             {
-                // Camera selection changed, set the selected camera as current
+                // Camera selection changed, set the selected camera as active
                 if (_selectedCameraIndex >= 0 && _selectedCameraIndex < _availableCameras.Count)
                 {
-                    // First set all cameras to non-current
-                    foreach (var camera in _availableCameras)
-                    {
-                        camera.Visible = false;
-                    }
-                    
-                    // Then set the selected camera as current
-                    var selectedCamera = _availableCameras[_selectedCameraIndex];
-                    selectedCamera.Visible = true;
-                    ActiveCamera = selectedCamera;
+                    // Don't use Visible to control camera state - just update ActiveCamera
+                    // The main camera at index 0 should always remain visible as it's the rendering camera
+                    ActiveCamera = _availableCameras[_selectedCameraIndex];
                 }
             }
 
@@ -276,8 +269,29 @@ public class UIRenderer
             var size = ImGui.GetContentRegionAvail();
             if (size.X > 5 && size.Y > 5)
             {
-                Main.GetInstance().Output.CallDeferred(SubViewport.MethodName.SetSize,
-                    new Vector2I((int)(size.Y * Main.GetInstance().UI.PropertiesPanel.Project.AspectRatio), (int)size.Y));
+                // Calculate viewport size to fit within available space while maintaining aspect ratio
+                float aspectRatio = Main.GetInstance().UI.PropertiesPanel.Project.AspectRatio;
+                
+                // Calculate dimensions if we use full height
+                float heightBasedWidth = size.Y * aspectRatio;
+                
+                // Calculate dimensions if we use full width
+                float widthBasedHeight = size.X / aspectRatio;
+                
+                // Choose whichever fits better (both width and height fit in available space)
+                Vector2I viewportSize;
+                if (heightBasedWidth <= size.X)
+                {
+                    // Height-based sizing fits, use full height
+                    viewportSize = new Vector2I((int)heightBasedWidth, (int)size.Y);
+                }
+                else
+                {
+                    // Width-based sizing fits better, use full width
+                    viewportSize = new Vector2I((int)size.X, (int)widthBasedHeight);
+                }
+                
+                Main.GetInstance().Output.CallDeferred(SubViewport.MethodName.SetSize, viewportSize);
 
                 ImGuiGD.SubViewport(Main.GetInstance().Output);
             }

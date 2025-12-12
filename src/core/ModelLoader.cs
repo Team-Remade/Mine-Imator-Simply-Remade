@@ -106,12 +106,17 @@ public partial class ModelLoader : Node
             
             var boneObject = mainViewport.CreateSceneObject(SceneObject.Type.ModelPart, null, boneName, parentNode);
             
-            // Set local position and rotation from bone's rest transform (bind pose)
-            boneObject.TargetPosition = boneRestTransform.Origin;
-            boneObject.Rotation = boneRestTransform.Basis.GetEuler();
+            // Store bone's rest position as internal offset
+            // This allows the Properties Panel to show Position as Vec3.Zero while maintaining the actual bone offset
+            boneObject.InternalBoneOffset = boneRestTransform.Origin;
+            boneObject.TargetPosition = Vector3.Zero;
             
-            // Set local scale from bone's rest transform
-            boneObject.Scale = boneRestTransform.Basis.Scale;
+            // Keep SceneObject rotation at zero for clean user-facing values
+            boneObject.Rotation = Vector3.Zero;
+            
+            // Apply the bone's rest transform rotation and scale to the Visuals node instead
+            // This maintains correct visual appearance while keeping SceneObject rotation clean
+            boneObject.Visuals.Basis = boneRestTransform.Basis;
             
             boneObject.ObjectOriginOffset = Vector3.Zero;
             boneObject.OriginalOriginOffset = Vector3.Zero;

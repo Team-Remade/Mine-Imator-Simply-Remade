@@ -2791,7 +2791,7 @@ public class Timeline
 
             if (currentAnchorFrame != -1)
             {
-                int safetyMargin = Math.Max(1, (int)(visibleFrames * 0.02f));
+                int safetyMargin = Math.Max(0, (int)(visibleFrames * 0.02f));
                 int targetAnchorFrame = newTimelineStart + safetyMargin;
                 targetAnchorFrame = Math.Max(0, targetAnchorFrame);
 
@@ -3453,7 +3453,7 @@ public class Timeline
                     {
                         float deltaPixels = leftEdge - currentMousePos.X;
                         int frames = (int)Math.Ceiling(deltaPixels / pixelsPerFrame * SCRUBBER_SCROLL_SPEED);
-                        frames = Math.Clamp(frames, 1, MAX_FRAMES_PER_TICK);
+                        frames = Math.Clamp(frames, 0, MAX_FRAMES_PER_TICK);
 
                         TimelineStart = Math.Max(0, TimelineStart - frames);
                         CurrentFrame = TimelineStart;

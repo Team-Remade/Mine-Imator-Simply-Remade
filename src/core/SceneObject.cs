@@ -69,6 +69,7 @@ public partial class SceneObject : Node3D
     public Vector3 ObjectOriginOffset = new Vector3(0, 0.5f, 0);
     public Vector3 OriginalOriginOffset = new Vector3(0, 0.5f, 0);
     public Vector3 TargetPosition = Vector3.Zero;
+    public Vector3 InternalBoneOffset = Vector3.Zero; // Stores the bone's rest position offset for model parts
 
     public override void _Ready()
     {
@@ -102,7 +103,15 @@ public partial class SceneObject : Node3D
             
         if (mode == 2)
         {
-            TargetPosition = Position;
+            // For ModelPart objects, Position includes InternalBoneOffset, so we need to subtract it
+            if (ObjectType == Type.ModelPart)
+            {
+                TargetPosition = Position - InternalBoneOffset;
+            }
+            else
+            {
+                TargetPosition = Position;
+            }
         }
     }
 
@@ -179,12 +188,29 @@ public partial class SceneObject : Node3D
         {
             if (obj is SceneObject sceneObject)
             {
-                sceneObject.Position = new Vector3(0, -0.5f, 0) + ObjectOriginOffset + sceneObject.TargetPosition;
+                // For ModelPart children, include their InternalBoneOffset in the positioning
+                if (sceneObject.ObjectType == Type.ModelPart)
+                {
+                    sceneObject.Position = new Vector3(0, -0.5f, 0) + ObjectOriginOffset + sceneObject.TargetPosition + sceneObject.InternalBoneOffset;
+                }
+                else
+                {
+                    sceneObject.Position = new Vector3(0, -0.5f, 0) + ObjectOriginOffset + sceneObject.TargetPosition;
+                }
                 sceneObject.ObjectOriginOffset = ObjectOriginOffset;
             }
         }
         
-        Position = TargetPosition;
+        // For ModelPart objects, apply both TargetPosition and InternalBoneOffset
+        // This allows the Properties Panel to show Vec3.Zero while maintaining the bone's actual offset
+        if (ObjectType == Type.ModelPart)
+        {
+            Position = TargetPosition + InternalBoneOffset;
+        }
+        else
+        {
+            Position = TargetPosition;
+        }
     }
 
     public void SetParent(SceneObject parent)
@@ -254,6 +280,7 @@ public partial class SceneObject : Node3D
             duplicatedObject.TargetPosition = this.TargetPosition;
             duplicatedObject.ObjectOriginOffset = this.ObjectOriginOffset;
             duplicatedObject.OriginalOriginOffset = this.OriginalOriginOffset;
+            duplicatedObject.InternalBoneOffset = this.InternalBoneOffset;
             duplicatedObject.Alpha = this.Alpha;
             
             // Copy all keyframe dictionaries for animations
@@ -309,6 +336,7 @@ public partial class SceneObject : Node3D
                     duplicatedChild.TargetPosition = originalChild.TargetPosition;
                     duplicatedChild.ObjectOriginOffset = originalChild.ObjectOriginOffset;
                     duplicatedChild.OriginalOriginOffset = originalChild.OriginalOriginOffset;
+                    duplicatedChild.InternalBoneOffset = originalChild.InternalBoneOffset;
                     duplicatedChild.Alpha = originalChild.Alpha;
                     
                     // Copy keyframes

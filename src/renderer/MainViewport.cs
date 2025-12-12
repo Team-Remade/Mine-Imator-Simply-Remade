@@ -136,7 +136,8 @@ public partial class MainViewport : SubViewport
                     {
                         var meshCopy = new MeshInstance3D();
                         meshCopy.Mesh = originalMesh.Mesh;
-                        meshCopy.Transform = originalMesh.Transform;
+                        // Combine Visuals transform with the mesh's local transform
+                        meshCopy.Transform = so.Visuals.Transform * originalMesh.Transform;
                         
                         // Apply picking material
                         meshCopy.MaterialOverride = PickingMaterial.Duplicate() as Material;
@@ -249,9 +250,14 @@ public partial class MainViewport : SubViewport
         switch (mode)
         {
             case 2:
-                Main.GetInstance().UI.Timeline.AddKeyframe("position.x", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Position.X);
-                Main.GetInstance().UI.Timeline.AddKeyframe("position.y", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Position.Y);
-                Main.GetInstance().UI.Timeline.AddKeyframe("position.z", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.Position.Z);
+                // For all objects, calculate TargetPosition from Position - InternalBoneOffset
+                // For ModelPart: Position - InternalBoneOffset = TargetPosition
+                // For others: Position - Vector3.Zero = TargetPosition
+                Vector3 positionToSave = selectedObject.Position - selectedObject.InternalBoneOffset;
+                
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.x", Main.GetInstance().UI.Timeline.CurrentFrame, positionToSave.X);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.y", Main.GetInstance().UI.Timeline.CurrentFrame, positionToSave.Y);
+                Main.GetInstance().UI.Timeline.AddKeyframe("position.z", Main.GetInstance().UI.Timeline.CurrentFrame, positionToSave.Z);
                 break;
             case (int)Gizmo3D.ToolMode.Rotate - 1:
                 Main.GetInstance().UI.Timeline.AddKeyframe("rotation.x", Main.GetInstance().UI.Timeline.CurrentFrame, selectedObject.RotationDegrees.X);
@@ -339,7 +345,9 @@ public partial class MainViewport : SubViewport
             var objectId = (int)pickingNode.GetMeta("object_id");
             if (Objects.TryGetValue(objectId, out var parentObj) && GodotObject.IsInstanceValid(parentObj))
             {
-                pickingNode.GlobalTransform = parentObj.GlobalTransform * new Transform3D(Basis.Identity, parentObj.ObjectOriginOffset);
+                // Don't apply ObjectOriginOffset here - it's already baked into the mesh transforms from Visuals
+                // Just follow the SceneObject's global transform
+                pickingNode.GlobalTransform = parentObj.GlobalTransform;
             }
         }
     }
@@ -417,10 +425,10 @@ public partial class MainViewport : SubViewport
             return;
         }
 
-        // Convert mouse position to viewport coordinates
+        // Use mouse position directly since ObjectPicking.Size == Size (no scaling needed)
         var viewportPos = new Vector2I(
-            (int)(mousePosition.X * ObjectPicking.Size.X / Size.X),
-            (int)(mousePosition.Y * ObjectPicking.Size.Y / Size.Y)
+            (int)mousePosition.X,
+            (int)mousePosition.Y
         );
 
         // Ensure coordinates are within bounds
@@ -526,22 +534,39 @@ public partial class MainViewport : SubViewport
 
     private string GenerateUniqueName(string baseName)
     {
-        // Try base name with "_copy" first
-        string newName = baseName + "_copy";
+        // Extract the base name and any existing number suffix
+        string nameBase = baseName;
+        int startCounter = 1;
         
-        // Check if this name already exists
-        bool nameExists = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values
-            .Any(obj => obj.Name == newName);
-        
-        // If name exists, add numbers until we find a unique one
-        int counter = 1;
-        while (nameExists)
+        // Check if the name ends with a number
+        int digitStartIndex = baseName.Length;
+        while (digitStartIndex > 0 && char.IsDigit(baseName[digitStartIndex - 1]))
         {
-            newName = $"{baseName}_copy{counter}";
+            digitStartIndex--;
+        }
+        
+        // If we found digits at the end, extract them
+        if (digitStartIndex < baseName.Length)
+        {
+            nameBase = baseName.Substring(0, digitStartIndex);
+            if (int.TryParse(baseName.Substring(digitStartIndex), out int existingNumber))
+            {
+                startCounter = existingNumber + 1;
+            }
+        }
+        
+        // Start from the extracted/calculated counter and find the next available name
+        int counter = startCounter;
+        string newName;
+        bool nameExists;
+        
+        do
+        {
+            newName = $"{nameBase}{counter}";
             nameExists = Main.GetInstance().UI.SceneTreePanel.SceneObjects.Values
                 .Any(obj => obj.Name == newName);
             counter++;
-        }
+        } while (nameExists);
         
         return newName;
     }

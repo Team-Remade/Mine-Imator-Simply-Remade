@@ -46,12 +46,18 @@ partial class FreeLookCameraBase : Camera3D
         
         // Receives mouse button input
         InputEventMouseButton mouseButtonEvent = _event as InputEventMouseButton;
-        if (mouseButtonEvent != null)        
-        {   
+        if (mouseButtonEvent != null)
+        {
             switch (mouseButtonEvent.ButtonIndex)
             {
                 case MouseButton.Right: // Only allows rotation if right click down
                 {
+                    if (mouseButtonEvent.Pressed)
+                    {
+                        // Initialize pitch tracking based on current camera rotation when starting control
+                        Vector3 euler = RotationDegrees;
+                        _total_pitch = -euler.X; // Negative because of how pitch is applied
+                    }
                     Input.MouseMode = mouseButtonEvent.Pressed ? Input.MouseModeEnum.Captured : Input.MouseModeEnum.Visible;
                 }
                 break;
@@ -137,18 +143,33 @@ partial class FreeLookCameraBase : Camera3D
 
     // Updates camera movement
     private void _update_movement(float delta)
-    { 
+    {
         // Computes desired direction from key states
 
-        if (!Main.GetInstance().MainViewport.Controlled) return;
+        if (!Main.GetInstance().MainViewport.Controlled)
+        {
+            // Reset velocity, keyboard states, and pitch tracking when not controlled to prevent stored values from carrying over
+            _velocity = Vector3.Zero;
+            _direction = Vector3.Zero;
+            _w = _s = _a = _d = _q = _e = _shift = _alt = false;
+            _total_pitch = 0.0f;
+            return;
+        }
         
-        _direction = Vector3.Zero;
-        if (_d) _direction.X += 1.0f;
-        if (_a) _direction.X -= 1.0f;
-        if (_e) _direction.Y += 1.0f;
-        if (_q) _direction.Y -= 1.0f;
-        if (_s) _direction.Z += 1.0f;
-        if (_w) _direction.Z -= 1.0f;
+        // Computes horizontal direction (X and Z) in local space
+        Vector3 horizontalDirection = Vector3.Zero;
+        if (_d) horizontalDirection.X += 1.0f;
+        if (_a) horizontalDirection.X -= 1.0f;
+        if (_s) horizontalDirection.Z += 1.0f;
+        if (_w) horizontalDirection.Z -= 1.0f;
+        
+        // Computes vertical direction (Y) for global movement
+        float verticalDirection = 0.0f;
+        if (_e) verticalDirection += 1.0f;
+        if (_q) verticalDirection -= 1.0f;
+        
+        // Combine into a single direction vector for velocity calculation
+        _direction = new Vector3(horizontalDirection.X, verticalDirection, horizontalDirection.Z);
 
         // Computes the change in velocity due to desired direction and "drag"
         // The "drag" is a constant acceleration on the camera to bring it's velocity to 0
@@ -173,14 +194,19 @@ partial class FreeLookCameraBase : Camera3D
             _velocity.Y = Mathf.Clamp(_velocity.Y + offset.Y, -_vel_multiplier, _vel_multiplier);
             _velocity.Z = Mathf.Clamp(_velocity.Z + offset.Z, -_vel_multiplier, _vel_multiplier);
 
-            Translate(_velocity * delta * speed_multi);
+            // Apply horizontal movement (X, Z) in local space (relative to camera rotation)
+            Vector3 horizontalVelocity = new Vector3(_velocity.X, 0, _velocity.Z);
+            Translate(horizontalVelocity * delta * speed_multi);
+            
+            // Apply vertical movement (Y) in global space (always up/down)
+            GlobalPosition += new Vector3(0, _velocity.Y * delta * speed_multi, 0);
         }
     }
 
     // Updates mouse look
     private void _update_mouselook()
     {
-        // Only rotates mouse if the mouse is 
+        // Only rotates mouse if the mouse is captured
         if (Input.MouseMode == Input.MouseModeEnum.Captured)
         {
             _mouse_position *= sensitivity;
@@ -188,9 +214,12 @@ partial class FreeLookCameraBase : Camera3D
             float pitch = _mouse_position.Y;
             _mouse_position = Vector2.Zero;
             
-            // Prevents looking up/down too far
-            pitch = Mathf.Clamp(pitch, -90 - _total_pitch, 90 - _total_pitch);
+            // Prevents looking up/down too far (clamp to -89 to 89 degrees to avoid gimbal lock)
+            pitch = Mathf.Clamp(pitch, -89 - _total_pitch, 89 - _total_pitch);
             _total_pitch += pitch;
+            
+            // Ensure _total_pitch stays within bounds
+            _total_pitch = Mathf.Clamp(_total_pitch, -89, 89);
         
             RotateY(Mathf.DegToRad(-yaw));
             RotateObjectLocal(new Vector3(1.0f, 0.0f, 0.0f), Mathf.DegToRad(-pitch));
